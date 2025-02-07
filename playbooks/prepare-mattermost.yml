@@ -14,6 +14,7 @@
         state: present
 
     - name: Create Mattermost data directory
+      become: false
       file:
         path: "{{ mattermost_data_dir }}"
         state: directory
@@ -22,6 +23,7 @@
         mode: "0750"
 
     - name: Create required subdirectories
+      become: false
       file:
         path: "{{ mattermost_data_dir }}/{{ item }}"
         state: directory
@@ -36,6 +38,7 @@
         - client/plugins
 
     - name: Create PostgreSQL data directory with special permissions
+      become: false
       file:
         path: "{{ mattermost_data_dir }}/postgres"
         state: directory
@@ -44,6 +47,7 @@
         mode: "0700"
 
     - name: Enable lingering for user
+      become: false
       command: "loginctl enable-linger {{ ansible_user_id }}"
       changed_when: false
 
