@@ -6,12 +6,12 @@
     enabled: no
     scope: user
   loop:
-    - mattermost-pod
+    - pod-mattermost
   ignore_errors: true
 
 - name: Remove pod and containers
   containers.podman.podman_pod:
-    name: mattermost-pod
+    name: pod-mattermost
     state: absent
   ignore_errors: true
 
@@ -20,8 +20,17 @@
     path: "{{ ansible_user_dir }}/.config/systemd/user/{{ item }}"
     state: absent
   loop:
-    - mattermost-pod.service
+    - container-mattermost-db.service
+    - container-mattermost-svc.service
+    - pod-mattermost.service
 
+# ...........................................
+- name: Reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+# ...........................................
 - name: Remove data directory
   ansible.builtin.file:
     path: "{{ mattermost_data_dir }}"

@@ -430,3 +430,28 @@
 2025-02-07 14:47:34,112 p=3665116 u=lavender n=ansible | skipping: [firefly]
 2025-02-07 14:47:34,119 p=3665116 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
 2025-02-07 14:47:34,119 p=3665116 u=lavender n=ansible | firefly                    : ok=19   changed=5    unreachable=0    failed=0    skipped=5    rescued=0    ignored=0   
+2025-02-07 15:01:39,081 p=3670190 u=lavender n=ansible | PLAY [Remove Mattermost  (not data)] **********************************************************************************************************************
+2025-02-07 15:01:39,097 p=3670190 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************************
+2025-02-07 15:01:40,007 p=3670190 u=lavender n=ansible | ok: [firefly]
+2025-02-07 15:01:40,011 p=3670190 u=lavender n=ansible | TASK [mattermost : Include prerequisites tasks] ***********************************************************************************************************
+2025-02-07 15:01:40,020 p=3670190 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 15:01:40,025 p=3670190 u=lavender n=ansible | TASK [mattermost : Include container tasks] ***************************************************************************************************************
+2025-02-07 15:01:40,032 p=3670190 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 15:01:40,036 p=3670190 u=lavender n=ansible | TASK [mattermost : Include TLS tasks] *********************************************************************************************************************
+2025-02-07 15:01:40,044 p=3670190 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 15:01:40,048 p=3670190 u=lavender n=ansible | TASK [mattermost : Include systemd tasks] *****************************************************************************************************************
+2025-02-07 15:01:40,056 p=3670190 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 15:01:40,060 p=3670190 u=lavender n=ansible | TASK [mattermost : Include cleanup tasks] *****************************************************************************************************************
+2025-02-07 15:01:40,074 p=3670190 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/mattermost/tasks/cleanup.yml for firefly
+2025-02-07 15:01:40,077 p=3670190 u=lavender n=ansible | TASK [mattermost : Stop and disable services] *************************************************************************************************************
+2025-02-07 15:01:40,933 p=3670190 u=lavender n=ansible | changed: [firefly] => (item=pod-mattermost)
+2025-02-07 15:01:40,938 p=3670190 u=lavender n=ansible | TASK [mattermost : Remove pod and containers] *************************************************************************************************************
+2025-02-07 15:01:41,170 p=3670190 u=lavender n=ansible | ok: [firefly]
+2025-02-07 15:01:41,175 p=3670190 u=lavender n=ansible | TASK [mattermost : Remove systemd services] ***************************************************************************************************************
+2025-02-07 15:01:41,333 p=3670190 u=lavender n=ansible | changed: [firefly] => (item=container-mattermost-db.service)
+2025-02-07 15:01:41,432 p=3670190 u=lavender n=ansible | changed: [firefly] => (item=container-mattermost-svc.service)
+2025-02-07 15:01:41,529 p=3670190 u=lavender n=ansible | changed: [firefly] => (item=pod-mattermost.service)
+2025-02-07 15:01:41,534 p=3670190 u=lavender n=ansible | TASK [mattermost : Remove data directory] *****************************************************************************************************************
+2025-02-07 15:01:41,548 p=3670190 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 15:01:41,553 p=3670190 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
+2025-02-07 15:01:41,553 p=3670190 u=lavender n=ansible | firefly                    : ok=5    changed=2    unreachable=0    failed=0    skipped=5    rescued=0    ignored=0   
