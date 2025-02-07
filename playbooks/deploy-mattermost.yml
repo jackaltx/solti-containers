@@ -1,5 +1,5 @@
 ---
-- name: Install Mattermost
+- name: Deploy Mattermost
   hosts: mattermost_svc
   roles:
     - role: mattermost

@@ -1,29 +1,43 @@
 ---
+#
+# .......................................................................................
 - name: Create systemd user directory
   ansible.builtin.file:
-    path: "{{ ansible_user_dir }}/.config/systemd/user"
+    path: "{{ ansible_env.HOME }}/.config/systemd/user"
     state: directory
-    mode: '0750'
+    mode: "0750"
 
-- name: Create systemd service for pod
-  ansible.builtin.template:
-    src: mattermost-pod.service.j2
-    dest: "{{ ansible_user_dir }}/.config/systemd/user/mattermost-pod.service"
-    mode: '0644'
+# .......................................................................................
+- name: Generate pod service file
+  ansible.builtin.command:
+    cmd: podman generate systemd --name mattermost --files --new
+    chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
+  register: generate_result
 
+- name: Debug generate result
+  ansible.builtin.debug:
+    var: generate_result
+
+# .......................................................................................
 - name: Reload systemd user daemon
   ansible.builtin.systemd:
     daemon_reload: yes
     scope: user
 
+# .......................................................................................
 - name: Enable and start pod with systemd
   ansible.builtin.systemd:
-    name: mattermost-pod
+    name: pod-mattermost
     state: started
     enabled: yes
     scope: user
-
-- name: Enable lingering for user
-  ansible.builtin.command: loginctl enable-linger {{ ansible_user_id }}
-  become: true
-  changed_when: false
+# .......................................................................................
+# - name: Enable and start container services
+#   ansible.builtin.systemd:
+#     name: "{{ item }}"
+#     state: started
+#     enabled: yes
+#     scope: user
+#   loop:
+#     - container-mattermost-db
+#     - container-mattermost

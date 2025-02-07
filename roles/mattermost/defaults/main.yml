@@ -3,10 +3,10 @@
 
 # TLS Configuration
 mattermost_enable_tls: false
-mattermost_tls_cert_file: ""  # Path relative to config dir
-mattermost_tls_key_file: ""   # Path relative to config dir
-mattermost_force_tls: false   # Force all connections to use HTTPS
-mattermost_tls_strict_transport: false  # Enable strict transport security
+mattermost_tls_cert_file: "" # Path relative to config dir
+mattermost_tls_key_file: "" # Path relative to config dir
+mattermost_force_tls: false # Force all connections to use HTTPS
+mattermost_tls_strict_transport: false # Enable strict transport security
 mattermost_tls_min_version: "1.2"
 mattermost_state: present
 mattermost_force_reload: false
@@ -14,7 +14,6 @@ mattermost_force_reload: false
 # Container settings
 mattermost_image: "docker.io/mattermost/mattermost-team-edition:latest"
 mattermost_postgres_image: "docker.io/library/postgres:13-alpine"
-podman_network_name: "mattermost-net"
 
 # Directory settings
 mattermost_data_dir: "{{ ansible_user_dir }}/mattermost-data"
@@ -26,7 +25,7 @@ mattermost_db_user: "mmuser"
 
 # Application settings
 mattermost_port: 8065
-mattermost_site_url: ""  # Leave empty for automatic
+mattermost_site_url: "" # Leave empty for automatic
 mattermost_site_name: "Mattermost"
 mattermost_enable_open_server: true
 mattermost_enable_user_creation: true

@@ -6,13 +6,6 @@
     state: directory
     mode: "0750"
   when: mattermost_enable_tls | bool
-- name: Ensure podman is installed
-  ansible.builtin.package:
-    name:
-      - podman
-      - podman-compose
-    state: present
-  become: true
 
 # ...................................................
 - name: Create Mattermost config
