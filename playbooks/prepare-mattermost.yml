@@ -1,36 +1,21 @@
 ---
+#
 # prepare-mattermost.yml - Run with ansible-playbook -K prepare-mattermost.yml
+#
 - name: Prepare system for Mattermost installation
-  hosts: all
-  become: true
+  hosts: mattermost_svc
   vars:
-    mattermost_data_dir: "{{ ansible_user_dir }}/mattermost-data"
+    mattermost_data_dir: "{{ ansible_env.HOME }}/mattermost-data" # Use HOME instead of user_dir
+
   tasks:
-    - name: Install required packages
-      package:
-        name:
-          - podman
-          - podman-compose
-        state: present
-
-    - name: Create Mattermost data directory
-      become: false
-      file:
-        path: "{{ mattermost_data_dir }}"
-        state: directory
-        owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_id }}"
-        mode: "0750"
-
-    - name: Create required subdirectories
-      become: false
+    # These tasks run as the regular user
+    - name: Create Mattermost directories
       file:
         path: "{{ mattermost_data_dir }}/{{ item }}"
         state: directory
-        owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_id }}"
         mode: "0750"
       loop:
+        - "" # Creates the base directory
         - config
         - data
         - logs
@@ -38,27 +23,34 @@
         - client/plugins
 
     - name: Create PostgreSQL data directory with special permissions
-      become: false
       file:
         path: "{{ mattermost_data_dir }}/postgres"
         state: directory
-        owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_id }}"
         mode: "0700"
 
-    - name: Enable lingering for user
-      become: false
-      command: "loginctl enable-linger {{ ansible_user_id }}"
-      changed_when: false
-
-    - name: Set SELinux context for container volumes
+    # These tasks need root
+    - name: Perform system-level tasks
+      become: true
       block:
-        - name: Set container file context
-          sefcontext:
-            target: "{{ mattermost_data_dir }}(/.*)?"
-            setype: container_file_t
+        - name: Install required packages
+          package:
+            name:
+              - podman
+              - podman-compose
             state: present
 
-        - name: Apply SELinux context
-          command: restorecon -Rv "{{ mattermost_data_dir }}"
-      when: ansible_os_family == "RedHat"
+        - name: Enable lingering for user
+          command: "loginctl enable-linger {{ ansible_user_id }}"
+          changed_when: false
+
+        - name: Set SELinux context for container volumes
+          block:
+            - name: Set container file context
+              sefcontext:
+                target: "{{ mattermost_data_dir }}(/.*)?"
+                setype: container_file_t
+                state: present
+
+            - name: Apply SELinux context
+              command: restorecon -Rv "{{ mattermost_data_dir }}"
+          when: ansible_os_family == "RedHat"
