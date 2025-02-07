@@ -1,6 +1,6 @@
 ---
 - name: Install Mattermost
-  hosts: matermost_svc
+  hosts: mattermost_svc
   roles:
     - role: mattermost
       vars:

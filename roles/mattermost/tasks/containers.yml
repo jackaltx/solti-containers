@@ -1,15 +1,26 @@
 ---
-- name: Create podman network
-  containers.podman.podman_network:
-    name: "{{ podman_network_name }}"
-    state: present
+#
+# ..........................................................
+- name: Ensure pod is removed if it exists
+  containers.podman.podman_pod:
+    name: mattermost-pod
+    state: absent
+  ignore_errors: true
 
+# ..........................................................
+- name: Create Mattermost pod
+  containers.podman.podman_pod:
+    name: mattermost-pod
+    ports:
+      - "{{ mattermost_port }}:8065"
+
+# ..........................................................
 - name: Deploy PostgreSQL container
   containers.podman.podman_container:
     name: mattermost-db
+    pod: mattermost-pod
     image: "{{ mattermost_postgres_image }}"
     state: started
-    network: "{{ podman_network_name }}"
     volume:
       - "{{ mattermost_data_dir }}/postgres:/var/lib/postgresql/data:Z"
     env:
@@ -18,18 +29,22 @@
       POSTGRES_DB: "{{ mattermost_db_name }}"
     restart_policy: always
 
+# ..........................................................
 - name: Wait for PostgreSQL to be ready
   ansible.builtin.wait_for:
+    host: localhost
+    port: 5432
     timeout: 30
+  register: pg_wait_result
+  ignore_errors: true
 
+# ..........................................................
 - name: Deploy Mattermost container
   containers.podman.podman_container:
     name: mattermost
+    pod: mattermost-pod
     image: "{{ mattermost_image }}"
     state: started
-    network: "{{ podman_network_name }}"
-    ports:
-      - "{{ mattermost_port }}:8065"
     volume:
       - "{{ mattermost_data_dir }}/config:/mattermost/config:Z"
       - "{{ mattermost_data_dir }}/data:/mattermost/data:Z"

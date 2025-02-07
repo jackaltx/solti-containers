@@ -26,12 +26,12 @@ all:
 
       children:
         # ========================================
-        matermost_svc:
+        mattermost_svc:
           hosts:
             firefly:
               # host_vars
 
           # .......................................
-          # matermost_svc only vars
+          # mattermost_svc only vars
           vars:
             debug_level: warn

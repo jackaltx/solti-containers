@@ -1,0 +1,15 @@
+[Unit]
+Description=Mattermost Pod
+After=network.target
+
+[Service]
+Type=simple
+TimeoutStartSec=5m
+ExecStartPre=-/usr/bin/podman pod rm -f mattermost-pod
+ExecStart=/usr/bin/podman pod start -a mattermost-pod
+ExecStop=/usr/bin/podman pod stop -t 10 mattermost-pod
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target

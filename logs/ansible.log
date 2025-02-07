@@ -1,66 +1,154 @@
-2025-02-06 20:22:38,954 p=2700178 u=lavender n=ansible | [WARNING]: Error in vault password file loading (default): Vault password script /home/lavender/.vault-pass returned non-zero (1): None
-
-2025-02-06 20:22:38,954 p=2700178 u=lavender n=ansible | ERROR! Vault password script /home/lavender/.vault-pass returned non-zero (1): None
-2025-02-06 20:23:00,903 p=2700273 u=lavender n=ansible | ERROR! Empty playbook, nothing to do: /home/lavender/sandbox/ansible/jackaltx/solti-containers/playbooks/mattermost.yml
-2025-02-06 20:23:13,897 p=2700358 u=lavender n=ansible | PLAY [Install Mattermost] *********************************************************************************************************************
-2025-02-06 20:23:13,914 p=2700358 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************
-2025-02-06 20:23:14,804 p=2700358 u=lavender n=ansible | ok: [firefly]
-2025-02-06 20:23:14,807 p=2700358 u=lavender n=ansible | TASK [mattermost : Include prerequisites tasks] ***********************************************************************************************
-2025-02-06 20:23:14,823 p=2700358 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/mattermost/tasks/prerequisites.yml for firefly
-2025-02-06 20:23:14,827 p=2700358 u=lavender n=ansible | TASK [mattermost : Create TLS directory] ******************************************************************************************************
-2025-02-06 20:23:14,842 p=2700358 u=lavender n=ansible | skipping: [firefly]
-2025-02-06 20:23:14,848 p=2700358 u=lavender n=ansible | TASK [mattermost : Ensure podman is installed] ************************************************************************************************
-2025-02-06 20:23:23,706 p=2700358 u=lavender n=ansible | changed: [firefly]
-2025-02-06 20:23:23,710 p=2700358 u=lavender n=ansible | TASK [mattermost : Create Mattermost data directories] ****************************************************************************************
-2025-02-06 20:23:23,867 p=2700358 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data)
-2025-02-06 20:23:23,964 p=2700358 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/config)
-2025-02-06 20:23:24,065 p=2700358 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/data)
-2025-02-06 20:23:24,165 p=2700358 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/logs)
-2025-02-06 20:23:24,265 p=2700358 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/plugins)
-2025-02-06 20:23:24,366 p=2700358 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/client/plugins)
-2025-02-06 20:23:24,469 p=2700358 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/postgres)
-2025-02-06 20:23:24,474 p=2700358 u=lavender n=ansible | TASK [mattermost : Create Mattermost config] **************************************************************************************************
-2025-02-06 20:23:24,782 p=2700358 u=lavender n=ansible | changed: [firefly]
-2025-02-06 20:23:24,786 p=2700358 u=lavender n=ansible | TASK [mattermost : Include container tasks] ***************************************************************************************************
-2025-02-06 20:23:24,800 p=2700358 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/mattermost/tasks/containers.yml for firefly
-2025-02-06 20:23:24,805 p=2700358 u=lavender n=ansible | TASK [mattermost : Create podman network] *****************************************************************************************************
-2025-02-06 20:23:25,077 p=2700358 u=lavender n=ansible | changed: [firefly]
-2025-02-06 20:23:25,080 p=2700358 u=lavender n=ansible | TASK [mattermost : Deploy PostgreSQL container] ***********************************************************************************************
-2025-02-06 20:23:28,950 p=2700358 u=lavender n=ansible | changed: [firefly]
-2025-02-06 20:23:28,953 p=2700358 u=lavender n=ansible | TASK [mattermost : Wait for PostgreSQL to be ready] *******************************************************************************************
-2025-02-06 20:23:59,134 p=2700358 u=lavender n=ansible | ok: [firefly]
-2025-02-06 20:23:59,138 p=2700358 u=lavender n=ansible | TASK [mattermost : Deploy Mattermost container] ***********************************************************************************************
-2025-02-06 20:23:59,268 p=2700358 u=lavender n=ansible | fatal: [firefly]: FAILED! => {"changed": false, "msg": "Unsupported parameters for (containers.podman.podman_container) module: depends_on. Supported parameters include: annotation, arch, attach, authfile, blkio_weight, blkio_weight_device, cap_add, cap_drop, cgroup_conf, cgroup_parent, cgroupns, cgroups, chrootdirs, cidfile, cmd_args, command, conmon_pidfile, cpu_period, cpu_quota, cpu_rt_period, cpu_rt_runtime, cpu_shares, cpus, cpuset_cpus, cpuset_mems, debug, decryption_key, delete_depend, delete_time, delete_volumes, detach, detach_keys, device, device_cgroup_rule, device_read_bps, device_read_iops, device_write_bps, device_write_iops, dns, dns_option, dns_search, entrypoint, env, env_file, env_host, env_merge, etc_hosts, executable, expose, force_delete, force_restart, generate_systemd, gidmap, gpus, group_add, group_entry, health_startup_cmd, health_startup_interval, health_startup_retries, health_startup_success, health_startup_timeout, healthcheck, healthcheck_failure_action, healthcheck_interval, healthcheck_retries, healthcheck_start_period, healthcheck_timeout, hooks_dir, hostname, hostuser, http_proxy, image, image_strict, image_volume, init, init_ctr, init_path, interactive, ip, ip6, ipc, kernel_memory, label, label_file, log_driver, log_level, log_opt, mac_address, memory, memory_reservation, memory_swap, memory_swappiness, mount, name, network, network_aliases, no_healthcheck, no_hosts, oom_kill_disable, oom_score_adj, os, passwd, passwd_entry, personality, pid, pid_file, pids_limit, platform, pod, pod_id_file, preserve_fd, preserve_fds, privileged, publish, publish_all, pull, quadlet_dir, quadlet_file_mode, quadlet_filename, quadlet_options, rdt_class, read_only, read_only_tmpfs, recreate, requires, restart_policy, restart_time, retry, retry_delay, rm, rmi, rootfs, sdnotify, seccomp_policy, secrets, security_opt, shm_size, shm_size_systemd, sig_proxy, state, stop_signal, stop_time, stop_timeout, subgidname, subuidname, sysctl, systemd, timeout, timezone, tls_verify, tmpfs, tty, uidmap, ulimit, umask, unsetenv, unsetenv_all, user, userns, uts, variant, volume, volumes_from, workdir (add_hosts, auto_remove, capabilities, dns_opts, dns_search_domains, dns_servers, env_files, exposed, exposed_ports, groups, health_cmd, health_interval, health_on_failure, health_retries, health_start_period, health_timeout, ipc_mode, labels, log_options, mounts, net, network_alias, network_mode, pid_mode, ports, published, published_ports, remove, restart, ulimits, userns_mode, volumes, working_dir)."}
-2025-02-06 20:23:59,268 p=2700358 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************
-2025-02-06 20:23:59,268 p=2700358 u=lavender n=ansible | firefly                    : ok=9    changed=5    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
-2025-02-06 20:27:21,295 p=2702187 u=lavender n=ansible | PLAY [Install Mattermost] *********************************************************************************************************************
-2025-02-06 20:27:21,313 p=2702187 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************
-2025-02-06 20:27:22,221 p=2702187 u=lavender n=ansible | ok: [firefly]
-2025-02-06 20:27:22,224 p=2702187 u=lavender n=ansible | TASK [mattermost : Include prerequisites tasks] ***********************************************************************************************
-2025-02-06 20:27:22,239 p=2702187 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/mattermost/tasks/prerequisites.yml for firefly
-2025-02-06 20:27:22,243 p=2702187 u=lavender n=ansible | TASK [mattermost : Create TLS directory] ******************************************************************************************************
-2025-02-06 20:27:22,259 p=2702187 u=lavender n=ansible | skipping: [firefly]
-2025-02-06 20:27:22,262 p=2702187 u=lavender n=ansible | TASK [mattermost : Ensure podman is installed] ************************************************************************************************
-2025-02-06 20:27:23,409 p=2702187 u=lavender n=ansible | ok: [firefly]
-2025-02-06 20:27:23,413 p=2702187 u=lavender n=ansible | TASK [mattermost : Create Mattermost data directories] ****************************************************************************************
-2025-02-06 20:27:23,566 p=2702187 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data)
-2025-02-06 20:27:23,672 p=2702187 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/config)
-2025-02-06 20:27:23,774 p=2702187 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/data)
-2025-02-06 20:27:23,872 p=2702187 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/logs)
-2025-02-06 20:27:23,971 p=2702187 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/plugins)
-2025-02-06 20:27:24,077 p=2702187 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/client/plugins)
-2025-02-06 20:27:24,178 p=2702187 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/postgres)
-2025-02-06 20:27:24,184 p=2702187 u=lavender n=ansible | TASK [mattermost : Create Mattermost config] **************************************************************************************************
-2025-02-06 20:27:24,495 p=2702187 u=lavender n=ansible | changed: [firefly]
-2025-02-06 20:27:24,499 p=2702187 u=lavender n=ansible | TASK [mattermost : Include container tasks] ***************************************************************************************************
-2025-02-06 20:27:24,515 p=2702187 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/mattermost/tasks/containers.yml for firefly
-2025-02-06 20:27:24,518 p=2702187 u=lavender n=ansible | TASK [mattermost : Create podman network] *****************************************************************************************************
-2025-02-06 20:27:24,746 p=2702187 u=lavender n=ansible | ok: [firefly]
-2025-02-06 20:27:24,749 p=2702187 u=lavender n=ansible | TASK [mattermost : Deploy PostgreSQL container] ***********************************************************************************************
-2025-02-06 20:27:25,258 p=2702187 u=lavender n=ansible | changed: [firefly]
-2025-02-06 20:27:25,262 p=2702187 u=lavender n=ansible | TASK [mattermost : Wait for PostgreSQL to be ready] *******************************************************************************************
-2025-02-06 20:27:55,434 p=2702187 u=lavender n=ansible | ok: [firefly]
-2025-02-06 20:27:55,437 p=2702187 u=lavender n=ansible | TASK [mattermost : Deploy Mattermost container] ***********************************************************************************************
-2025-02-06 20:27:55,571 p=2702187 u=lavender n=ansible | fatal: [firefly]: FAILED! => {"changed": false, "msg": "Unsupported parameters for (containers.podman.podman_container) module: depends_on. Supported parameters include: annotation, arch, attach, authfile, blkio_weight, blkio_weight_device, cap_add, cap_drop, cgroup_conf, cgroup_parent, cgroupns, cgroups, chrootdirs, cidfile, cmd_args, command, conmon_pidfile, cpu_period, cpu_quota, cpu_rt_period, cpu_rt_runtime, cpu_shares, cpus, cpuset_cpus, cpuset_mems, debug, decryption_key, delete_depend, delete_time, delete_volumes, detach, detach_keys, device, device_cgroup_rule, device_read_bps, device_read_iops, device_write_bps, device_write_iops, dns, dns_option, dns_search, entrypoint, env, env_file, env_host, env_merge, etc_hosts, executable, expose, force_delete, force_restart, generate_systemd, gidmap, gpus, group_add, group_entry, health_startup_cmd, health_startup_interval, health_startup_retries, health_startup_success, health_startup_timeout, healthcheck, healthcheck_failure_action, healthcheck_interval, healthcheck_retries, healthcheck_start_period, healthcheck_timeout, hooks_dir, hostname, hostuser, http_proxy, image, image_strict, image_volume, init, init_ctr, init_path, interactive, ip, ip6, ipc, kernel_memory, label, label_file, log_driver, log_level, log_opt, mac_address, memory, memory_reservation, memory_swap, memory_swappiness, mount, name, network, network_aliases, no_healthcheck, no_hosts, oom_kill_disable, oom_score_adj, os, passwd, passwd_entry, personality, pid, pid_file, pids_limit, platform, pod, pod_id_file, preserve_fd, preserve_fds, privileged, publish, publish_all, pull, quadlet_dir, quadlet_file_mode, quadlet_filename, quadlet_options, rdt_class, read_only, read_only_tmpfs, recreate, requires, restart_policy, restart_time, retry, retry_delay, rm, rmi, rootfs, sdnotify, seccomp_policy, secrets, security_opt, shm_size, shm_size_systemd, sig_proxy, state, stop_signal, stop_time, stop_timeout, subgidname, subuidname, sysctl, systemd, timeout, timezone, tls_verify, tmpfs, tty, uidmap, ulimit, umask, unsetenv, unsetenv_all, user, userns, uts, variant, volume, volumes_from, workdir (add_hosts, auto_remove, capabilities, dns_opts, dns_search_domains, dns_servers, env_files, exposed, exposed_ports, groups, health_cmd, health_interval, health_on_failure, health_retries, health_start_period, health_timeout, ipc_mode, labels, log_options, mounts, net, network_alias, network_mode, pid_mode, ports, published, published_ports, remove, restart, ulimits, userns_mode, volumes, working_dir)."}
-2025-02-06 20:27:55,571 p=2702187 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************
-2025-02-06 20:27:55,571 p=2702187 u=lavender n=ansible | firefly                    : ok=9    changed=3    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
+2025-02-07 11:36:05,652 p=3051951 u=lavender n=ansible | PLAY [Install Mattermost] *********************************************************************************************************************
+2025-02-07 11:36:05,667 p=3051951 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************
+2025-02-07 11:36:06,567 p=3051951 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:36:06,570 p=3051951 u=lavender n=ansible | TASK [mattermost : Include prerequisites tasks] ***********************************************************************************************
+2025-02-07 11:36:06,586 p=3051951 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/mattermost/tasks/prerequisites.yml for firefly
+2025-02-07 11:36:06,589 p=3051951 u=lavender n=ansible | TASK [mattermost : Create TLS directory] ******************************************************************************************************
+2025-02-07 11:36:06,604 p=3051951 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 11:36:06,608 p=3051951 u=lavender n=ansible | TASK [mattermost : Ensure podman is installed] ************************************************************************************************
+2025-02-07 11:36:09,791 p=3051951 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:36:09,795 p=3051951 u=lavender n=ansible | TASK [mattermost : Create Mattermost data directories] ****************************************************************************************
+2025-02-07 11:36:09,947 p=3051951 u=lavender n=ansible | ok: [firefly] => (item=/home/lavender/mattermost-data)
+2025-02-07 11:36:10,053 p=3051951 u=lavender n=ansible | ok: [firefly] => (item=/home/lavender/mattermost-data/config)
+2025-02-07 11:36:10,156 p=3051951 u=lavender n=ansible | ok: [firefly] => (item=/home/lavender/mattermost-data/data)
+2025-02-07 11:36:10,257 p=3051951 u=lavender n=ansible | ok: [firefly] => (item=/home/lavender/mattermost-data/logs)
+2025-02-07 11:36:10,356 p=3051951 u=lavender n=ansible | ok: [firefly] => (item=/home/lavender/mattermost-data/plugins)
+2025-02-07 11:36:10,455 p=3051951 u=lavender n=ansible | ok: [firefly] => (item=/home/lavender/mattermost-data/client/plugins)
+2025-02-07 11:36:10,552 p=3051951 u=lavender n=ansible | An exception occurred during task execution. To see the full traceback, use -vvv. The error was: PermissionError: [Errno 1] Operation not permitted: b'/home/lavender/mattermost-data/postgres'
+2025-02-07 11:36:10,552 p=3051951 u=lavender n=ansible | failed: [firefly] (item=/home/lavender/mattermost-data/postgres) => {"ansible_loop_var": "item", "changed": false, "item": "/home/lavender/mattermost-data/postgres", "module_stderr": "Traceback (most recent call last):\n  File \"<stdin>\", line 107, in <module>\n  File \"<stdin>\", line 99, in _ansiballz_main\n  File \"<stdin>\", line 47, in invoke_module\n  File \"<frozen runpy>\", line 226, in run_module\n  File \"<frozen runpy>\", line 98, in _run_module_code\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/tmp/ansible_ansible.builtin.file_payload_6liq4p7i/ansible_ansible.builtin.file_payload.zip/ansible/modules/file.py\", line 987, in <module>\n  File \"/tmp/ansible_ansible.builtin.file_payload_6liq4p7i/ansible_ansible.builtin.file_payload.zip/ansible/modules/file.py\", line 973, in main\n  File \"/tmp/ansible_ansible.builtin.file_payload_6liq4p7i/ansible_ansible.builtin.file_payload.zip/ansible/modules/file.py\", line 680, in ensure_directory\n  File \"/tmp/ansible_ansible.builtin.file_payload_6liq4p7i/ansible_ansible.builtin.file_payload.zip/ansible/module_utils/basic.py\", line 1159, in set_fs_attributes_if_different\n    changed = self.set_mode_if_different(\n        file_args['path'], file_args['mode'], changed, diff, expand\n    )\n  File \"/tmp/ansible_ansible.builtin.file_payload_6liq4p7i/ansible_ansible.builtin.file_payload.zip/ansible/module_utils/basic.py\", line 919, in set_mode_if_different\n    os.chmod(b_path, mode)\n    ~~~~~~~~^^^^^^^^^^^^^^\nPermissionError: [Errno 1] Operation not permitted: b'/home/lavender/mattermost-data/postgres'\n", "module_stdout": "", "msg": "MODULE FAILURE\nSee stdout/stderr for the exact error", "rc": 1}
+2025-02-07 11:36:10,555 p=3051951 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************
+2025-02-07 11:36:10,555 p=3051951 u=lavender n=ansible | firefly                    : ok=3    changed=0    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
+2025-02-07 11:44:45,700 p=3053928 u=lavender n=ansible | PLAY [Install Mattermost] *********************************************************************************************************************
+2025-02-07 11:44:45,715 p=3053928 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************
+2025-02-07 11:44:46,619 p=3053928 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:44:46,623 p=3053928 u=lavender n=ansible | TASK [mattermost : Include prerequisites tasks] ***********************************************************************************************
+2025-02-07 11:44:46,639 p=3053928 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/mattermost/tasks/prerequisites.yml for firefly
+2025-02-07 11:44:46,642 p=3053928 u=lavender n=ansible | TASK [mattermost : Create TLS directory] ******************************************************************************************************
+2025-02-07 11:44:46,657 p=3053928 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 11:44:46,661 p=3053928 u=lavender n=ansible | TASK [mattermost : Ensure podman is installed] ************************************************************************************************
+2025-02-07 11:44:49,576 p=3053928 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:44:49,580 p=3053928 u=lavender n=ansible | TASK [mattermost : Create Mattermost data directories] ****************************************************************************************
+2025-02-07 11:44:49,734 p=3053928 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data)
+2025-02-07 11:44:49,835 p=3053928 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/config)
+2025-02-07 11:44:49,936 p=3053928 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/data)
+2025-02-07 11:44:50,039 p=3053928 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/logs)
+2025-02-07 11:44:50,138 p=3053928 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/plugins)
+2025-02-07 11:44:50,236 p=3053928 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/client/plugins)
+2025-02-07 11:44:50,336 p=3053928 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/postgres)
+2025-02-07 11:44:50,341 p=3053928 u=lavender n=ansible | TASK [mattermost : Create Mattermost config] **************************************************************************************************
+2025-02-07 11:44:50,652 p=3053928 u=lavender n=ansible | changed: [firefly]
+2025-02-07 11:44:50,656 p=3053928 u=lavender n=ansible | TASK [mattermost : Include container tasks] ***************************************************************************************************
+2025-02-07 11:44:50,671 p=3053928 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/mattermost/tasks/containers.yml for firefly
+2025-02-07 11:44:50,674 p=3053928 u=lavender n=ansible | TASK [mattermost : Create podman network] *****************************************************************************************************
+2025-02-07 11:44:50,953 p=3053928 u=lavender n=ansible | changed: [firefly]
+2025-02-07 11:44:50,957 p=3053928 u=lavender n=ansible | TASK [mattermost : Deploy PostgreSQL container] ***********************************************************************************************
+2025-02-07 11:44:51,474 p=3053928 u=lavender n=ansible | changed: [firefly]
+2025-02-07 11:44:51,478 p=3053928 u=lavender n=ansible | TASK [mattermost : Wait for PostgreSQL to be ready] *******************************************************************************************
+2025-02-07 11:45:21,644 p=3053928 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:45:21,649 p=3053928 u=lavender n=ansible | TASK [mattermost : Deploy Mattermost container] ***********************************************************************************************
+2025-02-07 11:45:22,092 p=3053928 u=lavender n=ansible | changed: [firefly]
+2025-02-07 11:45:22,096 p=3053928 u=lavender n=ansible | TASK [mattermost : Include TLS tasks] *********************************************************************************************************
+2025-02-07 11:45:22,111 p=3053928 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/mattermost/tasks/tls.yml for firefly
+2025-02-07 11:45:22,116 p=3053928 u=lavender n=ansible | TASK [mattermost : Check TLS certificate and key paths] ***************************************************************************************
+2025-02-07 11:45:22,131 p=3053928 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 11:45:22,136 p=3053928 u=lavender n=ansible | TASK [mattermost : Copy TLS certificate] ******************************************************************************************************
+2025-02-07 11:45:22,151 p=3053928 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 11:45:22,155 p=3053928 u=lavender n=ansible | TASK [mattermost : Copy TLS private key] ******************************************************************************************************
+2025-02-07 11:45:22,170 p=3053928 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 11:45:22,175 p=3053928 u=lavender n=ansible | TASK [mattermost : Include systemd tasks] *****************************************************************************************************
+2025-02-07 11:45:22,189 p=3053928 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/mattermost/tasks/systemd.yml for firefly
+2025-02-07 11:45:22,194 p=3053928 u=lavender n=ansible | TASK [mattermost : Create systemd user directory] *********************************************************************************************
+2025-02-07 11:45:22,309 p=3053928 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:45:22,313 p=3053928 u=lavender n=ansible | TASK [mattermost : Create systemd service for pod] ********************************************************************************************
+2025-02-07 11:45:22,549 p=3053928 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:45:22,553 p=3053928 u=lavender n=ansible | TASK [mattermost : Reload systemd user daemon] ************************************************************************************************
+2025-02-07 11:45:23,005 p=3053928 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:45:23,009 p=3053928 u=lavender n=ansible | TASK [mattermost : Enable and start pod with systemd] *****************************************************************************************
+2025-02-07 11:45:23,209 p=3053928 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:45:23,212 p=3053928 u=lavender n=ansible | TASK [mattermost : Enable lingering for user] *************************************************************************************************
+2025-02-07 11:45:23,633 p=3053928 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:45:23,637 p=3053928 u=lavender n=ansible | TASK [mattermost : Include cleanup tasks] *****************************************************************************************************
+2025-02-07 11:45:23,646 p=3053928 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 11:45:23,651 p=3053928 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************
+2025-02-07 11:45:23,651 p=3053928 u=lavender n=ansible | firefly                    : ok=17   changed=5    unreachable=0    failed=0    skipped=5    rescued=0    ignored=0   
+2025-02-07 11:52:37,629 p=3169758 u=lavender n=ansible | PLAY [Install Mattermost] *********************************************************************************************************************
+2025-02-07 11:52:37,646 p=3169758 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************
+2025-02-07 11:52:38,548 p=3169758 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:52:38,552 p=3169758 u=lavender n=ansible | TASK [mattermost : Include prerequisites tasks] ***********************************************************************************************
+2025-02-07 11:52:38,567 p=3169758 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/mattermost/tasks/prerequisites.yml for firefly
+2025-02-07 11:52:38,570 p=3169758 u=lavender n=ansible | TASK [mattermost : Create TLS directory] ******************************************************************************************************
+2025-02-07 11:52:38,584 p=3169758 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 11:52:38,588 p=3169758 u=lavender n=ansible | TASK [mattermost : Ensure podman is installed] ************************************************************************************************
+2025-02-07 11:52:41,520 p=3169758 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:52:41,524 p=3169758 u=lavender n=ansible | TASK [mattermost : Create Mattermost data directories] ****************************************************************************************
+2025-02-07 11:52:41,680 p=3169758 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data)
+2025-02-07 11:52:41,779 p=3169758 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/config)
+2025-02-07 11:52:41,879 p=3169758 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/data)
+2025-02-07 11:52:41,980 p=3169758 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/logs)
+2025-02-07 11:52:42,080 p=3169758 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/plugins)
+2025-02-07 11:52:42,180 p=3169758 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/client/plugins)
+2025-02-07 11:52:42,281 p=3169758 u=lavender n=ansible | changed: [firefly] => (item=/home/lavender/mattermost-data/postgres)
+2025-02-07 11:52:42,287 p=3169758 u=lavender n=ansible | TASK [mattermost : Create Mattermost config] **************************************************************************************************
+2025-02-07 11:52:42,594 p=3169758 u=lavender n=ansible | changed: [firefly]
+2025-02-07 11:52:42,598 p=3169758 u=lavender n=ansible | TASK [mattermost : Include container tasks] ***************************************************************************************************
+2025-02-07 11:52:42,612 p=3169758 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/mattermost/tasks/containers.yml for firefly
+2025-02-07 11:52:42,616 p=3169758 u=lavender n=ansible | TASK [mattermost : Create Mattermost pod] *****************************************************************************************************
+2025-02-07 11:52:42,970 p=3169758 u=lavender n=ansible | changed: [firefly]
+2025-02-07 11:52:42,975 p=3169758 u=lavender n=ansible | TASK [mattermost : Deploy PostgreSQL container] ***********************************************************************************************
+2025-02-07 11:52:43,494 p=3169758 u=lavender n=ansible | changed: [firefly]
+2025-02-07 11:52:43,497 p=3169758 u=lavender n=ansible | TASK [mattermost : Wait for PostgreSQL to be ready] *******************************************************************************************
+2025-02-07 11:53:13,668 p=3169758 u=lavender n=ansible | ok: [firefly]
+2025-02-07 11:53:13,672 p=3169758 u=lavender n=ansible | TASK [mattermost : Deploy Mattermost container] ***********************************************************************************************
+2025-02-07 11:53:13,899 p=3169758 u=lavender n=ansible | fatal: [firefly]: FAILED! => {"changed": false, "msg": "Container mattermost exited with code 125 when runed", "stderr": "Error: no pod with name or ID mattermost-pod found: no such pod\n", "stderr_lines": ["Error: no pod with name or ID mattermost-pod found: no such pod"], "stdout": "", "stdout_lines": []}
+2025-02-07 11:53:13,900 p=3169758 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************
+2025-02-07 11:53:13,900 p=3169758 u=lavender n=ansible | firefly                    : ok=9    changed=4    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
+2025-02-07 12:03:49,442 p=3172796 u=lavender n=ansible | PLAY [Install system requirements] ************************************************************************************************************
+2025-02-07 12:03:49,446 p=3172796 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************
+2025-02-07 12:03:50,843 p=3172796 u=lavender n=ansible | ok: [firefly]
+2025-02-07 12:03:50,846 p=3172796 u=lavender n=ansible | TASK [Install required packages] **************************************************************************************************************
+2025-02-07 12:03:53,843 p=3172796 u=lavender n=ansible | ok: [firefly]
+2025-02-07 12:03:53,847 p=3172796 u=lavender n=ansible | TASK [Enable lingering for user] **************************************************************************************************************
+2025-02-07 12:03:54,041 p=3172796 u=lavender n=ansible | ok: [firefly]
+2025-02-07 12:03:54,045 p=3172796 u=lavender n=ansible | TASK [Set correct SELinux context for container volumes] **************************************************************************************
+2025-02-07 12:03:54,867 p=3172796 u=lavender n=ansible | changed: [firefly]
+2025-02-07 12:03:54,871 p=3172796 u=lavender n=ansible | TASK [Apply SELinux context] ******************************************************************************************************************
+2025-02-07 12:03:55,034 p=3172796 u=lavender n=ansible | fatal: [firefly]: FAILED! => {"changed": true, "cmd": ["restorecon", "-Rv", "/root/mattermost-data"], "delta": "0:00:00.005089", "end": "2025-02-07 12:03:55.020318", "msg": "non-zero return code", "rc": 255, "start": "2025-02-07 12:03:55.015229", "stderr": "restorecon: lstat(/root/mattermost-data) failed: No such file or directory", "stderr_lines": ["restorecon: lstat(/root/mattermost-data) failed: No such file or directory"], "stdout": "", "stdout_lines": []}
+2025-02-07 12:03:55,035 p=3172796 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************
+2025-02-07 12:03:55,035 p=3172796 u=lavender n=ansible | firefly                    : ok=4    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-02-07 12:14:23,906 p=3175121 u=lavender n=ansible | PLAY [Install system requirements] ************************************************************************************************************
+2025-02-07 12:14:23,909 p=3175121 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************
+2025-02-07 12:14:25,000 p=3175121 u=lavender n=ansible | ok: [firefly]
+2025-02-07 12:14:25,003 p=3175121 u=lavender n=ansible | TASK [Install required packages] **************************************************************************************************************
+2025-02-07 12:14:27,785 p=3175121 u=lavender n=ansible | ok: [firefly]
+2025-02-07 12:14:27,789 p=3175121 u=lavender n=ansible | TASK [Enable lingering for user] **************************************************************************************************************
+2025-02-07 12:14:27,977 p=3175121 u=lavender n=ansible | ok: [firefly]
+2025-02-07 12:14:27,981 p=3175121 u=lavender n=ansible | TASK [Set correct SELinux context for container volumes] **************************************************************************************
+2025-02-07 12:14:28,301 p=3175121 u=lavender n=ansible | ok: [firefly]
+2025-02-07 12:14:28,305 p=3175121 u=lavender n=ansible | TASK [Apply SELinux context] ******************************************************************************************************************
+2025-02-07 12:14:28,447 p=3175121 u=lavender n=ansible | fatal: [firefly]: FAILED! => {"changed": true, "cmd": ["restorecon", "-Rv", "/root/mattermost-data"], "delta": "0:00:00.003930", "end": "2025-02-07 12:14:28.433014", "msg": "non-zero return code", "rc": 255, "start": "2025-02-07 12:14:28.429084", "stderr": "restorecon: lstat(/root/mattermost-data) failed: No such file or directory", "stderr_lines": ["restorecon: lstat(/root/mattermost-data) failed: No such file or directory"], "stdout": "", "stdout_lines": []}
+2025-02-07 12:14:28,447 p=3175121 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************
+2025-02-07 12:14:28,447 p=3175121 u=lavender n=ansible | firefly                    : ok=4    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-02-07 12:22:37,646 p=3176916 u=lavender n=ansible | ERROR! the playbook: playbooks/prepare-podman.yml could not be found
+2025-02-07 12:22:49,816 p=3176956 u=lavender n=ansible | PLAY [Prepare system for Mattermost installation] *********************************************************************************************
+2025-02-07 12:22:49,820 p=3176956 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************
+2025-02-07 12:22:51,061 p=3176956 u=lavender n=ansible | ok: [firefly]
+2025-02-07 12:22:51,064 p=3176956 u=lavender n=ansible | TASK [Install required packages] **************************************************************************************************************
+2025-02-07 12:22:54,043 p=3176956 u=lavender n=ansible | ok: [firefly]
+2025-02-07 12:22:54,046 p=3176956 u=lavender n=ansible | TASK [Create Mattermost data directory] *******************************************************************************************************
+2025-02-07 12:22:54,249 p=3176956 u=lavender n=ansible | changed: [firefly]
+2025-02-07 12:22:54,252 p=3176956 u=lavender n=ansible | TASK [Create required subdirectories] *********************************************************************************************************
+2025-02-07 12:22:54,409 p=3176956 u=lavender n=ansible | changed: [firefly] => (item=config)
+2025-02-07 12:22:54,565 p=3176956 u=lavender n=ansible | changed: [firefly] => (item=data)
+2025-02-07 12:22:54,707 p=3176956 u=lavender n=ansible | changed: [firefly] => (item=logs)
+2025-02-07 12:22:54,847 p=3176956 u=lavender n=ansible | changed: [firefly] => (item=plugins)
+2025-02-07 12:22:54,992 p=3176956 u=lavender n=ansible | changed: [firefly] => (item=client/plugins)
+2025-02-07 12:22:54,997 p=3176956 u=lavender n=ansible | TASK [Create PostgreSQL data directory with special permissions] ******************************************************************************
+2025-02-07 12:22:55,147 p=3176956 u=lavender n=ansible | changed: [firefly]
+2025-02-07 12:22:55,151 p=3176956 u=lavender n=ansible | TASK [Enable lingering for user] **************************************************************************************************************
+2025-02-07 12:22:55,358 p=3176956 u=lavender n=ansible | ok: [firefly]
+2025-02-07 12:22:55,362 p=3176956 u=lavender n=ansible | TASK [Set container file context] *************************************************************************************************************
+2025-02-07 12:22:55,710 p=3176956 u=lavender n=ansible | ok: [firefly]
+2025-02-07 12:22:55,713 p=3176956 u=lavender n=ansible | TASK [Apply SELinux context] ******************************************************************************************************************
+2025-02-07 12:22:55,864 p=3176956 u=lavender n=ansible | changed: [firefly]
+2025-02-07 12:22:55,865 p=3176956 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************
+2025-02-07 12:22:55,865 p=3176956 u=lavender n=ansible | firefly                    : ok=8    changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   

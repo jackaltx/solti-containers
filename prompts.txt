@@ -1,0 +1,22 @@
+Debug solti-containers: mattermost
+
+1. remove root requirement from role.  add a playbook that runs on debian and rhel to package install and make that become:
+
+2. When testing  the postgres dir ownership is change.  This causes this error
+
+
+TASK [mattermost : Create Mattermost data directories] ****************************************************************************************
+ok: [firefly] => (item=/home/lavender/mattermost-data)
+ok: [firefly] => (item=/home/lavender/mattermost-data/config)
+ok: [firefly] => (item=/home/lavender/mattermost-data/data)
+ok: [firefly] => (item=/home/lavender/mattermost-data/logs)
+ok: [firefly] => (item=/home/lavender/mattermost-data/plugins)
+ok: [firefly] => (item=/home/lavender/mattermost-data/client/plugins)
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: PermissionError: [Errno 1] Operation not permitted: b'/home/lavender/mattermost-data/postgres'
+
+
+3. When I remove the ~/mattermost-data  directories. no pod/container was was created.
+
+TASK [mattermost : Deploy Mattermost container] ***********************************************************************************************
+fatal: [firefly]: FAILED! => {"changed": false, "msg": "Container mattermost exited with code 125 when runed", "stderr": "Error: no pod with name or ID mattermost-pod found: no such pod\n", "stderr_lines": ["Error: no pod with name or ID mattermost-pod found: no such pod"], "stdout": "", "stdout_lines": []}
+

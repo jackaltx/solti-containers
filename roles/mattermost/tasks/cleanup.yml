@@ -6,30 +6,21 @@
     enabled: no
     scope: user
   loop:
-    - mattermost
-    - mattermost-db
+    - mattermost-pod
   ignore_errors: true
 
-- name: Remove containers
-  containers.podman.podman_container:
-    name: "{{ item }}"
+- name: Remove pod and containers
+  containers.podman.podman_pod:
+    name: mattermost-pod
     state: absent
-  loop:
-    - mattermost
-    - mattermost-db
-
-- name: Remove podman network
-  containers.podman.podman_network:
-    name: "{{ podman_network_name }}"
-    state: absent
+  ignore_errors: true
 
 - name: Remove systemd services
   ansible.builtin.file:
     path: "{{ ansible_user_dir }}/.config/systemd/user/{{ item }}"
     state: absent
   loop:
-    - mattermost.service
-    - mattermost-db.service
+    - mattermost-pod.service
 
 - name: Remove data directory
   ansible.builtin.file:
