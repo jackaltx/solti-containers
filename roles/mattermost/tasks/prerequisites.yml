@@ -1,0 +1,35 @@
+---
+# Create TLS directory structure if TLS is enabled
+- name: Create TLS directory
+  ansible.builtin.file:
+    path: "{{ mattermost_data_dir }}/config/tls"
+    state: directory
+    mode: '0750'
+  when: mattermost_enable_tls | bool
+- name: Ensure podman is installed
+  ansible.builtin.package:
+    name: 
+      - podman 
+      - podman-compose
+    state: present
+  become: true
+
+- name: Create Mattermost data directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0750'
+  loop:
+    - "{{ mattermost_data_dir }}"
+    - "{{ mattermost_data_dir }}/config"
+    - "{{ mattermost_data_dir }}/data"
+    - "{{ mattermost_data_dir }}/logs"
+    - "{{ mattermost_data_dir }}/plugins"
+    - "{{ mattermost_data_dir }}/client/plugins"
+    - "{{ mattermost_data_dir }}/postgres"
+
+- name: Create Mattermost config
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: "{{ mattermost_data_dir }}/config/config.json"
+    mode: '0644'

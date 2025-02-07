@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: jackaltx
+  description: Deploy Mattermost using Podman containers
+  company: lavnet.net
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+    - name: EL
+      versions:
+        - "9"
+
+  galaxy_tags: []
+
+dependencies: []

@@ -1,0 +1,15 @@
+[Unit]
+Description=Mattermost Container
+After=network.target mattermost-db.service
+
+[Service]
+Type=simple
+TimeoutStartSec=5m
+ExecStartPre=-/usr/bin/podman rm -f mattermost
+ExecStart=/usr/bin/podman start -a mattermost
+ExecStop=/usr/bin/podman stop -t 10 mattermost
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,24 @@
+---
+namespace: jackaltx
+name: solte.containers
+version: 1.0.0
+readme: README.md
+authors:
+  - Jackaltx <jack@jackaltx.com>
+
+### OPTIONAL but strongly recommended
+# A short summary description of the collection
+description: This creates podman pods/containers to test the CI/CD pipeline
+license:
+  - MIT
+license_file: ""
+tags: []
+dependencies:
+  "community.general": ">=10.0.0"
+
+repository: http://github.com/jackaltx/solti-containers
+documentation: http://docs.jackaltx.com
+homepage: http://github.com/jackaltx/solti-containers
+issues: http://github.com/jackaltx/solti-containers/issue/tracker
+
+build_ignore: []

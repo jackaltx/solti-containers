@@ -1,0 +1,38 @@
+---
+- name: Stop and disable services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+    scope: user
+  loop:
+    - mattermost
+    - mattermost-db
+  ignore_errors: true
+
+- name: Remove containers
+  containers.podman.podman_container:
+    name: "{{ item }}"
+    state: absent
+  loop:
+    - mattermost
+    - mattermost-db
+
+- name: Remove podman network
+  containers.podman.podman_network:
+    name: "{{ podman_network_name }}"
+    state: absent
+
+- name: Remove systemd services
+  ansible.builtin.file:
+    path: "{{ ansible_user_dir }}/.config/systemd/user/{{ item }}"
+    state: absent
+  loop:
+    - mattermost.service
+    - mattermost-db.service
+
+- name: Remove data directory
+  ansible.builtin.file:
+    path: "{{ mattermost_data_dir }}"
+    state: absent
+  when: mattermost_delete_data | bool

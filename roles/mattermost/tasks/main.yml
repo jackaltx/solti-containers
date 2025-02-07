@@ -1,0 +1,22 @@
+---
+- name: Install Mattermost
+  when: mattermost_state == 'present'
+  block:
+    - name: Include prerequisites tasks
+      ansible.builtin.include_tasks: prerequisites.yml
+
+    - name: Include container tasks
+      ansible.builtin.include_tasks: containers.yml
+
+    - name: Include TLS tasks
+      ansible.builtin.include_tasks: tls.yml
+      when: mattermost_state == 'present'
+
+    - name: Include systemd tasks
+      ansible.builtin.include_tasks: systemd.yml
+
+- name: Remove Mattermost
+  when: mattermost_state == 'absent'
+  block:
+    - name: Include cleanup tasks
+      ansible.builtin.include_tasks: cleanup.yml

@@ -1,0 +1,15 @@
+[Unit]
+Description=Mattermost PostgreSQL Database Container
+After=network.target
+
+[Service]
+Type=simple
+TimeoutStartSec=5m
+ExecStartPre=-/usr/bin/podman rm -f mattermost-db
+ExecStart=/usr/bin/podman start -a mattermost-db
+ExecStop=/usr/bin/podman stop -t 10 mattermost-db
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target

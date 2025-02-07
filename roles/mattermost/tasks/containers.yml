@@ -1,0 +1,41 @@
+---
+- name: Create podman network
+  containers.podman.podman_network:
+    name: "{{ podman_network_name }}"
+    state: present
+
+- name: Deploy PostgreSQL container
+  containers.podman.podman_container:
+    name: mattermost-db
+    image: "{{ mattermost_postgres_image }}"
+    state: started
+    network: "{{ podman_network_name }}"
+    volume:
+      - "{{ mattermost_data_dir }}/postgres:/var/lib/postgresql/data:Z"
+    env:
+      POSTGRES_USER: "{{ mattermost_db_user }}"
+      POSTGRES_PASSWORD: "{{ mattermost_postgres_password }}"
+      POSTGRES_DB: "{{ mattermost_db_name }}"
+    restart_policy: always
+
+- name: Wait for PostgreSQL to be ready
+  ansible.builtin.wait_for:
+    timeout: 30
+
+- name: Deploy Mattermost container
+  containers.podman.podman_container:
+    name: mattermost
+    image: "{{ mattermost_image }}"
+    state: started
+    network: "{{ podman_network_name }}"
+    ports:
+      - "{{ mattermost_port }}:8065"
+    volume:
+      - "{{ mattermost_data_dir }}/config:/mattermost/config:Z"
+      - "{{ mattermost_data_dir }}/data:/mattermost/data:Z"
+      - "{{ mattermost_data_dir }}/logs:/mattermost/logs:Z"
+      - "{{ mattermost_data_dir }}/plugins:/mattermost/plugins:Z"
+      - "{{ mattermost_data_dir }}/client/plugins:/mattermost/client/plugins:Z"
+    restart_policy: always
+    depends_on:
+      - mattermost-db

@@ -1,0 +1,35 @@
+---
+- name: Create systemd user directory
+  ansible.builtin.file:
+    path: "{{ ansible_user_dir }}/.config/systemd/user"
+    state: directory
+    mode: '0750'
+
+- name: Create systemd services
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ ansible_user_dir }}/.config/systemd/user/{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - { src: 'mattermost-db.service.j2', dest: 'mattermost-db.service' }
+    - { src: 'mattermost.service.j2', dest: 'mattermost.service' }
+
+- name: Reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+- name: Enable and start containers with systemd
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+    scope: user
+  loop:
+    - mattermost-db
+    - mattermost
+
+- name: Enable lingering for user
+  ansible.builtin.command: loginctl enable-linger {{ ansible_user_id }}
+  become: true
+  changed_when: false

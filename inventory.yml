@@ -1,0 +1,37 @@
+---
+all:
+  vars:
+    domain: a0a0.org
+    mylab_nolog: "{{ cluster_secure_log | bool | default(true) }}"
+    ansible_user: lavender
+    ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+
+    # basically non-ssh stuff, like LXC containers
+    mylab_non_ssh: false
+
+  children:
+    # ................................................
+    mylab:
+      # .........................................
+      # mylab hosts
+      hosts:
+        firefly:
+          ansible_host: "localhost"
+          ansible_connection: local
+
+      # .........................................
+      # mylab vars
+      vars:
+        mylab_results: []
+
+      children:
+        # ========================================
+        matermost_svc:
+          hosts:
+            firefly:
+              # host_vars
+
+          # .......................................
+          # matermost_svc only vars
+          vars:
+            debug_level: warn

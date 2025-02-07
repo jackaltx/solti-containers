@@ -1,0 +1,37 @@
+{
+  "ServiceSettings": {
+    "SiteURL": "{{ mattermost_site_url }}",
+    "ListenAddress": ":8065",
+    "ConnectionSecurity": "{% if mattermost_enable_tls %}TLS{% else %}""{% endif %}",
+    "TLSCertFile": "{% if mattermost_enable_tls %}/mattermost/config/tls/{{ mattermost_tls_cert_file | basename }}{% else %}""{% endif %}",
+    "TLSKeyFile": "{% if mattermost_enable_tls %}/mattermost/config/tls/{{ mattermost_tls_key_file | basename }}{% else %}""{% endif %}",
+    "UseLetsEncrypt": false,
+    "TLSMinVer": "{{ mattermost_tls_min_version }}",
+    "TLSStrictTransport": {{ mattermost_tls_strict_transport | lower }},
+    "Forward80To443": {{ mattermost_force_tls | lower }},
+    "EnableOAuthServiceProvider": false
+  },
+  "TeamSettings": {
+    "SiteName": "{{ mattermost_site_name }}",
+    "EnableUserCreation": {{ mattermost_enable_user_creation | lower }},
+    "EnableOpenServer": {{ mattermost_enable_open_server | lower }}
+  },
+  "SqlSettings": {
+    "DriverName": "postgres",
+    "DataSource": "postgres://{{ mattermost_db_user }}:{{ mattermost_postgres_password }}@mattermost-db:5432/{{ mattermost_db_name }}?sslmode=disable&connect_timeout=10"
+  },
+  "LogSettings": {
+    "EnableConsole": true,
+    "ConsoleLevel": "{{ mattermost_log_level }}",
+    "EnableFile": true,
+    "FileLevel": "{{ mattermost_log_level }}",
+    "FileLocation": "/mattermost/logs/mattermost.log"
+  },
+  "FileSettings": {
+    "Directory": "/mattermost/data"
+  },
+  "PluginSettings": {
+    "Directory": "/mattermost/plugins",
+    "ClientDirectory": "/mattermost/client/plugins"
+  }
+}
