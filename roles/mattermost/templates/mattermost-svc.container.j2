@@ -1,0 +1,24 @@
+[Unit]
+Description=Mattermost Container
+After=network-online.target
+
+[Container]
+Image={{ mattermost_image }}
+ContainerName=mattermost-svc
+Pod=mattermost
+Volume={{ mattermost_data_dir }}/config:/mattermost/config:Z
+Volume={{ mattermost_data_dir }}/data:/mattermost/data:Z
+Volume={{ mattermost_data_dir }}/logs:/mattermost/logs:Z
+Volume={{ mattermost_data_dir }}/plugins:/mattermost/plugins:Z
+Volume={{ mattermost_data_dir }}/client/plugins:/mattermost/client/plugins:Z
+Environment=MM_USERNAME={{ mattermost_db_user }}
+Environment=MM_PASSWORD={{ mattermost_postgres_password }}
+Environment=MM_DBNAME={{ mattermost_db_name }}
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+TimeoutStopSec=70
+
+[Install]
+WantedBy=default.target

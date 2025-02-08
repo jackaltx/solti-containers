@@ -1,22 +1,36 @@
 ---
 #
 # .......................................................................................
-- name: Create systemd user directory
+- name: Ensure required directories exist
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/systemd/user"
+    path: "{{ ansible_env.HOME }}/{{ item }}"
     state: directory
     mode: "0750"
+  loop:
+    - .config/systemd/user
+    - .config/containers/systemd
 
 # .......................................................................................
-- name: Generate pod service file
+- name: Template Quadlet configuration files
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: mattermost.pod.j2, dest: mattermost.pod }
+    - { src: mattermost-db.container.j2, dest: mattermost-db.container }
+    - { src: mattermost-svc.container.j2, dest: mattermost-svc.container }
+
+# .......................................................................................
+# Generator  add pod- or container-  to --name  by default
+# Older podman versions may have issues
+#
+- name: Generate systemd units from Quadlets
   ansible.builtin.command:
     cmd: podman generate systemd --name mattermost --files --new
     chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
   register: generate_result
-
-- name: Debug generate result
-  ansible.builtin.debug:
-    var: generate_result
+  changed_when: generate_result.rc == 0
 
 # .......................................................................................
 - name: Reload systemd user daemon
@@ -31,13 +45,3 @@
     state: started
     enabled: yes
     scope: user
-# .......................................................................................
-# - name: Enable and start container services
-#   ansible.builtin.systemd:
-#     name: "{{ item }}"
-#     state: started
-#     enabled: yes
-#     scope: user
-#   loop:
-#     - container-mattermost-db
-#     - container-mattermost

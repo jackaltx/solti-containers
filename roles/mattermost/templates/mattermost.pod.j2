@@ -1,0 +1,9 @@
+[Pod]
+Name=mattermost
+PublishPort=127.0.0.1:${MATTERMOST_PORT}:8065
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

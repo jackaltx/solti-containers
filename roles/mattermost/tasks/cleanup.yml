@@ -1,4 +1,8 @@
 ---
+#
+# .........................................................................
+# This name was generated
+#
 - name: Stop and disable services
   ansible.builtin.systemd:
     name: "{{ item }}"
@@ -15,6 +19,8 @@
     state: absent
   ignore_errors: true
 
+# .........................................................................
+# These were generate
 - name: Remove systemd services
   ansible.builtin.file:
     path: "{{ ansible_user_dir }}/.config/systemd/user/{{ item }}"
@@ -23,6 +29,17 @@
     - container-mattermost-db.service
     - container-mattermost-svc.service
     - pod-mattermost.service
+
+# .........................................................................
+# These were created by templates
+- name: Remove systemd services
+  ansible.builtin.file:
+    path: "{{ ansible_user_dir }}/.config/systemd/user/{{ item }}"
+    state: absent
+  loop:
+    - mattermost-db.container
+    - mattermost-svc.container
+    - mattermost.pod
 
 # ...........................................
 - name: Reload systemd user daemon
