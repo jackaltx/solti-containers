@@ -1,0 +1,31 @@
+---
+galaxy_info:
+  role_name: elasticsearch
+  namespace: your_namespace
+  author: your_name
+  description: Deploy Elasticsearch with Elasticvue GUI using Podman containers
+  company: your_company
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+
+  galaxy_tags:
+    - elasticsearch
+    - database
+    - search
+    - monitoring
+    - podman
+    - containers
+    - elasticvue
+
+dependencies: []

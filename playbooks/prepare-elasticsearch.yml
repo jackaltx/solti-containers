@@ -2,16 +2,18 @@
 #
 # prepare-podman-host.yml - Run with ansible-playbook -K prepare-podman-host.yml
 #
-- name: Prepare system for Mattermost installation
-  hosts: mattermost_svc
+- name: Prepare system for container deployments
+  hosts: elasticsearch_svc
   vars:
-    mattermost_data_dir: "{{ ansible_env.HOME }}/mattermost-data"
+    elasticsearch_data_dir: "{{ ansible_env.HOME }}/elasticsearch-data" # Use HOME instead of user_dir
 
   tasks:
+    #
     # These tasks run as the regular user
-    - name: Create Mattermost directories
+    # ...........................................................................
+    - name: Create Elasticsearch directories
       file:
-        path: "{{ mattermost_data_dir }}/{{ item }}"
+        path: "{{ elasticsearch_data_dir }}/{{ item }}"
         state: directory
         mode: "0750"
       loop:
@@ -19,16 +21,8 @@
         - config
         - data
         - logs
-        - plugins
-        - client/plugins
 
-    - name: Create PostgreSQL data directory with special permissions
-      file:
-        path: "{{ mattermost_data_dir }}/postgres"
-        state: directory
-        mode: "0700"
-
-    # These tasks need root
+    # ...........................................................................
     - name: Perform system-level tasks
       become: true
       block:
@@ -80,31 +74,33 @@
           command: "loginctl enable-linger {{ ansible_user_id }}"
           changed_when: false
 
-        - name: Configure container DNS
+        - name: Set virtual memory for Elasticsearch
+          sysctl:
+            name: vm.max_map_count
+            value: "262144"
+            sysctl_set: true
+            state: present
+            reload: true
+
+        - name: Configure systemd limits
           block:
-            - name: Create containers configuration directory
+            - name: Create systemd override directory
               file:
-                path: "{{ ansible_env.HOME }}/.config/containers"
+                path: /etc/systemd/system/user@.service.d
                 state: directory
                 mode: "0755"
 
-            - name: Configure DNS in containers.conf
+            - name: Configure systemd ulimits
               copy:
-                dest: "{{ ansible_env.HOME }}/.config/containers/containers.conf"
+                dest: /etc/systemd/system/user@.service.d/elasticsearch.conf
                 content: |
-                  [containers]
-                  dns_servers = ["1.1.1.1", "8.8.8.8"]
+                  [Service]
+                  LimitMEMLOCK=infinity
+                  LimitNOFILE=65535
                 mode: "0644"
+              notify: Reload systemd
 
-        # SELinux configuration for RHEL/CentOS
-        - name: Configure SELinux
-          block:
-            - name: Set container file context
-              sefcontext:
-                target: "{{ mattermost_data_dir }}(/.*)?"
-                setype: container_file_t
-                state: present
-
-            - name: Apply SELinux context
-              command: restorecon -Rv "{{ mattermost_data_dir }}"
-          when: ansible_os_family == "RedHat"
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes

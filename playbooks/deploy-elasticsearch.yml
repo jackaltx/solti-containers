@@ -1,0 +1,9 @@
+# deploy-elasticsearch.yml
+---
+- name: Deploy Elasticsearch
+  hosts: elasticsearch_svc
+  roles:
+    - role: elasticsearch
+      vars:
+        elasticsearch_password: "your_secure_password"
+        elasticsearch_memory: "1g"

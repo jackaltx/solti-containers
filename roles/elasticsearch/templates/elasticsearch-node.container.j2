@@ -1,0 +1,23 @@
+[Unit]
+Description=Elasticsearch Container
+After=network-online.target
+
+[Container]
+Image={{ elasticsearch_image }}
+ContainerName=elasticsearch-node
+Pod=elasticsearch
+Volume={{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z
+Volume={{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z
+Volume={{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z
+Environment=ES_JAVA_OPTS=-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }}
+Environment=discovery.type={{ elasticsearch_discovery_type }}
+Environment=ELASTIC_PASSWORD={{ elasticsearch_password }}
+Environment=xpack.security.enabled={{ elasticsearch_enable_security | string }}
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+TimeoutStopSec=70
+
+[Install]
+WantedBy=default.target

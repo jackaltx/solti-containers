@@ -1,0 +1,21 @@
+---
+cluster.name: "docker-cluster"
+network.host: 0.0.0.0
+
+discovery.type: {{ elasticsearch_discovery_type }}
+
+xpack.security.enabled: {{ elasticsearch_enable_security | lower }}
+xpack.security.transport.ssl.enabled: {{ elasticsearch_enable_security | lower }}
+
+{% if elasticsearch_enable_tls %}
+xpack.security.http.ssl:
+  enabled: true
+  key: /usr/share/elasticsearch/config/tls/{{ elasticsearch_tls_key_file | basename }}
+  certificate: /usr/share/elasticsearch/config/tls/{{ elasticsearch_tls_cert_file | basename }}
+  verification_mode: {{ elasticsearch_tls_verify_client }}
+  min_protocol_version: {{ elasticsearch_tls_min_version }}
+{% endif %}
+
+path:
+  data: /usr/share/elasticsearch/data
+  logs: /usr/share/elasticsearch/logs

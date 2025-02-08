@@ -1,0 +1,38 @@
+---
+- name: Ensure required directories exist
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - .config/systemd/user
+    - .config/containers/systemd
+
+- name: Template Quadlet configuration files
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: elasticsearch.pod.j2, dest: elasticsearch.pod }
+    - { src: elasticsearch-node.container.j2, dest: elasticsearch-node.container }
+    - { src: elasticsearch-gui.container.j2, dest: elasticsearch-gui.container }
+
+- name: Generate systemd units from Quadlets
+  ansible.builtin.command:
+    cmd: podman generate systemd --name elasticsearch --files --new
+    chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
+  register: generate_result
+  changed_when: generate_result.rc == 0
+
+- name: Reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+- name: Enable and start pod with systemd
+  ansible.builtin.systemd:
+    name: pod-elasticsearch
+    state: started
+    enabled: yes
+    scope: user

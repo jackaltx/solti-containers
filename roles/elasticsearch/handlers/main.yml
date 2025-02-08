@@ -1,0 +1,7 @@
+---
+- name: restart elasticsearch
+  ansible.builtin.systemd:
+    name: "pod-elasticsearch"
+    state: restarted
+    scope: user
+  listen: "restart elasticsearch"

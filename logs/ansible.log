@@ -268,3 +268,204 @@
 2025-02-07 19:51:05,927 p=4070700 u=lavender n=ansible | skipping: [firefly]
 2025-02-07 19:51:05,932 p=4070700 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
 2025-02-07 19:51:05,933 p=4070700 u=lavender n=ansible | firefly                    : ok=7    changed=2    unreachable=0    failed=0    skipped=5    rescued=0    ignored=0   
+2025-02-07 20:45:35,281 p=4077464 u=lavender n=ansible | ERROR! the role 'geerlingguy.pip' was not found in ansible.legacy:/home/lavender/sandbox/ansible/jackaltx/solti-containers/playbooks/roles:/home/lavender/sandbox/ansible/jackaltx/solti-containers/roles:/home/lavender/.ansible/collections/ansible_collections:/home/lavender/sandbox/ansible/jackaltx/solti-containers/roles:/home/lavender/sandbox/ansible/jackaltx/solti-containers/playbooks
+
+The error appears to be in '/home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/elasticsearch/meta/main.yml': line 32, column 5, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+dependencies:
+  - role: geerlingguy.pip
+    ^ here
+
+2025-02-07 20:56:38,336 p=4079234 u=lavender n=ansible | [WARNING]: Could not match supplied host pattern, ignoring: elasticsearch_svc
+
+2025-02-07 20:56:38,337 p=4079234 u=lavender n=ansible | PLAY [Deploy Elasticsearch] *******************************************************************************************************************************
+2025-02-07 20:56:38,337 p=4079234 u=lavender n=ansible | skipping: no hosts matched
+2025-02-07 20:56:38,337 p=4079234 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
+2025-02-07 20:57:06,192 p=4079336 u=lavender n=ansible | [WARNING]: Could not match supplied host pattern, ignoring: elasticsearch_svc
+
+2025-02-07 20:57:06,192 p=4079336 u=lavender n=ansible | PLAY [Prepare system for container deployments] ***********************************************************************************************************
+2025-02-07 20:57:06,193 p=4079336 u=lavender n=ansible | skipping: no hosts matched
+2025-02-07 20:57:06,193 p=4079336 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
+2025-02-07 20:58:17,077 p=4079550 u=lavender n=ansible | PLAY [Prepare system for container deployments] ***********************************************************************************************************
+2025-02-07 20:58:17,081 p=4079550 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************************
+2025-02-07 20:58:17,976 p=4079550 u=lavender n=ansible | ok: [firefly]
+2025-02-07 20:58:17,980 p=4079550 u=lavender n=ansible | TASK [Create Elasticsearch directories] *******************************************************************************************************************
+2025-02-07 20:58:17,988 p=4079550 u=lavender n=ansible | fatal: [firefly]: FAILED! => {"msg": "The task includes an option with an undefined variable. The error was: 'elasticsearch_data_dir' is undefined. 'elasticsearch_data_dir' is undefined\n\nThe error appears to be in '/home/lavender/sandbox/ansible/jackaltx/solti-containers/playbooks/prepare-elasticsearch.yml': line 11, column 7, but may\nbe elsewhere in the file depending on the exact syntax problem.\n\nThe offending line appears to be:\n\n    # ...........................................................................\n    - name: Create Elasticsearch directories\n      ^ here\n"}
+2025-02-07 20:58:17,988 p=4079550 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
+2025-02-07 20:58:17,988 p=4079550 u=lavender n=ansible | firefly                    : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-02-07 20:59:33,357 p=4079892 u=lavender n=ansible | PLAY [Prepare system for container deployments] ***********************************************************************************************************
+2025-02-07 20:59:33,360 p=4079892 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************************
+2025-02-07 20:59:34,259 p=4079892 u=lavender n=ansible | ok: [firefly]
+2025-02-07 20:59:34,263 p=4079892 u=lavender n=ansible | TASK [Create Elasticsearch directories] *******************************************************************************************************************
+2025-02-07 20:59:34,271 p=4079892 u=lavender n=ansible | fatal: [firefly]: FAILED! => {"msg": "The task includes an option with an undefined variable. The error was: 'elasticsearch_data_dir' is undefined. 'elasticsearch_data_dir' is undefined\n\nThe error appears to be in '/home/lavender/sandbox/ansible/jackaltx/solti-containers/playbooks/prepare-elasticsearch.yml': line 14, column 7, but may\nbe elsewhere in the file depending on the exact syntax problem.\n\nThe offending line appears to be:\n\n    # ...........................................................................\n    - name: Create Elasticsearch directories\n      ^ here\n"}
+2025-02-07 20:59:34,272 p=4079892 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
+2025-02-07 20:59:34,272 p=4079892 u=lavender n=ansible | firefly                    : ok=1    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+2025-02-07 21:01:30,885 p=4080306 u=lavender n=ansible | PLAY [Prepare system for container deployments] ***********************************************************************************************************
+2025-02-07 21:01:30,889 p=4080306 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************************
+2025-02-07 21:01:31,787 p=4080306 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:01:31,790 p=4080306 u=lavender n=ansible | TASK [Create Elasticsearch directories] *******************************************************************************************************************
+2025-02-07 21:01:31,941 p=4080306 u=lavender n=ansible | changed: [firefly] => (item=)
+2025-02-07 21:01:32,041 p=4080306 u=lavender n=ansible | changed: [firefly] => (item=config)
+2025-02-07 21:01:32,141 p=4080306 u=lavender n=ansible | changed: [firefly] => (item=data)
+2025-02-07 21:01:32,239 p=4080306 u=lavender n=ansible | changed: [firefly] => (item=logs)
+2025-02-07 21:01:32,244 p=4080306 u=lavender n=ansible | TASK [Enable CRB repository] ******************************************************************************************************************************
+2025-02-07 21:01:32,252 p=4080306 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:01:32,256 p=4080306 u=lavender n=ansible | TASK [Install required dependencies] **********************************************************************************************************************
+2025-02-07 21:01:32,263 p=4080306 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:01:32,267 p=4080306 u=lavender n=ansible | TASK [Install podman-compose via pip] *********************************************************************************************************************
+2025-02-07 21:01:32,274 p=4080306 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:01:32,278 p=4080306 u=lavender n=ansible | TASK [Install required packages] **************************************************************************************************************************
+2025-02-07 21:01:47,405 p=4080306 u=lavender n=ansible | fatal: [firefly]: FAILED! => {"attempts": 3, "changed": false, "module_stderr": "sudo: a password is required\n", "module_stdout": "", "msg": "MODULE FAILURE\nSee stdout/stderr for the exact error", "rc": 1}
+2025-02-07 21:01:47,405 p=4080306 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
+2025-02-07 21:01:47,406 p=4080306 u=lavender n=ansible | firefly                    : ok=2    changed=1    unreachable=0    failed=1    skipped=3    rescued=0    ignored=0   
+2025-02-07 21:02:01,839 p=4080585 u=lavender n=ansible | PLAY [Prepare system for container deployments] ***********************************************************************************************************
+2025-02-07 21:02:01,844 p=4080585 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************************
+2025-02-07 21:02:02,746 p=4080585 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:02:02,749 p=4080585 u=lavender n=ansible | TASK [Create Elasticsearch directories] *******************************************************************************************************************
+2025-02-07 21:02:02,903 p=4080585 u=lavender n=ansible | ok: [firefly] => (item=)
+2025-02-07 21:02:03,002 p=4080585 u=lavender n=ansible | ok: [firefly] => (item=config)
+2025-02-07 21:02:03,100 p=4080585 u=lavender n=ansible | ok: [firefly] => (item=data)
+2025-02-07 21:02:03,198 p=4080585 u=lavender n=ansible | ok: [firefly] => (item=logs)
+2025-02-07 21:02:03,203 p=4080585 u=lavender n=ansible | TASK [Enable CRB repository] ******************************************************************************************************************************
+2025-02-07 21:02:03,212 p=4080585 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:02:03,215 p=4080585 u=lavender n=ansible | TASK [Install required dependencies] **********************************************************************************************************************
+2025-02-07 21:02:03,223 p=4080585 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:02:03,226 p=4080585 u=lavender n=ansible | TASK [Install podman-compose via pip] *********************************************************************************************************************
+2025-02-07 21:02:03,232 p=4080585 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:02:03,237 p=4080585 u=lavender n=ansible | TASK [Install required packages] **************************************************************************************************************************
+2025-02-07 21:02:08,936 p=4080585 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:02:08,940 p=4080585 u=lavender n=ansible | TASK [Enable lingering for user] **************************************************************************************************************************
+2025-02-07 21:02:09,145 p=4080585 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:02:09,148 p=4080585 u=lavender n=ansible | TASK [Set virtual memory for Elasticsearch] ***************************************************************************************************************
+2025-02-07 21:02:09,356 p=4080585 u=lavender n=ansible | changed: [firefly]
+2025-02-07 21:02:09,359 p=4080585 u=lavender n=ansible | TASK [Create systemd override directory] ******************************************************************************************************************
+2025-02-07 21:02:09,525 p=4080585 u=lavender n=ansible | changed: [firefly]
+2025-02-07 21:02:09,529 p=4080585 u=lavender n=ansible | TASK [Configure systemd ulimits] **************************************************************************************************************************
+2025-02-07 21:02:09,938 p=4080585 u=lavender n=ansible | changed: [firefly]
+2025-02-07 21:02:09,944 p=4080585 u=lavender n=ansible | RUNNING HANDLER [Reload systemd] **************************************************************************************************************************
+2025-02-07 21:02:20,331 p=4080585 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:02:20,332 p=4080585 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
+2025-02-07 21:02:20,332 p=4080585 u=lavender n=ansible | firefly                    : ok=8    changed=3    unreachable=0    failed=0    skipped=3    rescued=0    ignored=0   
+2025-02-07 21:02:32,969 p=4081234 u=lavender n=ansible | PLAY [Prepare system for container deployments] ***********************************************************************************************************
+2025-02-07 21:02:32,973 p=4081234 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************************
+2025-02-07 21:02:33,855 p=4081234 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:02:33,858 p=4081234 u=lavender n=ansible | TASK [Create Elasticsearch directories] *******************************************************************************************************************
+2025-02-07 21:02:34,011 p=4081234 u=lavender n=ansible | ok: [firefly] => (item=)
+2025-02-07 21:02:34,111 p=4081234 u=lavender n=ansible | ok: [firefly] => (item=config)
+2025-02-07 21:02:34,211 p=4081234 u=lavender n=ansible | ok: [firefly] => (item=data)
+2025-02-07 21:02:34,310 p=4081234 u=lavender n=ansible | ok: [firefly] => (item=logs)
+2025-02-07 21:02:34,314 p=4081234 u=lavender n=ansible | TASK [Enable CRB repository] ******************************************************************************************************************************
+2025-02-07 21:02:34,324 p=4081234 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:02:34,328 p=4081234 u=lavender n=ansible | TASK [Install required dependencies] **********************************************************************************************************************
+2025-02-07 21:02:34,335 p=4081234 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:02:34,340 p=4081234 u=lavender n=ansible | TASK [Install podman-compose via pip] *********************************************************************************************************************
+2025-02-07 21:02:34,348 p=4081234 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:02:34,352 p=4081234 u=lavender n=ansible | TASK [Install required packages] **************************************************************************************************************************
+2025-02-07 21:02:35,311 p=4081234 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:02:35,315 p=4081234 u=lavender n=ansible | TASK [Enable lingering for user] **************************************************************************************************************************
+2025-02-07 21:02:35,522 p=4081234 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:02:35,525 p=4081234 u=lavender n=ansible | TASK [Set virtual memory for Elasticsearch] ***************************************************************************************************************
+2025-02-07 21:02:35,721 p=4081234 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:02:35,725 p=4081234 u=lavender n=ansible | TASK [Create systemd override directory] ******************************************************************************************************************
+2025-02-07 21:02:35,888 p=4081234 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:02:35,892 p=4081234 u=lavender n=ansible | TASK [Configure systemd ulimits] **************************************************************************************************************************
+2025-02-07 21:02:36,255 p=4081234 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:02:36,256 p=4081234 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
+2025-02-07 21:02:36,256 p=4081234 u=lavender n=ansible | firefly                    : ok=7    changed=0    unreachable=0    failed=0    skipped=3    rescued=0    ignored=0   
+2025-02-07 21:03:51,364 p=4081716 u=lavender n=ansible | PLAY [Deploy Elasticsearch] *******************************************************************************************************************************
+2025-02-07 21:03:51,368 p=4081716 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************************
+2025-02-07 21:03:52,277 p=4081716 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:03:52,281 p=4081716 u=lavender n=ansible | TASK [elasticsearch : Include prerequisites tasks] ********************************************************************************************************
+2025-02-07 21:03:52,294 p=4081716 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/elasticsearch/tasks/prerequisites.yml for firefly
+2025-02-07 21:03:52,299 p=4081716 u=lavender n=ansible | TASK [elasticsearch : Create Elasticsearch directories] ***************************************************************************************************
+2025-02-07 21:03:52,446 p=4081716 u=lavender n=ansible | ok: [firefly] => (item=)
+2025-02-07 21:03:52,544 p=4081716 u=lavender n=ansible | ok: [firefly] => (item=config)
+2025-02-07 21:03:52,644 p=4081716 u=lavender n=ansible | ok: [firefly] => (item=data)
+2025-02-07 21:03:52,744 p=4081716 u=lavender n=ansible | ok: [firefly] => (item=logs)
+2025-02-07 21:03:52,749 p=4081716 u=lavender n=ansible | TASK [elasticsearch : Template elasticsearch.yml config] **************************************************************************************************
+2025-02-07 21:03:53,055 p=4081716 u=lavender n=ansible | changed: [firefly]
+2025-02-07 21:03:53,059 p=4081716 u=lavender n=ansible | TASK [elasticsearch : Include TLS tasks] ******************************************************************************************************************
+2025-02-07 21:03:53,074 p=4081716 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:03:53,078 p=4081716 u=lavender n=ansible | TASK [elasticsearch : Include container tasks] ************************************************************************************************************
+2025-02-07 21:03:53,093 p=4081716 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/elasticsearch/tasks/containers.yml for firefly
+2025-02-07 21:03:53,096 p=4081716 u=lavender n=ansible | TASK [elasticsearch : Create Elasticsearch pod] ***********************************************************************************************************
+2025-02-07 21:03:53,512 p=4081716 u=lavender n=ansible | changed: [firefly]
+2025-02-07 21:03:53,516 p=4081716 u=lavender n=ansible | TASK [elasticsearch : Deploy Elasticsearch container] *****************************************************************************************************
+2025-02-07 21:04:11,053 p=4081716 u=lavender n=ansible | fatal: [firefly]: FAILED! => {"changed": false, "msg": "Container elasticsearch-node exited with code 126 when runed", "stderr": "time=\"2025-02-07T21:04:11-06:00\" level=error msg=\"Starting some container dependencies\"\ntime=\"2025-02-07T21:04:11-06:00\" level=error msg=\"\\\"pasta failed with exit code 1:\\\\nFailed to bind port 9200 (Address already in use) for option '-t 127.0.0.1/9200-9200:9200-9200', exiting\\\\n\\\"\"\nError: starting some containers: internal libpod error\n", "stderr_lines": ["time=\"2025-02-07T21:04:11-06:00\" level=error msg=\"Starting some container dependencies\"", "time=\"2025-02-07T21:04:11-06:00\" level=error msg=\"\\\"pasta failed with exit code 1:\\\\nFailed to bind port 9200 (Address already in use) for option '-t 127.0.0.1/9200-9200:9200-9200', exiting\\\\n\\\"\"", "Error: starting some containers: internal libpod error"], "stdout": "", "stdout_lines": []}
+2025-02-07 21:04:11,054 p=4081716 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
+2025-02-07 21:04:11,054 p=4081716 u=lavender n=ansible | firefly                    : ok=6    changed=2    unreachable=0    failed=1    skipped=1    rescued=0    ignored=0   
+2025-02-07 21:06:06,488 p=4083462 u=lavender n=ansible | PLAY [Deploy Elasticsearch] *******************************************************************************************************************************
+2025-02-07 21:06:06,493 p=4083462 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************************
+2025-02-07 21:06:07,395 p=4083462 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:06:07,398 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Include prerequisites tasks] ********************************************************************************************************
+2025-02-07 21:06:07,410 p=4083462 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/elasticsearch/tasks/prerequisites.yml for firefly
+2025-02-07 21:06:07,415 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Create Elasticsearch directories] ***************************************************************************************************
+2025-02-07 21:06:07,564 p=4083462 u=lavender n=ansible | ok: [firefly] => (item=)
+2025-02-07 21:06:07,667 p=4083462 u=lavender n=ansible | ok: [firefly] => (item=config)
+2025-02-07 21:06:07,767 p=4083462 u=lavender n=ansible | ok: [firefly] => (item=data)
+2025-02-07 21:06:07,866 p=4083462 u=lavender n=ansible | ok: [firefly] => (item=logs)
+2025-02-07 21:06:07,872 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Template elasticsearch.yml config] **************************************************************************************************
+2025-02-07 21:06:08,134 p=4083462 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:06:08,139 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Include TLS tasks] ******************************************************************************************************************
+2025-02-07 21:06:08,154 p=4083462 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:06:08,158 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Include container tasks] ************************************************************************************************************
+2025-02-07 21:06:08,170 p=4083462 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/elasticsearch/tasks/containers.yml for firefly
+2025-02-07 21:06:08,174 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Create Elasticsearch pod] ***********************************************************************************************************
+2025-02-07 21:06:08,529 p=4083462 u=lavender n=ansible | changed: [firefly]
+2025-02-07 21:06:08,533 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Deploy Elasticsearch container] *****************************************************************************************************
+2025-02-07 21:06:09,065 p=4083462 u=lavender n=ansible | changed: [firefly]
+2025-02-07 21:06:09,069 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Deploy Elasticvue container] ********************************************************************************************************
+2025-02-07 21:06:11,144 p=4083462 u=lavender n=ansible | changed: [firefly]
+2025-02-07 21:06:11,147 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Include systemd tasks] **************************************************************************************************************
+2025-02-07 21:06:11,161 p=4083462 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/elasticsearch/tasks/systemd.yml for firefly
+2025-02-07 21:06:11,165 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Ensure required directories exist] **************************************************************************************************
+2025-02-07 21:06:11,280 p=4083462 u=lavender n=ansible | ok: [firefly] => (item=.config/systemd/user)
+2025-02-07 21:06:11,388 p=4083462 u=lavender n=ansible | ok: [firefly] => (item=.config/containers/systemd)
+2025-02-07 21:06:11,392 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Template Quadlet configuration files] ***********************************************************************************************
+2025-02-07 21:06:11,693 p=4083462 u=lavender n=ansible | changed: [firefly] => (item={'src': 'elasticsearch.pod.j2', 'dest': 'elasticsearch.pod'})
+2025-02-07 21:06:11,915 p=4083462 u=lavender n=ansible | changed: [firefly] => (item={'src': 'elasticsearch-node.container.j2', 'dest': 'elasticsearch-node.container'})
+2025-02-07 21:06:12,137 p=4083462 u=lavender n=ansible | changed: [firefly] => (item={'src': 'elasticsearch-gui.container.j2', 'dest': 'elasticsearch-gui.container'})
+2025-02-07 21:06:12,143 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Generate systemd units from Quadlets] ***********************************************************************************************
+2025-02-07 21:06:12,345 p=4083462 u=lavender n=ansible | changed: [firefly]
+2025-02-07 21:06:12,349 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Reload systemd user daemon] *********************************************************************************************************
+2025-02-07 21:06:12,825 p=4083462 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:06:12,830 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Enable and start pod with systemd] **************************************************************************************************
+2025-02-07 21:06:13,936 p=4083462 u=lavender n=ansible | changed: [firefly]
+2025-02-07 21:06:13,939 p=4083462 u=lavender n=ansible | TASK [elasticsearch : Include cleanup tasks] **************************************************************************************************************
+2025-02-07 21:06:13,948 p=4083462 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:06:13,953 p=4083462 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
+2025-02-07 21:06:13,953 p=4083462 u=lavender n=ansible | firefly                    : ok=14   changed=6    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+2025-02-07 21:29:53,449 p=4089604 u=lavender n=ansible | PLAY [Remove Elasticsearch (not data)] ********************************************************************************************************************
+2025-02-07 21:29:53,454 p=4089604 u=lavender n=ansible | TASK [Gathering Facts] ************************************************************************************************************************************
+2025-02-07 21:29:54,370 p=4089604 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:29:54,375 p=4089604 u=lavender n=ansible | TASK [elasticsearch : Include prerequisites tasks] ********************************************************************************************************
+2025-02-07 21:29:54,384 p=4089604 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:29:54,388 p=4089604 u=lavender n=ansible | TASK [elasticsearch : Include TLS tasks] ******************************************************************************************************************
+2025-02-07 21:29:54,396 p=4089604 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:29:54,402 p=4089604 u=lavender n=ansible | TASK [elasticsearch : Include container tasks] ************************************************************************************************************
+2025-02-07 21:29:54,410 p=4089604 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:29:54,413 p=4089604 u=lavender n=ansible | TASK [elasticsearch : Include systemd tasks] **************************************************************************************************************
+2025-02-07 21:29:54,421 p=4089604 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:29:54,424 p=4089604 u=lavender n=ansible | TASK [elasticsearch : Include cleanup tasks] **************************************************************************************************************
+2025-02-07 21:29:54,439 p=4089604 u=lavender n=ansible | included: /home/lavender/sandbox/ansible/jackaltx/solti-containers/roles/elasticsearch/tasks/cleanup.yml for firefly
+2025-02-07 21:29:54,442 p=4089604 u=lavender n=ansible | TASK [elasticsearch : Stop and disable services] **********************************************************************************************************
+2025-02-07 21:29:55,311 p=4089604 u=lavender n=ansible | changed: [firefly] => (item=pod-elasticsearch)
+2025-02-07 21:29:55,316 p=4089604 u=lavender n=ansible | TASK [elasticsearch : Remove pod and containers] **********************************************************************************************************
+2025-02-07 21:29:55,544 p=4089604 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:29:55,548 p=4089604 u=lavender n=ansible | TASK [elasticsearch : Remove systemd services] ************************************************************************************************************
+2025-02-07 21:29:55,693 p=4089604 u=lavender n=ansible | changed: [firefly] => (item=pod-elasticsearch.service)
+2025-02-07 21:29:55,786 p=4089604 u=lavender n=ansible | changed: [firefly] => (item=container-elasticsearch-node.service)
+2025-02-07 21:29:55,888 p=4089604 u=lavender n=ansible | changed: [firefly] => (item=container-elasticsearch-gui.service)
+2025-02-07 21:29:55,892 p=4089604 u=lavender n=ansible | TASK [elasticsearch : Remove Quadlet files] ***************************************************************************************************************
+2025-02-07 21:29:56,005 p=4089604 u=lavender n=ansible | changed: [firefly] => (item=elasticsearch.pod)
+2025-02-07 21:29:56,101 p=4089604 u=lavender n=ansible | changed: [firefly] => (item=elasticsearch-node.container)
+2025-02-07 21:29:56,200 p=4089604 u=lavender n=ansible | changed: [firefly] => (item=elasticsearch-gui.container)
+2025-02-07 21:29:56,206 p=4089604 u=lavender n=ansible | TASK [elasticsearch : Reload systemd user daemon] *********************************************************************************************************
+2025-02-07 21:29:56,541 p=4089604 u=lavender n=ansible | ok: [firefly]
+2025-02-07 21:29:56,545 p=4089604 u=lavender n=ansible | TASK [elasticsearch : Remove data directory] **************************************************************************************************************
+2025-02-07 21:29:56,561 p=4089604 u=lavender n=ansible | skipping: [firefly]
+2025-02-07 21:29:56,566 p=4089604 u=lavender n=ansible | PLAY RECAP ************************************************************************************************************************************************
+2025-02-07 21:29:56,566 p=4089604 u=lavender n=ansible | firefly                    : ok=7    changed=3    unreachable=0    failed=0    skipped=5    rescued=0    ignored=0   

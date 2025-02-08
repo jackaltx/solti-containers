@@ -1,0 +1,16 @@
+[Unit]
+Description=Elasticsearch GUI Container
+After=network-online.target
+
+[Container]
+Image={{ elasticsearch_elasticvue_image }}
+ContainerName=elasticsearch-gui
+Pod=elasticsearch
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+TimeoutStopSec=70
+
+[Install]
+WantedBy=default.target

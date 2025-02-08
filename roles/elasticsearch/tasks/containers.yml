@@ -1,0 +1,32 @@
+---
+- name: Create Elasticsearch pod
+  containers.podman.podman_pod:
+    name: elasticsearch
+    ports:
+      - "127.0.0.1:{{ elasticsearch_port }}:9200"
+      - "127.0.0.1:{{ elasticsearch_gui_port }}:8080"
+
+- name: Deploy Elasticsearch container
+  containers.podman.podman_container:
+    name: elasticsearch-node
+    pod: elasticsearch
+    image: "{{ elasticsearch_image }}"
+    state: started
+    volume:
+      - "{{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z"
+      - "{{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z"
+      - "{{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z"
+    env:
+      ES_JAVA_OPTS: "-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }}"
+      discovery.type: "{{ elasticsearch_discovery_type }}"
+      ELASTIC_PASSWORD: "{{ elasticsearch_password }}"
+      xpack.security.enabled: "{{ elasticsearch_enable_security | string }}"
+    restart_policy: always
+
+- name: Deploy Elasticvue container
+  containers.podman.podman_container:
+    name: elasticsearch-gui
+    pod: elasticsearch
+    image: "{{ elasticsearch_elasticvue_image }}"
+    state: started
+    restart_policy: always

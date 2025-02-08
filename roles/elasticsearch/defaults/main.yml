@@ -1,0 +1,31 @@
+---
+# Installation state
+elasticsearch_state: present
+elasticsearch_force_reload: false
+
+# TLS Configuration
+elasticsearch_enable_tls: false
+elasticsearch_tls_cert_file: "" # Path relative to config dir
+elasticsearch_tls_key_file: "" # Path relative to config dir
+elasticsearch_tls_min_version: "TLSv1.2"
+elasticsearch_tls_verify_client: "optional"
+
+# Container settings
+elasticsearch_image: "docker.io/elasticsearch:8.12.1"
+elasticsearch_elasticvue_image: "docker.io/cars10/elasticvue:latest"
+
+# Directory settings
+elasticsearch_data_dir: "{{ ansible_user_dir }}/elasticsearch-data"
+
+# Elasticsearch settings
+elasticsearch_port: 9200
+elasticsearch_memory: "1g"
+elasticsearch_discovery_type: "single-node"
+elasticsearch_gui_port: 8080
+
+# Security settings
+elasticsearch_enable_security: true
+elasticsearch_password: "change_this_password"
+
+# Cleanup settings
+elasticsearch_delete_data: false
