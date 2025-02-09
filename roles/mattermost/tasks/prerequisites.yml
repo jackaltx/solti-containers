@@ -1,15 +1,72 @@
 ---
-# Create TLS directory structure if TLS is enabled
-- name: Create TLS directory
-  ansible.builtin.file:
-    path: "{{ mattermost_data_dir }}/config/tls"
-    state: directory
-    mode: "0750"
-  when: mattermost_enable_tls | bool
+#
+# Define variables for mattermost user/group IDs
+# this was obtained by: podman inspect docker.io/mattermost/mattermost-team-edition:latest | grep -i user
+- name: Set Mattermost user/group facts
+  ansible.builtin.set_fact:
+    mattermost_uid: 2000
+    mattermost_gid: 2000
 
-# ...................................................
-- name: Create Mattermost config
-  ansible.builtin.template:
-    src: config.json.j2
-    dest: "{{ mattermost_data_dir }}/config/config.json"
-    mode: "0644"
+# ==========================================================
+# These tasks need root
+
+# ...........................................................
+- name: Perform system-level tasks
+  become: true
+  block:
+    # ...................................................
+    # Create TLS directory structure if TLS is enabled
+    - name: Create TLS directory
+      ansible.builtin.file:
+        path: "{{ mattermost_data_dir }}/config/tls"
+        state: directory
+        mode: "0750"
+        owner: "{{ mattermost_uid }}"
+        group: "{{ mattermost_gid }}"
+      when: mattermost_enable_tls | bool
+
+    # ...................................................
+    - name: Create Mattermost config
+      ansible.builtin.template:
+        src: config.json.j2
+        dest: "{{ mattermost_data_dir }}/config/config.json"
+        mode: "0644"
+        owner: "{{ mattermost_uid }}"
+        group: "{{ mattermost_gid }}"
+
+    # SELinux configuration tasks
+    - name: Check if SELinux is enabled
+      ansible.builtin.command: getenforce
+      register: selinux_status
+      changed_when: false
+      ignore_errors: true
+
+    # ===========================================================
+    # SELinux configuration tasks (when on RHEL/CentOS)
+    - name: Configure SELinux for Mattermost directories
+      block:
+        - name: Install SELinux policy tools
+          ansible.builtin.package:
+            name:
+              - policycoreutils-python-utils
+            state: present
+          become: true
+
+        - name: Set SELinux context for Mattermost directory
+          ansible.builtin.command: semanage fcontext -a -t container_file_t "{{ mattermost_data_dir }}(/.*)?"
+          become: true
+          register: semanage_result
+          changed_when: semanage_result.rc == 0
+          failed_when:
+            - semanage_result.rc != 0
+            - '"already exists" not in semanage_result.stderr'
+
+        - name: Apply SELinux context
+          ansible.builtin.command: restorecon -R -v "{{ mattermost_data_dir }}"
+          become: true
+          register: restorecon_result
+          changed_when: restorecon_result.rc == 0
+
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_selinux.status == "enabled"

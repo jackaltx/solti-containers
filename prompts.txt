@@ -1,3 +1,46 @@
+Jeff Geerling Ansible Docker Container use with molecule for single role unit testing
+
+Image pattern used for image:   
+
+geerlingguy/docker-rocklylinux9-ansible:latest
+geerlingguy/docker-debian12-ansible:latest
+geerlingguy/docker-ubuntu2204-ansible:latest
+
+Podman example using geerling writup:
+
+podman run --detach --privileged \
+--volume=/sys/fs/cgroup:/sys/fs/cgroup:rw \
+--volume=`pwd`:/etc/ansible/roles/role_under_test:ro \   # wonder what directory he is using as `pwd` for the role
+--cgroupns=host \
+geerlingguy/docker-rockylinux9-ansible:latest
+
+Use Ansible inside the container:
+    a. `podman exec --tty [container_id] env TERM=xterm ansible --version`
+    b. `podman exec --tty [container_id] env TERM=xterm ansible-playbook /path/to/ansible/playbook.yml --syntax-check`
+
+what we want to do.
+
+from the root of the project use molecule to execute
+pass a list of "roles" to be test ed.
+Since I am testing a collection, i will have the collection and requirements symlink'd in my ~/.ansible   
+    so mount that volume where the "container ansible" can find it
+
+I am not sure what is required for the prepare and, that will depend on what Jeff put into his test image.
+Per his documentation he built these roles to quickly test his work, not sure of scope.
+As we are inserting the role into the container ONLY to use that ansible to test out applicaiton podman pods,
+
+for this container the playbooks install services (e.g., prepare-mattermost, deploy-mattermost, verify-mattermost, remove-mattermost)
+
+I do not have a verify yet for mattermost or elasticsearch.  geternate a simple verif.
+
+Bonus:
+It would be good to check the roles for syntax only if desired
+
+
+
+
+==================================================================
+
 Debug solti-containers: mattermost
 
 1. remove root requirement from role.  add a playbook that runs on debian and rhel to package install and make that become:

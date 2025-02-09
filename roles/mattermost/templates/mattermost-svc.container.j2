@@ -6,6 +6,7 @@ After=network-online.target
 Image={{ mattermost_image }}
 ContainerName=mattermost-svc
 Pod=mattermost
+User=2000:2000
 Volume={{ mattermost_data_dir }}/config:/mattermost/config:Z
 Volume={{ mattermost_data_dir }}/data:/mattermost/data:Z
 Volume={{ mattermost_data_dir }}/logs:/mattermost/logs:Z
@@ -14,6 +15,8 @@ Volume={{ mattermost_data_dir }}/client/plugins:/mattermost/client/plugins:Z
 Environment=MM_USERNAME={{ mattermost_db_user }}
 Environment=MM_PASSWORD={{ mattermost_postgres_password }}
 Environment=MM_DBNAME={{ mattermost_db_name }}
+Environment=MM_SQLSETTINGS_DRIVERNAME=postgres
+Environment=MM_SQLSETTINGS_DATASOURCE=postgres://{{ mattermost_db_user }}:{{ mattermost_postgres_password }}@mattermost-db:5432/{{ mattermost_db_name }}?sslmode=disable
 
 [Service]
 Restart=always

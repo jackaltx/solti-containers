@@ -2,9 +2,9 @@
   "ServiceSettings": {
     "SiteURL": "{{ mattermost_site_url }}",
     "ListenAddress": ":8065",
-    "ConnectionSecurity": "{% if mattermost_enable_tls %}TLS{% else %}""{% endif %}",
-    "TLSCertFile": "{% if mattermost_enable_tls %}/mattermost/config/tls/{{ mattermost_tls_cert_file | basename }}{% else %}""{% endif %}",
-    "TLSKeyFile": "{% if mattermost_enable_tls %}/mattermost/config/tls/{{ mattermost_tls_key_file | basename }}{% else %}""{% endif %}",
+    "ConnectionSecurity": "{% if mattermost_enable_tls %}TLS{% else %}{% endif %}",
+    "TLSCertFile": "{% if mattermost_enable_tls %}/mattermost/config/tls/{{ mattermost_tls_cert_file | basename }}{% else %}{% endif %}",
+    "TLSKeyFile": "{% if mattermost_enable_tls %}/mattermost/config/tls/{{ mattermost_tls_key_file | basename }}{% else %}{% endif %}",
     "UseLetsEncrypt": false,
     "TLSMinVer": "{{ mattermost_tls_min_version }}",
     "TLSStrictTransport": {{ mattermost_tls_strict_transport | lower }},

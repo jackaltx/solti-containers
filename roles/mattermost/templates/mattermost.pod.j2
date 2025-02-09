@@ -4,6 +4,9 @@ PublishPort=127.0.0.1:${MATTERMOST_PORT}:8065
 
 [Service]
 Restart=always
+Type=forking
+RemainAfterExit=yes
+TimeoutStartSec=300
 
 [Install]
 WantedBy=default.target
