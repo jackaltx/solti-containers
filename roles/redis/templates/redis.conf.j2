@@ -1,0 +1,26 @@
+# Basic configuration
+bind 0.0.0.0
+port 6379
+daemonize no
+supervised no
+loglevel notice
+databases 16
+
+# Security
+requirepass {{ redis_password }}
+{% if redis_enable_tls %}
+tls-port 6379
+tls-cert-file /usr/local/etc/redis/tls/{{ redis_tls_cert_file | basename }}
+tls-key-file /usr/local/etc/redis/tls/{{ redis_tls_key_file | basename }}
+tls-auth-clients {{ redis_tls_auth_clients }}
+{% endif %}
+
+# Memory management
+maxmemory {{ redis_maxmemory }}
+maxmemory-policy {{ redis_maxmemory_policy }}
+
+# Persistence
+dir /data
+appendonly yes
+appendfilename "appendonly.aof"
+appendfsync everysec

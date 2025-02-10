@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  role_name: redis
+  namespace: jackaltx
+  author: jackaltx
+  description: Deploy Redis with Redis Commander using Podman containers
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+
+  galaxy_tags:
+    - redis
+    - database
+    - cache
+    - podman
+    - containers
+
+dependencies: []
