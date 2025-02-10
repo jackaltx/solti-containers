@@ -23,13 +23,25 @@ appender.rolling.strategy.type = DefaultRolloverStrategy
 appender.rolling.strategy.max = 7
 
 # Root logger
-rootLogger.level = info
+rootLogger.level = error
 rootLogger.appenderRef.console.ref = console
 rootLogger.appenderRef.rolling.ref = rolling
 
 # Reduce logging for some components
 logger.deprecation.name = org.elasticsearch.deprecation
-logger.deprecation.level = warn
+logger.deprecation.level = error
+
+logger.action.name = org.elasticsearch.action
+logger.action.level = error
 
 logger.transport.name = org.elasticsearch.transport
-logger.transport.level = warn
+logger.transport.level = error
+
+logger.cluster.name = org.elasticsearch.cluster
+logger.cluster.level = error
+
+logger.settings.name = org.elasticsearch.settings
+logger.settings.level = error
+
+logger.discovery.name = org.elasticsearch.discovery
+logger.discovery.level = error

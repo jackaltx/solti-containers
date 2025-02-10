@@ -1,4 +1,6 @@
 ---
+#
+# ....................................................................................
 - name: Create Elasticsearch pod
   containers.podman.podman_pod:
     name: elasticsearch
@@ -6,6 +8,7 @@
       - "127.0.0.1:{{ elasticsearch_port }}:9200"
       - "127.0.0.1:{{ elasticsearch_gui_port }}:8080"
 
+# ....................................................................................
 - name: Deploy Elasticsearch container
   containers.podman.podman_container:
     name: elasticsearch-node
@@ -27,6 +30,21 @@
       - "nofile=65535:65535"
     restart_policy: always
 
+# ....................................................................................
+- name: Wait a moment for logs to be written
+  ansible.builtin.wait_for:
+    timeout: 2
+
+- name: Get Elasticsearch logs
+  ansible.builtin.shell: "cat {{ elasticsearch_data_dir }}/logs/docker-cluster.log"
+  register: es_logs
+  ignore_errors: yes
+
+- name: Display recent logs
+  ansible.builtin.debug:
+    msg: "{{ es_logs.stdout_lines | default([]) }}"
+
+# ....................................................................................
 - name: Deploy Elasticvue container
   containers.podman.podman_container:
     name: elasticsearch-gui
