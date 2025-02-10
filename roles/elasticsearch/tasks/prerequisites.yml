@@ -1,15 +1,5 @@
 ---
-# - name: Create Elasticsearch directories
-#   ansible.builtin.file:
-#     path: "{{ elasticsearch_data_dir }}/{{ item }}"
-#     state: directory
-#     mode: "0770"
-#   loop:
-#     - "" # Creates the base directory
-#     - config
-#     - data
-#     - logs
-
+#
 # .......................................................................
 # Get container user mapping first
 - name: Get directory ownership

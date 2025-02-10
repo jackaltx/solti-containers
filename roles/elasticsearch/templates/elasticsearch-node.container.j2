@@ -9,7 +9,7 @@ Pod=elasticsearch
 Volume={{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z,U
 Volume={{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z,U
 Volume={{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z,U
-Environment=ES_JAVA_OPTS=-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }} -Djava.security.manager=disallow
+Environment=ES_JAVA_OPTS=-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }} -Djava.security.policy=/usr/share/elasticsearch/config/elasticsearch.policy -Djava.security.manager=disable
 Environment=discovery.type=single-node
 Environment=DISABLE_SECURITY_MANAGER=true
 Environment=ELASTIC_CONTAINER=true
