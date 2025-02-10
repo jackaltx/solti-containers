@@ -1,54 +1,16 @@
-################################################################
-## IMPORTANT: JVM Configuration
-################################################################
-
-# Xms represents the initial size of total heap space
-# Xmx represents the maximum size of total heap space
 -Xms{{ elasticsearch_memory }}
 -Xmx{{ elasticsearch_memory }}
 
-################################################################
-## Expert settings
-################################################################
-
-## GC configuration
-8-13:-XX:+UseConcMarkSweepGC
-8-13:-XX:CMSInitiatingOccupancyFraction=75
-8-13:-XX:+UseCMSInitiatingOccupancyOnly
-
-## G1GC Configuration
-14-:-XX:+UseG1GC
-14-:-XX:G1ReservePercent=25
-14-:-XX:InitiatingHeapOccupancyPercent=30
-
 ## JVM temporary directory
--Djava.io.tmpdir=${ES_TMPDIR}
+-Djava.io.tmpdir=/tmp
 
-## heap dumps
+## Force IPv4
+-Djava.net.preferIPv4Stack=true
 
-# generate a heap dump when an allocation from the Java heap fails
-# heap dumps are created in the working directory of the JVM
--XX:+HeapDumpOnOutOfMemoryError
+# Remove security manager
+-Djava.security.manager
 
-# specify an alternative path for heap dumps
-# ensure the directory exists and has sufficient space
--XX:HeapDumpPath=/usr/share/elasticsearch/logs
-
-# specify an alternative path for JVM fatal error logs
--XX:ErrorFile=/usr/share/elasticsearch/logs/hs_err_pid%p.log
-
-## JDK 8 GC logging
-8:-XX:+PrintGCDetails
-8:-XX:+PrintGCDateStamps
-8:-XX:+PrintTenuringDistribution
-8:-XX:+PrintGCApplicationStoppedTime
-8:-Xloggc:/usr/share/elasticsearch/logs/gc.log
-8:-XX:+UseGCLogFileRotation
-8:-XX:NumberOfGCLogFiles=32
-8:-XX:GCLogFileSize=64m
-
-# JDK 9+ GC logging
-9-:-Xlog:gc*,gc+age=trace,safepoint:file=/usr/share/elasticsearch/logs/gc.log:utctime,pid,tags:filecount=32,filesize=64m
-
-# Explicitly allow security manager
--Djava.security.manager=allow
+# Basic GC configuration
+-XX:+UseG1GC
+-XX:G1ReservePercent=25
+-XX:InitiatingHeapOccupancyPercent=30

@@ -1,17 +1,11 @@
 ---
-# Core settings
 cluster.name: "docker-cluster"
 network.host: 0.0.0.0
-discovery.type: {{ elasticsearch_discovery_type }}
+discovery.type: single-node
 
-# Memory settings
 bootstrap.memory_lock: true
+xpack.security.enabled: false
 
-# Security settings
-xpack.security.enabled: {{ elasticsearch_enable_security | lower }}
-xpack.security.transport.ssl.enabled: false
-
-# Paths
 path:
   data: /usr/share/elasticsearch/data
   logs: /usr/share/elasticsearch/logs
