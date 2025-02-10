@@ -2,6 +2,21 @@
 - name: Install Elasticsearch
   when: elasticsearch_state == 'present'
   block:
+    #
+    #
+    - name: Verify password is set
+      ansible.builtin.fail:
+        msg: |
+          ELASTIC_PASSWORD must be set. Either:
+          1. Set elasticsearch_password in your playbook
+          2. Set ELASTIC_PASSWORD environment variable
+      when: >
+        (elasticsearch_password | default('')) == ''
+
+    - name: Password is
+      debug:
+        var: elasticsearch_password
+
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml
 

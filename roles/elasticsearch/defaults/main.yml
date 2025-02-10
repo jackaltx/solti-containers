@@ -25,7 +25,7 @@ elasticsearch_gui_port: 8080
 
 # Security settings
 elasticsearch_enable_security: true
-elasticsearch_password: "change_this_password"
+elasticsearch_password: "changemeplease"
 
 # Cleanup settings
 elasticsearch_delete_data: false
