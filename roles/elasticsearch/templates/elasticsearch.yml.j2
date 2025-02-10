@@ -2,10 +2,19 @@
 cluster.name: "docker-cluster"
 network.host: 0.0.0.0
 
+# Memory settings
+bootstrap.memory_lock: true
+
 discovery.type: {{ elasticsearch_discovery_type }}
 
+# Security settings
 xpack.security.enabled: {{ elasticsearch_enable_security | lower }}
-xpack.security.transport.ssl.enabled: {{ elasticsearch_enable_security | lower }}
+
+# Disable transport SSL when security is enabled but no certificates are provided
+xpack.security.transport.ssl.enabled: false
+
+# xpack.security.enabled: {{ elasticsearch_enable_security | lower }}
+# xpack.security.transport.ssl.enabled: {{ elasticsearch_enable_security | lower }}
 
 {% if elasticsearch_enable_tls %}
 xpack.security.http.ssl:

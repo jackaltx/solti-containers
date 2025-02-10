@@ -7,47 +7,35 @@
   vars:
     mattermost_data_dir: "{{ ansible_env.HOME }}/mattermost-data"
 
-  tasks:
-    #
     # Define variables for mattermost user/group IDs
     # this was obtained by: podman inspect docker.io/mattermost/mattermost-team-edition:latest | grep -i user
-    - name: Set Mattermost user/group facts
-      ansible.builtin.set_fact:
-        mattermost_uid: 2000
-        mattermost_gid: 2000
+    mattermost_uid: 2000
+    mattermost_gid: 2000
 
-    # Just create the directory structure with standard ownership/permissions
-    - name: Create Mattermost directories
-      ansible.builtin.file:
-        path: "{{ mattermost_data_dir }}/{{ item }}"
-        state: directory
-        mode: "0755"
-      loop:
-        - "" # Base directory
-        - config
-        - data
-        - logs
-        - plugins
-        - client
-        - client/plugins
-        - postgres # Let PostgreSQL handle its own permissions
-
+  tasks:
+    #
     # ==========================================================
     # These tasks run as the regular user
 
-    # - name: Create Mattermost root directory
-    #   file:
-    #     path: "{{ mattermost_data_dir }}"
-    #     state: directory
-    #     mode: "0755"
-
-    # # ...........................................................
-    # # note: postgres container will chown ths one
-    # - name: Create PostgreSQL data directory with special permissions
-    #   file:
-    #     path: "{{ mattermost_data_dir }}/postgres"
-    #     state: directory
-    #     mode: "0700"
+    # This has varied over serveral iteractions. I no faith in this.
+    #
+    - name: Create Mattermost directory structure
+      ansible.builtin.file:
+        path: "{{ mattermost_data_dir }}/{{ item.path }}"
+        state: directory
+        mode: "{{ item.mode }}"
+        # owner: "{{ ansible_user_id }}"
+        # group: "{{ ansible_user_id }}"
+      loop:
+        - { path: "", mode: "0755" }
+        - { path: "config", mode: "0775" }
+        - { path: "data", mode: "0775" }
+        - { path: "logs", mode: "0775" } # Allow container to create and manage logs
+        - { path: "plugins", mode: "0775" }
+        - { path: "client", mode: "0775" }
+        - { path: "client/plugins", mode: "0775" }
+        - { path: "bleve-indexes", mode: "0775" }
+        - { path: "postgres", mode: "0755" } # PostgreSQL will manage its own permissions
 
     # ==========================================================
     # These tasks need root
@@ -58,21 +46,30 @@
       block:
         #
         # ...........................................................
-        # This is required because I need to create these directories as another user. bleh!
-        - name: Create Mattermost owned directories
-          file:
-            path: "{{ mattermost_data_dir }}/{{ item }}"
-            state: directory
-            mode: "0755"
-            owner: "{{ mattermost_gid }}"
-            group: "{{ mattermost_gid }}"
-            recurse: true
-          loop:
-            - config
-            - data
-            - logs
-            - plugins
-            - client
+        # Keeping this just in case
+        #
+        # - name: Create Mattermost owned directories
+        #   file:
+        #     path: "{{ mattermost_data_dir }}/{{ item.path }}"
+        #     state: directory
+        #     mode: "{{ item.mode }}"
+        #     owner: "{{ mattermost_gid }}"
+        #     group: "{{ mattermost_gid }}"
+        #     recurse: true
+        #   loop:
+        #     - { path: "config", mode: "0755" }
+        #     - { path: "data", mode: "0755" }
+        #     - { path: "logs", mode: "0777" } # Allow container to create and manage logs
+        #     - { path: "plugins", mode: "0755" }
+        #     - { path: "plugins/prepackaged_plugins", mode: "0755" }
+        #     - { path: "client", mode: "0755" }
+        #     - { path: "client/plugins", mode: "0755" }
+        #     - { path: "bleve-indexes", mode: "0755" }
+
+        - name: Set SELinux context for Mattermost directories
+          ansible.builtin.command: chcon -Rt container_file_t {{ mattermost_data_dir }}
+          become: true
+          when: ansible_os_family == "RedHat"
 
         # ...........................................................
         # RHEL/CentOS specific tasks

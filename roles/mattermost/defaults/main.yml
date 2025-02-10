@@ -25,11 +25,12 @@ mattermost_db_user: "mmuser"
 
 # Application settings
 mattermost_port: 8065
-mattermost_site_url: "" # Leave empty for automatic
+#mattermost_site_url: "" # Leave empty for automatic
+mattermost_site_url: "http://localhost:{{ mattermost_port }}"
 mattermost_site_name: "Mattermost"
 mattermost_enable_open_server: true
 mattermost_enable_user_creation: true
-mattermost_log_level: "INFO"
+mattermost_log_level: "WARN"
 
 # Cleanup settings
 mattermost_delete_data: false

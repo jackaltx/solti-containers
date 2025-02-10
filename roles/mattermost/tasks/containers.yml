@@ -8,7 +8,7 @@
   ignore_errors: true
 
 # ..........................................................
-# First ensure DNS configuration
+# First ensure DNS configuration   TODO: omitted
 - name: Ensure containers.conf directory exists
   ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/.config/containers"
@@ -84,11 +84,12 @@
     security_opt:
       - label=disable
     volume:
-      - "{{ mattermost_data_dir }}/config:/mattermost/config:Z"
-      - "{{ mattermost_data_dir }}/data:/mattermost/data:Z"
-      - "{{ mattermost_data_dir }}/logs:/mattermost/logs:Z"
-      - "{{ mattermost_data_dir }}/plugins:/mattermost/plugins:Z"
-      - "{{ mattermost_data_dir }}/client/plugins:/mattermost/client/plugins:Z"
+      - "{{ mattermost_data_dir }}/config:/mattermost/config:Z,U"
+      - "{{ mattermost_data_dir }}/data:/mattermost/data:Z,U"
+      - "{{ mattermost_data_dir }}/logs:/mattermost/logs:Z,U"
+      - "{{ mattermost_data_dir }}/plugins:/mattermost/plugins:Z,U"
+      - "{{ mattermost_data_dir }}/client/plugins:/mattermost/client/plugins:Z,U"
+      - "{{ mattermost_data_dir }}/bleve-indexes:/mattermost/bleve-indexes:Z,U"
     env:
       MM_USERNAME: "{{ mattermost_db_user }}"
       MM_PASSWORD: "{{ mattermost_postgres_password }}"

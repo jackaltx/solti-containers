@@ -15,6 +15,9 @@
     - name: Include systemd tasks
       ansible.builtin.include_tasks: systemd.yml
 
+    - name: Configure systemd limits
+      include_tasks: configure-systemd-limits.yml
+
 - name: Remove Elasticsearch
   when: elasticsearch_state == 'absent'
   block:

@@ -13,14 +13,18 @@
     image: "{{ elasticsearch_image }}"
     state: started
     volume:
-      - "{{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z"
-      - "{{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z"
-      - "{{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z"
+      - "{{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z,U"
+      - "{{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z,U"
+      - "{{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z,U"
     env:
       ES_JAVA_OPTS: "-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }}"
       discovery.type: "{{ elasticsearch_discovery_type }}"
       ELASTIC_PASSWORD: "{{ elasticsearch_password }}"
       xpack.security.enabled: "{{ elasticsearch_enable_security | string }}"
+      bootstrap.memory_lock: "true"
+    ulimit:
+      - "memlock=-1:-1"
+      - "nofile=65535:65535"
     restart_policy: always
 
 - name: Deploy Elasticvue container
