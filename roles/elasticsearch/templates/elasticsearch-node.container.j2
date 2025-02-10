@@ -12,21 +12,14 @@ Volume={{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z,U
 Environment=ES_JAVA_OPTS=-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }}
 Environment=discovery.type={{ elasticsearch_discovery_type }}
 Environment=ELASTIC_PASSWORD={{ elasticsearch_password }}
-Environment=xpack.security.enabled={{ elasticsearch_enable_security | string }}
-Environment=ES_TMPDIR=/tmp
-Environment=ES_JAVA_HOME=/usr/share/elasticsearch/jdk
-Environment=ES_PATH_CONF=/usr/share/elasticsearch/config
 Environment=bootstrap.memory_lock=true
-AddDevice=/dev/hugepages
 Ulimit=memlock=-1:-1
-Ulimit=nofile=65535:65535
+SecurityLabelDisable=true
 
 [Service]
 Restart=always
 TimeoutStartSec=300
 TimeoutStopSec=70
-LimitMEMLOCK=infinity
-LimitNOFILE=65535
 
 [Install]
 WantedBy=default.target
