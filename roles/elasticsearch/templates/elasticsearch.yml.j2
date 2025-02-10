@@ -1,12 +1,30 @@
 ---
 cluster.name: "docker-cluster"
-network.host: 0.0.0.0
+
+# Basic network settings
+network.host: 0.0.0.0              # Accept connections from any IP
+network.publish_host: localhost    # Cluster publishes itself only to localhost
+transport.host: localhost          # Inter-node communication only on localhost
+
+# Tells ES to run as a single node instead of trying to form a cluster
 discovery.type: single-node
 
+# Prevents memory from being swapped to disk, important for performance
 bootstrap.memory_lock: true
-xpack.security.enabled: false
+
+# This is controlled by role main defaults
+xpack.security.enabled: {{ elasticsearch_enable_security | lower }}
+
+# CORS configuration for Elasticvue
+http.cors.enabled: true
+http.cors.allow-origin: "http://localhost:{{ elasticsearch_gui_port }}"
+http.cors.allow-headers: X-Requested-With,Content-Type,Content-Length,Authorization
+http.cors.allow-credentials: true
+
+# Security settings using valid options
+xpack.security.authc.api_key.enabled: true
+xpack.security.authc.token.enabled: true
 
 path:
   data: /usr/share/elasticsearch/data
   logs: /usr/share/elasticsearch/logs
-  

@@ -12,7 +12,7 @@ Volume={{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z,U
 Environment=ES_JAVA_OPTS=-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }} -Djava.security.manager=allow -Djava.locale.providers=SPI,JRE
 Environment=discovery.type=single-node
 Environment=ELASTIC_PASSWORD={{ elasticsearch_password }}
-Environment=xpack.security.enabled=false
+Environment=xpack.security.enabled=true
 Environment=bootstrap.memory_lock=true
 Ulimit=memlock=-1:-1
 Ulimit=nofile=65535:65535
