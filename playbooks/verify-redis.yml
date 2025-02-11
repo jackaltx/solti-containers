@@ -1,0 +1,90 @@
+---
+- name: Verify Redis Installation
+  hosts: redis_svc
+  vars:
+    test_key: "test:ansible"
+    test_value: "Verification {{ ansible_date_time.iso8601 }}"
+
+    redis_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
+
+  tasks:
+    - name: Verify Redis pod is running
+      command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
+      register: pod_status
+      failed_when: "'redis' not in pod_status.stdout"
+      changed_when: false
+
+    - name: Show pod status
+      debug:
+        var: pod_status.stdout_lines
+
+    - name: Verify Redis container is running
+      command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=redis"
+      register: container_status
+      failed_when: "'redis-server' not in container_status.stdout"
+      changed_when: false
+
+    - name: Show container status
+      debug:
+        var: container_status.stdout_lines
+
+    - name: Test Redis write
+      command: >
+        podman exec redis-server 
+        redis-cli -a {{ redis_password }}
+        SET {{ test_key }} "{{ test_value }}"
+      register: redis_write
+      changed_when: false
+      no_log: true
+
+    - name: Show write result
+      debug:
+        var: redis_write.stdout
+
+    - name: Test Redis read
+      command: >
+        podman exec redis-server
+        redis-cli -a {{ redis_password }}
+        GET {{ test_key }}
+      register: redis_read
+      changed_when: false
+      no_log: true
+
+    - name: Show read result
+      debug:
+        var: redis_read.stdout
+
+    - name: Get Redis INFO
+      command: >
+        podman exec redis-server
+        redis-cli -a {{ redis_password }}
+        INFO
+      register: redis_info
+      changed_when: false
+      no_log: true
+
+    - name: Show Redis version and memory info
+      debug:
+        msg: "{{ redis_info.stdout_lines | select('match', '^(redis_version|used_memory_human|maxmemory_human)') | list }}"
+
+    - name: Get Redis config
+      command: >
+        podman exec redis-server
+        redis-cli -a {{ redis_password }}
+        CONFIG GET *
+      register: redis_config
+      changed_when: false
+      no_log: true
+
+    - name: Show important Redis config values
+      debug:
+        msg: "{{ redis_config.stdout_lines | select('match', '^(maxmemory|maxmemory-policy|appendonly|dir)') | list }}"
+
+    # Cleanup test key
+    - name: Remove test key
+      command: >
+        podman exec redis-server
+        redis-cli -a {{ redis_password }}
+        DEL {{ test_key }}
+      changed_when: false
+      no_log: true

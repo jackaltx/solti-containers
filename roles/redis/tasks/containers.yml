@@ -14,7 +14,7 @@
     image: "{{ redis_image }}"
     state: started
     volume:
-      - "{{ redis_data_dir }}/config:/usr/local/etc/redis:Z,U"
+      - "{{ redis_data_dir }}/config:/usr/local/etc/redis:Z"
       - "{{ redis_data_dir }}/data:/data:Z"
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     restart_policy: always

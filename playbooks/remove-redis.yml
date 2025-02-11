@@ -1,0 +1,8 @@
+---
+- name: Remove Redis (not data/config)
+  hosts: redis_svc
+  vars:
+    redis_delete_data: false
+    redis_state: absent
+  roles:
+    - role: redis

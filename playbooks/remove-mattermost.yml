@@ -1,5 +1,5 @@
 ---
-- name: Remove Mattermost  (not data)
+- name: Remove Mattermost  (not data/config)
   hosts: mattermost_svc
   vars:
     mattermost_delete_data: false

@@ -17,7 +17,7 @@
     - { src: redis.pod.j2, dest: redis.pod }
     - { src: redis-server.container.j2, dest: redis-server.container }
     - { src: redis-gui.container.j2, dest: redis-gui.container }
-      when: redis_enable_gui | bool
+  when: redis_enable_gui | bool
 
 - name: Generate systemd units from Quadlets
   ansible.builtin.command:

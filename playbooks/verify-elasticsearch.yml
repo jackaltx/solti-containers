@@ -1,0 +1,116 @@
+---
+- name: Verify Elasticsearch Installation
+  hosts: elasticsearch_svc
+  vars:
+    test_index: "test-ansible"
+    test_doc: '{"message": "Verification {{ ansible_date_time.iso8601 }}"}'
+    elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
+
+  tasks:
+    - name: Verify Elasticsearch pod is running
+      command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
+      register: pod_status
+      failed_when: "'elasticsearch' not in pod_status.stdout"
+      changed_when: false
+
+    - name: Show pod status
+      debug:
+        var: pod_status.stdout_lines
+
+    - name: Verify Elasticsearch containers are running
+      command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=elasticsearch"
+      register: container_status
+      failed_when: "'elasticsearch-node' not in container_status.stdout"
+      changed_when: false
+
+    - name: Show container status
+      debug:
+        var: container_status.stdout_lines
+
+    - name: Wait for Elasticsearch to be ready
+      command: >
+        podman exec elasticsearch-node 
+        curl -s -u elastic:{{ elasticsearch_password }}
+        http://localhost:9200/_cluster/health
+      register: health_check
+      until: health_check.rc == 0
+      retries: 30
+      delay: 5
+      changed_when: false
+      no_log: true
+
+    - name: Show cluster health
+      command: >
+        podman exec elasticsearch-node 
+        curl -s -u elastic:{{ elasticsearch_password }}
+        http://localhost:9200/_cluster/health?pretty
+      register: cluster_health
+      changed_when: false
+      no_log: true
+
+    - name: Display cluster health
+      debug:
+        var: cluster_health.stdout_lines
+
+    - name: Get Elasticsearch info
+      command: >
+        podman exec elasticsearch-node 
+        curl -s -u elastic:{{ elasticsearch_password }}
+        http://localhost:9200/?pretty
+      register: es_info
+      changed_when: false
+      no_log: true
+
+    - name: Display Elasticsearch info
+      debug:
+        var: es_info.stdout_lines
+
+    - name: Create test document
+      command: >
+        podman exec elasticsearch-node 
+        curl -s -u elastic:{{ elasticsearch_password }}
+        -X POST "http://localhost:9200/{{ test_index }}/_doc?refresh=true"
+        -H 'Content-Type: application/json'
+        -d "{{ test_doc }}"
+      register: index_result
+      changed_when: false
+      no_log: true
+
+    - name: Show index result
+      debug:
+        var: index_result.stdout_lines
+
+    - name: Search test document
+      command: >
+        podman exec elasticsearch-node 
+        curl -s -u elastic:{{ elasticsearch_password }}
+        "http://localhost:9200/{{ test_index }}/_search?pretty"
+      register: search_result
+      changed_when: false
+      no_log: true
+
+    - name: Show search result
+      debug:
+        var: search_result.stdout_lines
+
+    - name: Get memory stats
+      command: >
+        podman exec elasticsearch-node 
+        curl -s -u elastic:{{ elasticsearch_password }}
+        http://localhost:9200/_nodes/stats/jvm?pretty
+      register: memory_stats
+      changed_when: false
+      no_log: true
+
+    - name: Show memory usage
+      debug:
+        msg: "{{ memory_stats.stdout | from_json | json_query('nodes.*.jvm.mem.heap_used_percent') }}"
+
+    # Cleanup
+    - name: Delete test index
+      command: >
+        podman exec elasticsearch-node 
+        curl -s -u elastic:{{ elasticsearch_password }}
+        -X DELETE "http://localhost:9200/{{ test_index }}"
+      changed_when: false
+      no_log: true

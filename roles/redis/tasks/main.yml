@@ -5,7 +5,8 @@
     - name: Verify password is set
       ansible.builtin.fail:
         msg: "redis_password must be set and not default value"
-      when: redis_password == "changeme"
+      when: >
+        (redis_password | default('')) == ''
 
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml

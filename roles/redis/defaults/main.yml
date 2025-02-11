@@ -1,4 +1,5 @@
 ---
+#
 # Installation state
 redis_state: present
 redis_force_reload: false
