@@ -12,10 +12,12 @@
     # These tasks run as the regular user
     # ...........................................................................
     - name: Create Elasticsearch directories
-      file:
+      ansible.builtin.file:
         path: "{{ elasticsearch_data_dir }}/{{ item }}"
         state: directory
-        mode: "0750"
+        mode: "0770"
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
       loop:
         - "" # Creates the base directory
         - config
@@ -26,6 +28,12 @@
     - name: Perform system-level tasks
       become: true
       block:
+        - name: Set proper SELinux context for Elasticsearch directories
+          ansible.builtin.command:
+            cmd: "chcon -Rt container_file_t {{ elasticsearch_data_dir }}"
+          changed_when: false
+          when: ansible_selinux.status == "enabled"
+
         # RHEL/CentOS specific tasks
         - name: Configure RHEL repositories
           block:
@@ -40,7 +48,7 @@
         - name: Configure Debian prerequisites
           block:
             - name: Install required dependencies
-              apt:
+              ansible.builtin.apt:
                 name:
                   - apt-transport-https
                   - ca-certificates
@@ -51,14 +59,14 @@
                 update_cache: yes
 
             - name: Install podman-compose via pip
-              pip:
+              ansible.builtin.pip:
                 name: podman-compose
                 state: present
           when: ansible_os_family == "Debian"
 
         # Common tasks for all distributions
         - name: Install required packages
-          package:
+          ansible.builtin.package:
             name: "{{ packages }}"
             state: present
           vars:
@@ -71,7 +79,7 @@
           delay: 5
 
         - name: Enable lingering for user
-          command: "loginctl enable-linger {{ ansible_user_id }}"
+          ansible.builtin.command: "loginctl enable-linger {{ ansible_user_id }}"
           changed_when: false
 
         - name: Set virtual memory for Elasticsearch
@@ -85,7 +93,7 @@
         - name: Configure systemd limits
           block:
             - name: Create systemd override directory
-              file:
+              ansible.builtin.file:
                 path: /etc/systemd/system/user@.service.d
                 state: directory
                 mode: "0755"
@@ -102,5 +110,5 @@
 
   handlers:
     - name: Reload systemd
-      systemd:
+      ansible.builtin.systemd:
         daemon_reload: yes

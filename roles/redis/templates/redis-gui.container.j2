@@ -1,0 +1,17 @@
+[Unit]
+Description=Redis Commander GUI Container
+After=network-online.target
+
+[Container]
+Image={{ redis_commander_image }}
+ContainerName=redis-gui
+Pod=redis
+Environment=REDIS_HOSTS=local:redis-server:6379:0:{{ redis_password }}
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+TimeoutStopSec=70
+
+[Install]
+WantedBy=default.target

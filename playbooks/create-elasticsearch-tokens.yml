@@ -1,0 +1,93 @@
+---
+- name: Create Elasticsearch API tokens
+  hosts: elasticsearch_svc
+  vars:
+    es_port: 9200
+    es_user: elastic
+    es_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
+
+  tasks:
+    #
+    # ........................................................................
+    - name: Verify password is set
+      ansible.builtin.fail:
+        msg: |
+          ELASTIC_PASSWORD must be set. Either:
+          1. Set elasticsearch_password in your playbook
+          2. Set ELASTIC_PASSWORD environment variable
+      when: >
+        (es_password | default('')) == ''
+
+    # ........................................................................
+    - name: Create read-only API key
+      uri:
+        url: "http://localhost:{{ es_port }}/_security/api_key"
+        method: POST
+        user: "{{ es_user }}"
+        password: "{{ es_password }}"
+        body_format: json
+        body:
+          name: "readonly_key"
+          role_descriptors:
+            readonly_role:
+              cluster: ["monitor"]
+              index:
+                - names: ["*"]
+                  privileges: ["read", "view_index_metadata"]
+        status_code: 200
+        force_basic_auth: true
+      register: ro_key
+
+    - name: Save read-only API key
+      ansible.builtin.debug:
+        msg: "Read-only API key: {{ ro_key.json.encoded }}"
+
+    # ........................................................................
+    # Create read-write token
+    - name: Create read-write API key
+      uri:
+        url: "http://localhost:{{ es_port }}/_security/api_key"
+        method: POST
+        user: "{{ es_user }}"
+        password: "{{ es_password }}"
+        body_format: json
+        body:
+          name: "readwrite_key"
+          role_descriptors:
+            readwrite_role:
+              cluster: ["monitor", "manage_index_templates"]
+              index:
+                - names: ["*"]
+                  privileges:
+                    [
+                      "read",
+                      "write",
+                      "view_index_metadata",
+                      "create_index",
+                      "manage",
+                    ]
+        status_code: 200
+        force_basic_auth: true
+      register: rw_key
+
+    - name: Save read-write API key
+      ansible.builtin.debug:
+        msg: "Read-write API key: {{ rw_key.json.encoded }}"
+
+    # ........................................................................
+    # Optionally save keys to a file
+    - name: Ensure data directory exists
+      delegate_to: localhost
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/data"
+        state: directory
+        mode: "0755"
+
+    - name: Save API keys to file
+      delegate_to: localhost
+      ansible.builtin.copy:
+        content: |
+          Read-only API key: {{ ro_key.json.encoded }}
+          Read-write API key: {{ rw_key.json.encoded }}
+        dest: "{{ ansible_env.HOME }}/data/elasticsearch_api_keys.txt"
+        mode: "0600"

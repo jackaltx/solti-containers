@@ -1,0 +1,56 @@
+---
+- name: Verify prerequisites
+  assert:
+    that:
+      - redis_password != "changeme"
+      - redis_data_dir is defined
+      - redis_port is defined
+    fail_msg: "Required variables not properly configured"
+
+# .....................................................................................
+# Get container user mapping first
+- name: Get directory ownership
+  ansible.builtin.stat:
+    path: "{{ redis_data_dir }}/config"
+  register: dir_info
+
+- name: Debug ownership
+  ansible.builtin.debug:
+    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+
+# .....................................................................................
+- name: Become root and change setting files
+  become: true
+  block:
+    - name: Template Redis configuration
+      ansible.builtin.template:
+        src: redis.conf.j2
+        dest: "{{ redis_data_dir }}/config/redis.conf"
+        mode: "0644"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart redis
+
+    # Configure system settings for Redis
+    - name: Configure memory overcommit
+      sysctl:
+        name: vm.overcommit_memory
+        value: "1"
+        sysctl_set: true
+        state: present
+        reload: true
+
+    # .....................................................................................
+    - name: Configure SELinux for Redis directories
+      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+      block:
+        - name: Set SELinux context for Redis directories
+          ansible.builtin.sefcontext:
+            target: "{{ redis_data_dir }}(/.*)?"
+            setype: container_file_t
+            state: present
+
+        - name: Apply SELinux context
+          ansible.builtin.command: restorecon -R -v "{{ redis_data_dir }}"
+          register: restorecon_result
+          changed_when: restorecon_result.rc == 0

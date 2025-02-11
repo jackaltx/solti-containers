@@ -4,9 +4,9 @@
     daemon_reload: yes
     scope: user
 
-- name: restart elasticsearch
+- name: restart redis
   ansible.builtin.systemd:
-    name: "pod-elasticsearch"
+    name: "pod-redis"
     state: restarted
     scope: user
-  listen: "restart elasticsearch"
+  listen: "restart redis"

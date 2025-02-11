@@ -1,0 +1,16 @@
+-Xms{{ elasticsearch_memory }}
+-Xmx{{ elasticsearch_memory }}
+
+## JVM temporary directory
+-Djava.io.tmpdir=/tmp
+
+## Force IPv4
+-Djava.net.preferIPv4Stack=true
+
+# Remove security manager
+-Djava.security.manager=allow
+
+# Basic GC configuration
+-XX:+UseG1GC
+-XX:G1ReservePercent=25
+-XX:InitiatingHeapOccupancyPercent=30

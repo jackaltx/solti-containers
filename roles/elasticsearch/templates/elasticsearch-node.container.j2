@@ -6,13 +6,16 @@ After=network-online.target
 Image={{ elasticsearch_image }}
 ContainerName=elasticsearch-node
 Pod=elasticsearch
-Volume={{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z
-Volume={{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z
-Volume={{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z
-Environment=ES_JAVA_OPTS=-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }}
-Environment=discovery.type={{ elasticsearch_discovery_type }}
+Volume={{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z,U
+Volume={{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z,U
+Volume={{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z,U
+Environment=ES_JAVA_OPTS=-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }} -Djava.security.manager=allow -Djava.locale.providers=SPI,JRE
+Environment=discovery.type=single-node
 Environment=ELASTIC_PASSWORD={{ elasticsearch_password }}
-Environment=xpack.security.enabled={{ elasticsearch_enable_security | string }}
+Environment=xpack.security.enabled=true
+Environment=bootstrap.memory_lock=true
+Ulimit=memlock=-1:-1
+Ulimit=nofile=65535:65535
 
 [Service]
 Restart=always

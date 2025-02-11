@@ -1,0 +1,16 @@
+---
+- name: Ensure systemd override directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/systemd/user/container-elasticsearch-node.service.d"
+    state: directory
+    mode: "0755"
+
+- name: Configure systemd resource limits
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/.config/systemd/user/container-elasticsearch-node.service.d/override.conf"
+    content: |
+      [Service]
+      LimitMEMLOCK=infinity
+      LimitNOFILE=65535
+    mode: "0644"
+  notify: reload systemd user daemon

@@ -1,18 +1,43 @@
 ---
-- name: Create Elasticsearch directories
-  ansible.builtin.file:
-    path: "{{ elasticsearch_data_dir }}/{{ item }}"
-    state: directory
-    mode: "0750"
-  loop:
-    - "" # Creates the base directory
-    - config
-    - data
-    - logs
+#
+# .......................................................................
+# Get container user mapping first
+- name: Get directory ownership
+  ansible.builtin.stat:
+    path: "{{ elasticsearch_data_dir }}/config"
+  register: dir_info
 
-- name: Template elasticsearch.yml config
-  ansible.builtin.template:
-    src: elasticsearch.yml.j2
-    dest: "{{ elasticsearch_data_dir }}/config/elasticsearch.yml"
-    mode: "0644"
-  notify: restart elasticsearch
+- name: Debug ownership
+  ansible.builtin.debug:
+    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+
+# .......................................................................
+- name: Become root and change setting files
+  become: true
+  block:
+    - name: Template elasticsearch.yml config
+      ansible.builtin.template:
+        src: elasticsearch.yml.j2
+        dest: "{{ elasticsearch_data_dir }}/config/elasticsearch.yml"
+        mode: "0644"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart elasticsearch
+
+    - name: Template log4j2.properties file
+      ansible.builtin.template:
+        src: log4j2.properties.j2
+        dest: "{{ elasticsearch_data_dir }}/config/log4j2.properties"
+        mode: "0644"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart elasticsearch
+
+    - name: Template jvm.options file
+      ansible.builtin.template:
+        src: jvm.options.j2
+        dest: "{{ elasticsearch_data_dir }}/config/jvm.options"
+        mode: "0644"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart elasticsearch

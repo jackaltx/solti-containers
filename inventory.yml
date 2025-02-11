@@ -43,6 +43,17 @@ all:
               # host_vars
 
           # .......................................
-          # mattermost_svc only vars
+          # _svc only vars
+          vars:
+            debug_level: warn
+
+        # ========================================
+        redis_svc:
+          hosts:
+            firefly:
+              # host_vars
+
+          # .......................................
+          # _svc only vars
           vars:
             debug_level: warn

@@ -7,6 +7,14 @@
     mattermost_uid: 2000
     mattermost_gid: 2000
 
+- name: Verify prerequisites
+  assert:
+    that:
+      - mattermost_postgres_password != "change_this_password"
+      - mattermost_data_dir is defined
+      - mattermost_port is defined
+    fail_msg: "Required variables not properly configured"
+
 # ==========================================================
 # These tasks need root
 
@@ -30,9 +38,9 @@
       ansible.builtin.template:
         src: config.json.j2
         dest: "{{ mattermost_data_dir }}/config/config.json"
-        mode: "0644"
-        owner: "{{ mattermost_uid }}"
-        group: "{{ mattermost_gid }}"
+        mode: "0666"
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
 
     # SELinux configuration tasks
     - name: Check if SELinux is enabled
@@ -50,20 +58,25 @@
             name:
               - policycoreutils-python-utils
             state: present
-          become: true
 
-        - name: Set SELinux context for Mattermost directory
-          ansible.builtin.command: semanage fcontext -a -t container_file_t "{{ mattermost_data_dir }}(/.*)?"
-          become: true
-          register: semanage_result
-          changed_when: semanage_result.rc == 0
-          failed_when:
-            - semanage_result.rc != 0
-            - '"already exists" not in semanage_result.stderr'
+        - name: Set SELinux context for Mattermost directories
+          ansible.builtin.sefcontext:
+            target: "{{ mattermost_data_dir }}(/.*)?"
+            setype: container_file_t
+            state: present
+          when: ansible_os_family == "RedHat"
+
+        # NOTE: claude removed this????
+        # - name: Set SELinux context for Mattermost directory
+        #   ansible.builtin.command: semanage fcontext -a -t container_file_t "{{ mattermost_data_dir }}(/.*)?"
+        #   register: semanage_result
+        #   changed_when: semanage_result.rc == 0
+        #   failed_when:
+        #     - semanage_result.rc != 0
+        #     - '"already exists" not in semanage_result.stderr'
 
         - name: Apply SELinux context
           ansible.builtin.command: restorecon -R -v "{{ mattermost_data_dir }}"
-          become: true
           register: restorecon_result
           changed_when: restorecon_result.rc == 0
 

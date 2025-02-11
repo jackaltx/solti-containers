@@ -1,0 +1,12 @@
+[Pod]
+Name=redis
+PublishPort=127.0.0.1:${REDIS_PORT}:6379
+{% if redis_enable_gui %}
+PublishPort=127.0.0.1:${REDIS_GUI_PORT}:8081
+{% endif %}
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

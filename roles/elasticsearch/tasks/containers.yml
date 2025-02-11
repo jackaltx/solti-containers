@@ -1,4 +1,6 @@
 ---
+#
+# ....................................................................................
 - name: Create Elasticsearch pod
   containers.podman.podman_pod:
     name: elasticsearch
@@ -6,6 +8,7 @@
       - "127.0.0.1:{{ elasticsearch_port }}:9200"
       - "127.0.0.1:{{ elasticsearch_gui_port }}:8080"
 
+# ....................................................................................
 - name: Deploy Elasticsearch container
   containers.podman.podman_container:
     name: elasticsearch-node
@@ -13,16 +16,35 @@
     image: "{{ elasticsearch_image }}"
     state: started
     volume:
-      - "{{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z"
-      - "{{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z"
-      - "{{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z"
+      - "{{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z,U"
+      - "{{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z,U"
+      - "{{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z,U"
     env:
       ES_JAVA_OPTS: "-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }}"
       discovery.type: "{{ elasticsearch_discovery_type }}"
       ELASTIC_PASSWORD: "{{ elasticsearch_password }}"
       xpack.security.enabled: "{{ elasticsearch_enable_security | string }}"
+      bootstrap.memory_lock: "true"
+    ulimit:
+      - "memlock=-1:-1"
+      - "nofile=65535:65535"
     restart_policy: always
 
+# ....................................................................................
+- name: Wait a moment for logs to be written
+  ansible.builtin.wait_for:
+    timeout: 2
+
+- name: Get Elasticsearch logs
+  ansible.builtin.shell: "cat {{ elasticsearch_data_dir }}/logs/docker-cluster.log"
+  register: es_logs
+  ignore_errors: yes
+
+- name: Display recent logs
+  ansible.builtin.debug:
+    msg: "{{ es_logs.stdout_lines | default([]) }}"
+
+# ....................................................................................
 - name: Deploy Elasticvue container
   containers.podman.podman_container:
     name: elasticsearch-gui
