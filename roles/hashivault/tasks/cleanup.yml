@@ -1,0 +1,38 @@
+---
+- name: Stop and disable services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+    scope: user
+  loop:
+    - pod-vault
+  ignore_errors: true
+
+- name: Remove pod and containers
+  containers.podman.podman_pod:
+    name: vault
+    state: absent
+  ignore_errors: true
+
+- name: Remove systemd services
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/systemd/user/{{ item }}"
+    state: absent
+  loop:
+    - pod-vault.service
+    - container-vault-svc.service
+
+- name: Remove Quadlet files
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item }}"
+    state: absent
+  loop:
+    - vault.pod
+    - vault-svc.container
+
+- name: Remove data directory
+  ansible.builtin.file:
+    path: "{{ vault_data_dir }}"
+    state: absent
+  when: vault_delete_data | bool

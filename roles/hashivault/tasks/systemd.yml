@@ -11,26 +11,20 @@
     - .config/containers/systemd
 
 # .......................................................................................
+# NOTE:  to generate the correct file the filename and container name need to match
 - name: Template Quadlet configuration files
   ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
     mode: "0644"
   loop:
-    - { src: elasticsearch.pod.j2, dest: elasticsearch.pod }
-    - {
-        src: elasticsearch-node.container.j2,
-        dest: elasticsearch-node.container,
-      }
-    - { src: elasticsearch-gui.container.j2, dest: elasticsearch-gui.container }
+    - { src: vault.pod.j2, dest: vault.pod }
+    - { src: vault-svc.container.j2, dest: vault-svc.container }
 
 # .......................................................................................
-# Generator  add pod- or container-  to --name  by default
-# Older podman versions may have issues
-#
-- name: Generate systemd units from Quadlets
-  ansible.builtin.command:
-    cmd: podman generate systemd --name elasticsearch --files --new
+- name: Generate systemd units
+  command:
+    cmd: podman generate systemd --name vault --files --new
     chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
   register: generate_result
   changed_when: generate_result.rc == 0
@@ -42,9 +36,9 @@
     scope: user
 
 # .......................................................................................
-- name: Enable and start pod with systemd
-  ansible.builtin.systemd:
-    name: pod-elasticsearch
+- name: Enable and start services
+  systemd:
+    name: pod-vault
     state: started
     enabled: yes
     scope: user

@@ -1,0 +1,12 @@
+---
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+- name: restart vault
+  ansible.builtin.systemd:
+    name: "pod-vault"
+    state: restarted
+    scope: user
+  listen: "restart vault"

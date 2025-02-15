@@ -21,7 +21,7 @@ elasticsearch_data_dir: "{{ ansible_user_dir }}/elasticsearch-data"
 elasticsearch_port: 9200
 elasticsearch_memory: "1g"
 elasticsearch_discovery_type: "single-node"
-elasticsearch_gui_port: 8080
+elasticsearch_gui_port: 8088
 
 # Security settings
 elasticsearch_enable_security: true

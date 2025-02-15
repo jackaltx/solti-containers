@@ -1,0 +1,26 @@
+[Unit]
+Description=Traefik Container
+After=network-online.target
+
+[Container]
+Image={{ traefik_image }}
+ContainerName=traefik-svc
+Pod=traefik
+Volume={{ traefik_data_dir }}/config:/etc/traefik:Z,ro
+Volume={{ traefik_data_dir }}/acme:/etc/traefik/acme:Z
+Volume={{ traefik_data_dir }}/logs:/logs:Z
+Volume={% if traefik_privileged -%}
+    /run/podman/podman.sock
+{%- else -%}
+    {{ ansible_env.XDG_RUNTIME_DIR }}/podman/podman.sock
+{%- endif %}:/var/run/docker.sock:ro
+Environment=LINODE_TOKEN={{ lookup('env', 'LINODE_TOKEN') }}
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+TimeoutStopSec=70
+
+[Install]
+WantedBy=default.target
+

@@ -17,34 +17,31 @@
     dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
     mode: "0644"
   loop:
-    - { src: elasticsearch.pod.j2, dest: elasticsearch.pod }
-    - {
-        src: elasticsearch-node.container.j2,
-        dest: elasticsearch-node.container,
-      }
-    - { src: elasticsearch-gui.container.j2, dest: elasticsearch-gui.container }
+    - { src: traefik.pod.j2, dest: traefik.pod }
+    - { src: traefik-svc.container.j2, dest: traefik-svc.container } # container name must match filename!!
 
 # .......................................................................................
 # Generator  add pod- or container-  to --name  by default
 # Older podman versions may have issues
 #
-- name: Generate systemd units from Quadlets
-  ansible.builtin.command:
-    cmd: podman generate systemd --name elasticsearch --files --new
+- name: Generate systemd units
+  command:
+    cmd: podman generate systemd --name traefik --files --new
     chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
-  register: generate_result
-  changed_when: generate_result.rc == 0
+  register: systemd_generate
+  changed_when: systemd_generate.rc == 0
 
 # .......................................................................................
-- name: Reload systemd user daemon
-  ansible.builtin.systemd:
+- name: Reload systemd daemon
+  systemd:
     daemon_reload: yes
     scope: user
 
 # .......................................................................................
-- name: Enable and start pod with systemd
-  ansible.builtin.systemd:
-    name: pod-elasticsearch
+# TODO: modify for privileged
+- name: Enable and start services
+  systemd:
+    name: pod-traefik
     state: started
     enabled: yes
     scope: user
