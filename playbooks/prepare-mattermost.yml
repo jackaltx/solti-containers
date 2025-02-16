@@ -1,31 +1,26 @@
 ---
 #
-# prepare-podman-host.yml - Run with ansible-playbook -K prepare-podman-host.yml
+# prepare-matterost.yml - Run with ansible-playbook -K prepare-mattermost.yml
 #
 - name: Prepare system for Mattermost installation
   hosts: mattermost_svc
   vars:
-    mattermost_data_dir: "{{ ansible_env.HOME }}/mattermost-data"
-
-    # Define variables for mattermost user/group IDs
-    # this was obtained by: podman inspect docker.io/mattermost/mattermost-team-edition:latest | grep -i user
-    mattermost_uid: 2000
-    mattermost_gid: 2000
+    redis_data_dir: "{{ ansible_env.HOME }}/mattermost-data"
 
   tasks:
     #
     # ==========================================================
     # These tasks run as the regular user
 
-    # This has varied over serveral iteractions. I no faith in this.
+    # once you have deployed, this will fail!
     #
     - name: Create Mattermost directory structure
       ansible.builtin.file:
         path: "{{ mattermost_data_dir }}/{{ item.path }}"
         state: directory
         mode: "{{ item.mode }}"
-        # owner: "{{ ansible_user_id }}"
-        # group: "{{ ansible_user_id }}"
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
       loop:
         - { path: "", mode: "0755" }
         - { path: "config", mode: "0775" }
@@ -38,7 +33,7 @@
         - { path: "postgres", mode: "0755" } # PostgreSQL will manage its own permissions
 
     # ==========================================================
-    # These tasks need root
+    # These tasks require root
 
     # ...........................................................
     - name: Perform system-level tasks
@@ -46,35 +41,14 @@
       block:
         #
         # ...........................................................
-        # Keeping this just in case
-        #
-        # - name: Create Mattermost owned directories
-        #   file:
-        #     path: "{{ mattermost_data_dir }}/{{ item.path }}"
-        #     state: directory
-        #     mode: "{{ item.mode }}"
-        #     owner: "{{ mattermost_gid }}"
-        #     group: "{{ mattermost_gid }}"
-        #     recurse: true
-        #   loop:
-        #     - { path: "config", mode: "0755" }
-        #     - { path: "data", mode: "0755" }
-        #     - { path: "logs", mode: "0777" } # Allow container to create and manage logs
-        #     - { path: "plugins", mode: "0755" }
-        #     - { path: "plugins/prepackaged_plugins", mode: "0755" }
-        #     - { path: "client", mode: "0755" }
-        #     - { path: "client/plugins", mode: "0755" }
-        #     - { path: "bleve-indexes", mode: "0755" }
-
-        - name: Set SELinux context for Mattermost directories
-          ansible.builtin.command: chcon -Rt container_file_t {{ mattermost_data_dir }}
-          become: true
-          when: ansible_os_family == "RedHat"
-
-        # ...........................................................
         # RHEL/CentOS specific tasks
+        #
         - name: Configure RHEL repositories
           block:
+            - name: Set SELinux context for Mattermost directories
+              ansible.builtin.command: chcon -Rt container_file_t {{ mattermost_data_dir }}
+              when: ansible_os_family == "RedHat"
+
             - name: Enable CRB repository
               rhsm_repository:
                 name: codeready-builder-for-rhel-9-x86_64-rpms
@@ -82,8 +56,10 @@
               when: ansible_distribution_major_version == "9"
           when: ansible_os_family == "RedHat"
 
+        # ...........................................................
         # Debian/Ubuntu specific tasks
         - name: Configure Debian prerequisites
+          when: ansible_os_family == "Debian"
           block:
             - name: Install required dependencies
               apt:
@@ -100,8 +76,8 @@
               pip:
                 name: podman-compose
                 state: present
-          when: ansible_os_family == "Debian"
 
+        # .................................................................
         # Common tasks for all distributions
         - name: Install required packages
           package:
@@ -116,10 +92,12 @@
           retries: 3
           delay: 5
 
+        # .................................................................
         - name: Enable lingering for user
           command: "loginctl enable-linger {{ ansible_user_id }}"
           changed_when: false
 
+        # .................................................................
         - name: Configure container DNS
           block:
             - name: Create containers configuration directory
@@ -136,6 +114,8 @@
                   dns_servers = ["1.1.1.1", "8.8.8.8"]
                 mode: "0644"
 
+        # .................................................................
+        # ?? not universal ??
         # SELinux configuration for RHEL/CentOS
         - name: Configure SELinux
           block:
