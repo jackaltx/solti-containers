@@ -10,88 +10,49 @@
     - .config/systemd/user
     - .config/containers/systemd
 
-# .......................................................................................
-# This uses the quadlet systemd interface to interface.
-# No generating required, just daemon-reload and it will find it.
-#
-- name: Quadlet files block
-  when: elasticsearch_use_quadlet | bool
-  block:
-    #
-    - name: Template Quadlet configuration files
-      when: elasticsearch_use_quadlet | bool
-      ansible.builtin.template:
-        src: "{{ item.src }}"
-        dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
-        mode: "0644"
-      loop:
-        - { src: elasticsearch-quadlet.pod.j2, dest: elasticsearch.pod }
-        - {
-            src: elasticsearch-quadlet-node.container.j2,
-            dest: elasticsearch-node.container,
-          }
-        - {
-            src: elasticsearch-quadlet-gui.container.j2,
-            dest: elasticsearch-gui.container,
-          }
-
-    # .......................................................................................
-    - name: Reload systemd user daemon
-      ansible.builtin.systemd:
-        daemon_reload: yes
-        scope: user
-
-    # .......................................................................................
-    - name: Enable and start pod with systemd
-      ansible.builtin.systemd:
-        name: elasticsearch-pod.service
-        state: started
-        enabled: yes
-        scope: user
-
-# .......................................................................................
-# This uses systemd directly by generating the systemd files directly
-#
-- name: Generate systemd files block
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+- name: Set service name based on deployment type
+  set_fact:
+    elasticsearch_service_name: "pod-elasticsearch"
+    elasticsearch_pod_key: "elasticsearch"
   when: not elasticsearch_use_quadlet | bool
-  block:
-    - name: Template System configuration files for generator
-      ansible.builtin.template:
-        src: "{{ item.src }}"
-        dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
-        mode: "0644"
-      loop:
-        - { src: elasticsearch.pod.j2, dest: elasticsearch.pod }
-        - {
-            src: elasticsearch-node.container.j2,
-            dest: elasticsearch-node.container,
-          }
-        - {
-            src: elasticsearch-gui.container.j2,
-            dest: elasticsearch-gui.container,
-          }
 
-    # .......................................................................................
-    # Generator  add pod- or container-  to --name  by default
-    # Older podman versions may have issues
-    #
-    - name: Generate systemd units from Quadlets
-      ansible.builtin.command:
-        cmd: podman generate systemd --name elasticsearch --files --new
-        chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
-      register: generate_result
-      changed_when: generate_result.rc == 0
+# .......................................................................................
+- name: Template System configuration files for either quadlet and systemd
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: elasticsearch.pod.j2, dest: elasticsearch.pod }
+    - {
+        src: elasticsearch-node.container.j2,
+        dest: elasticsearch-node.container,
+      }
+    - { src: elasticsearch-gui.container.j2, dest: elasticsearch-gui.container }
 
-    # .......................................................................................
-    - name: Reload systemd user daemon
-      ansible.builtin.systemd:
-        daemon_reload: yes
-        scope: user
+# .......................................................................................
+# Generator  add pod- or container-  to --name  by default
+# Older podman versions may have issues
+#
+- name: Generate systemd units from Quadlets
+  when: not elasticsearch_use_quadlet | bool
+  ansible.builtin.command:
+    cmd: podman generate systemd --name elasticsearch --files --new
+    chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
+  register: generate_result
+  changed_when: generate_result.rc == 0
 
-    # .......................................................................................
-    - name: Enable and start pod with systemd
-      ansible.builtin.systemd:
-        name: pod-elasticsearch.service
-        state: started
-        enabled: yes
-        scope: user
+# .......................................................................................
+- name: Reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+# .......................................................................................
+- name: Enable and start pod with systemd
+  ansible.builtin.systemd:
+    name: "{{ elasticsearch_service_name }}"
+    state: started
+    enabled: yes
+    scope: user

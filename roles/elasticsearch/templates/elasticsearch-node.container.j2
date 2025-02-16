@@ -5,7 +5,7 @@ After=network-online.target
 [Container]
 Image={{ elasticsearch_image }}
 ContainerName=elasticsearch-node
-Pod=elasticsearch
+Pod={{ elasticsearch_pod_key}}
 Volume={{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z,U
 Volume={{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z,U
 Volume={{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z,U
