@@ -45,6 +45,21 @@
     msg: "{{ es_logs.stdout_lines | default([]) }}"
 
 # ....................................................................................
+- name: Verify DNS resolution
+  ansible.builtin.command: >
+    podman exec elasticsearch-node 
+    getent hosts {{ ansible_domain }}
+  register: dns_check
+  changed_when: false
+  failed_when: dns_check.rc != 0
+  ignore_errors: true
+
+- name: Display DNS verification results
+  ansible.builtin.debug:
+    msg: "DNS Check Results: {{ dns_check.stdout_lines | default([]) }}"
+  when: dns_check is defined
+
+# ....................................................................................
 - name: Deploy Elasticvue container
   containers.podman.podman_container:
     name: elasticsearch-gui

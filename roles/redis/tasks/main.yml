@@ -11,9 +11,9 @@
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml
 
-    - name: Include TLS tasks
-      ansible.builtin.include_tasks: tls.yml
-      when: redis_enable_tls | bool
+    # - name: Include TLS tasks
+    #   ansible.builtin.include_tasks: tls.yml
+    #   when: redis_enable_tls | bool
 
     - name: Include container tasks
       ansible.builtin.include_tasks: containers.yml

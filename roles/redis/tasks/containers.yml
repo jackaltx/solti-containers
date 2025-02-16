@@ -1,4 +1,6 @@
 ---
+#
+# ....................................................................................
 - name: Create Redis pod
   containers.podman.podman_pod:
     name: redis
@@ -7,6 +9,7 @@
       - "127.0.0.1:{{ redis_gui_port }}:8081"
     state: started
 
+# ....................................................................................
 - name: Deploy Redis container
   containers.podman.podman_container:
     name: redis-server
@@ -19,6 +22,7 @@
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     restart_policy: always
 
+# ....................................................................................
 - name: Deploy Redis Commander container
   containers.podman.podman_container:
     name: redis-gui

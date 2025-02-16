@@ -1,0 +1,7 @@
+[containers]
+dns_servers = [{% for server in elasticsearch_dns_servers %}"{{ server }}"{{ "," if not loop.last else "" }}{% endfor %}]
+
+dns_searches = [{% for search in elasticsearch_dns_searches %}"{{ search }}"{{ "," if not loop.last else "" }}{% endfor %}]
+
+# Enable DNS options
+infra_command = "podman"

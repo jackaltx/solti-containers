@@ -9,9 +9,17 @@
   loop:
     - .config/systemd/user
     - .config/containers/systemd
+    - .config/containers/systemd/env
+
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+- name: Set service name based on deployment type
+  set_fact:
+    mattermost_service_name: "pod-mattermost"
+    mattermost_pod_key: "mattermost"
+  when: not mattermost_use_quadlet | bool
 
 # .......................................................................................
-- name: Template Quadlet configuration files
+- name: Template System configuration files for either quadlet and systemd
   ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
@@ -22,10 +30,20 @@
     - { src: mattermost-svc.container.j2, dest: mattermost-svc.container }
 
 # .......................................................................................
-# Generator  add pod- or container-  to --name  by default
-# Older podman versions may have issues
-#
+- name: Create environment file for runtime secrets
+  ansible.builtin.template:
+    src: mattermost-db.env.j2
+    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/mattermost-db.env"
+    mode: "0600"
+  vars:
+    content: |
+      POSTGRES_USER={{ mattermost_db_user }}
+      POSTGRES_PASSWORD={{ vault_mattermost_postgres_password }}
+      POSTGRES_DB={{ mattermost_db_name }}
+
+# .......................................................................................
 - name: Generate systemd units from Quadlets
+  when: not mattermost_use_quadlet | bool
   ansible.builtin.command:
     cmd: podman generate systemd --name mattermost --files --new
     chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
@@ -41,7 +59,7 @@
 # .......................................................................................
 - name: Enable and start pod with systemd
   ansible.builtin.systemd:
-    name: pod-mattermost
+    name: "{{ mattermost_service_name }}"
     state: started
     enabled: yes
     scope: user

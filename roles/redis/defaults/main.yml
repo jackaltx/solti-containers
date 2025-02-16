@@ -4,6 +4,9 @@
 redis_state: present
 redis_force_reload: false
 
+# No TLS, cause this is for fast local use only
+#
+
 # Container settings
 redis_image: "docker.io/library/redis:7.2-alpine"
 redis_commander_image: "docker.io/rediscommander/redis-commander:latest"
@@ -29,3 +32,10 @@ redis_enable_gui: true
 
 # Cleanup settings
 redis_delete_data: false
+
+# Systemd interface  (use Quadlet to interface with systemd or  use systemd directly)
+redis_use_quadlet: true # Toggle between Quadlet and traditional
+
+# This will be overridden in systemd.yml and cleanup.yml if NOT quadlet
+redis_service_name: "redis-pod"
+redis_pod_key: "redis.pod"

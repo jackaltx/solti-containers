@@ -25,7 +25,7 @@ elasticsearch_gui_port: 8088
 
 # Security settings
 elasticsearch_enable_security: true
-elasticsearch_password: "changemeplease"
+elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD') | default('changemeplease') }}"
 
 # Cleanup settings
 elasticsearch_delete_data: false
@@ -39,3 +39,10 @@ elasticsearch_pod_key: "elasticsearch.pod"
 
 # this too long, move to systemd fact  (or set a default and let the non default change as required???)
 elasticsearch_systemd_dir: "{{ ansible_env.HOME }}/.config/{{ 'containers' if elasticsearch_use_quadlet else 'systemd' }}/{{ 'systemd' if elasticsearch_use_quadlet else 'user' }}"
+
+# DNS Settings (NOTE this is global.)
+elasticsearch_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+elasticsearch_dns_searches:
+  - "{{ ansible_domain }}"

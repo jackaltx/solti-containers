@@ -10,9 +10,15 @@
     - .config/systemd/user
     - .config/containers/systemd
 
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+- name: Set service name based on deployment type
+  set_fact:
+    vault_service_name: "pod-vault"
+    vault_pod_key: "vault"
+  when: not vault_use_quadlet | bool
+
 # .......................................................................................
-# NOTE:  to generate the correct file the filename and container name need to match
-- name: Template Quadlet configuration files
+- name: Template System configuration files for either quadlet and systemd
   ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
@@ -23,6 +29,7 @@
 
 # .......................................................................................
 - name: Generate systemd units
+  when: not vault_use_quadlet | bool
   command:
     cmd: podman generate systemd --name vault --files --new
     chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
@@ -38,7 +45,7 @@
 # .......................................................................................
 - name: Enable and start services
   systemd:
-    name: pod-vault
+    name: "{{ vault_service_name }}"
     state: started
     enabled: yes
     scope: user

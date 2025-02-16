@@ -5,7 +5,7 @@ After=network-online.target
 [Container]
 Image={{ mattermost_postgres_image }}
 ContainerName=mattermost-db
-Pod=mattermost
+Pod={{ mattermost_pod_key }}
 Volume={{ mattermost_data_dir }}/postgres:/var/lib/postgresql/data:Z
 Environment=POSTGRES_USER={{ mattermost_db_user }}
 Environment=POSTGRES_PASSWORD={{ mattermost_postgres_password }}

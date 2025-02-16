@@ -1,8 +1,14 @@
 ---
 #
-# .........................................................................
-# This name was generated
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #
+- name: Set service name based on deployment type
+  set_fact:
+    mattermost_service_name: "pod-mattermost"
+    mattermost_pod_key: "mattermost"
+  when: not mattermost_use_quadlet | bool
+
+# .................................................................
 - name: Stop and disable services
   ansible.builtin.systemd:
     name: "{{ item }}"
@@ -10,18 +16,14 @@
     enabled: no
     scope: user
   loop:
-    - pod-mattermost
+    - "{{ mattermost_service_name }}"
   ignore_errors: true
 
-- name: Remove pod and containers
-  containers.podman.podman_pod:
-    name: pod-mattermost
-    state: absent
-  ignore_errors: true
-
-# .........................................................................
-# These were generate
+# .................................................................
+# These are only present when generated
+#
 - name: Remove systemd services
+  when: not mattermost_use_quadlet | bool
   ansible.builtin.file:
     path: "{{ ansible_user_dir }}/.config/systemd/user/{{ item }}"
     state: absent
@@ -30,9 +32,8 @@
     - container-mattermost-svc.service
     - pod-mattermost.service
 
-# .........................................................................
-# These were created by templates
-- name: Remove systemd services
+# ...........................................
+- name: Remove Quadlet files
   ansible.builtin.file:
     path: "{{ ansible_user_dir }}/.config/systemd/user/{{ item }}"
     state: absent
@@ -47,9 +48,17 @@
     daemon_reload: yes
     scope: user
 
-# ...........................................
-- name: Remove data directory
-  ansible.builtin.file:
-    path: "{{ mattermost_data_dir }}"
-    state: absent
-  when: mattermost_delete_data | bool
+# .................................................................
+- name: Remove all traces
+  when: mattermost_state == 'absent' and mattermost_purge | default(false)
+  block:
+    - name: Remove configuration
+      file:
+        path: "{{ mattermost_data_dir }}"
+        state: absent
+    - name: Remove systemd files
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_fileglob:
+        - "~/.config/systemd/user/*mattermost*"

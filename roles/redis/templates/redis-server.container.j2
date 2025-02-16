@@ -5,7 +5,7 @@ After=network-online.target
 [Container]
 Image={{ redis_image }}
 ContainerName=redis-server
-Pod=redis
+Pod={{ redis_pod_key}}
 Volume={{ redis_data_dir }}/config:/usr/local/etc/redis:Z
 Volume={{ redis_data_dir }}/data:/data:Z
 Command=redis-server /usr/local/etc/redis/redis.conf

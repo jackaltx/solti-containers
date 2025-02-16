@@ -5,7 +5,7 @@ After=network-online.target
 [Container]
 Image={{ vault_image }}
 ContainerName=vault-svc
-Pod=vault
+Pod={{ vault_pod_key }}
 Volume={{ vault_data_dir }}/config:/vault/config:Z,U
 Volume={{ vault_data_dir }}/data:/vault/data:Z,U
 Volume={{ vault_data_dir }}/logs:/vault/logs:Z,U

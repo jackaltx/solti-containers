@@ -41,3 +41,34 @@
         owner: "{{ dir_info.stat.uid }}"
         group: "{{ dir_info.stat.gid }}"
       notify: restart elasticsearch
+
+    - name: Ensure containers DNS configuration directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.config/containers"
+        state: directory
+        mode: "0750"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+
+    - name: Configure container DNS settings
+      ansible.builtin.template:
+        src: containers.conf.j2
+        dest: "{{ ansible_env.HOME }}/.config/containers/containers.conf"
+        mode: "0644"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+
+    # .....................................................................................
+    - name: Configure SELinux for data directories
+      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+      block:
+        - name: Set SELinux context for data directories
+          ansible.builtin.sefcontext:
+            target: "{{ elasticsearch_data_dir }}(/.*)?"
+            setype: container_file_t
+            state: present
+
+        - name: Apply SELinux context
+          ansible.builtin.command: restorecon -R -v "{{ elasticsearch_data_dir }}"
+          register: restorecon_result
+          changed_when: restorecon_result.rc == 0

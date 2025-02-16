@@ -1,5 +1,7 @@
 ---
 # Installation state
+mattermost_state: present
+mattermost_force_reload: false
 
 # TLS Configuration
 mattermost_enable_tls: false
@@ -8,8 +10,6 @@ mattermost_tls_key_file: "" # Path relative to config dir
 mattermost_force_tls: false # Force all connections to use HTTPS
 mattermost_tls_strict_transport: false # Enable strict transport security
 mattermost_tls_min_version: "1.2"
-mattermost_state: present
-mattermost_force_reload: false
 
 # Container settings
 mattermost_image: "docker.io/mattermost/mattermost-team-edition:latest"
@@ -19,7 +19,7 @@ mattermost_postgres_image: "docker.io/library/postgres:13-alpine"
 mattermost_data_dir: "{{ ansible_user_dir }}/mattermost-data"
 
 # Database settings
-mattermost_postgres_password: "change_this_password"
+mattermost_postgres_password: "{{ lookup('env', 'MM_DB_PASSWORD') | default('changemeplease') }}"
 mattermost_db_name: "mattermost"
 mattermost_db_user: "mmuser"
 
@@ -34,3 +34,10 @@ mattermost_log_level: "WARN"
 
 # Cleanup settings
 mattermost_delete_data: false
+
+# Systemd interface  (use Quadlet to interface with systemd or  use systemd directly)
+mattermost_use_quadlet: true # Toggle between Quadlet and traditional
+
+# This will be overriden in systemd.yml and cleanup.yml if NOT quadlet
+mattermost_service_name: "mattermost-pod"
+mattermost_pod_key: "mattermost.pod"
