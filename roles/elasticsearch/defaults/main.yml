@@ -29,3 +29,9 @@ elasticsearch_password: "changemeplease"
 
 # Cleanup settings
 elasticsearch_delete_data: false
+
+# Systemd interface  (use Quadlet to interface with systemd or  use systemd directly)
+elasticsearch_use_quadlet: true # Toggle between Quadlet and traditional
+
+# this too long, move to systemd fact  (or set a default and let the non default change as required???)
+elasticsearch_systemd_dir: "{{ ansible_env.HOME }}/.config/{{ 'containers' if elasticsearch_use_quadlet else 'systemd' }}/{{ 'systemd' if elasticsearch_use_quadlet else 'user' }}"

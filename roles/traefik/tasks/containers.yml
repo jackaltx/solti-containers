@@ -63,7 +63,7 @@
     # .............................................................................
     - name: Deploy rootless Traefik container
       containers.podman.podman_container:
-        name: traefik
+        name: traefik-svc
         pod: traefik
         image: "{{ traefik_image }}"
         network: "{{ traefik_internal_network }}" # Add second network here
@@ -140,7 +140,7 @@
           LINODE_TOKEN: "{{ lookup('env', 'LINODE_TOKEN') }}"
         restart_policy: always
 
-# .............................................................................
+# ===============================================================================
 - name: Verify container status
   command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=traefik"
   register: container_status

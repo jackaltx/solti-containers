@@ -1,28 +1,62 @@
 ---
-- name: Stop and disable services
-  ansible.builtin.systemd:
-    name: "{{ item }}"
-    state: stopped
-    enabled: no
-    scope: user
-  loop:
-    - pod-elasticsearch
-  ignore_errors: true
+#
+# FIX this dangler?
+#
+# lavender@firefly:~/.config/systemd/user$ tree
+# .
+# ├── container-elasticsearch-node.service.d
+# │   └── override.conf
+# └── sockets.target.wants
+#    └── podman.socket -> /usr/lib/systemd/user/podman.socket
+#
+#
+- name: Quadlet Systemd managment
+  when: elasticsearch_use_quadlet | bool
+  block:
+    #
+    - name: Stop and disable services (quadlet)
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+        scope: user
+      loop:
+        - elasticsearch-pod.service
+      ignore_errors: true
 
-- name: Remove pod and containers
-  containers.podman.podman_pod:
-    name: elasticsearch
-    state: absent
-  ignore_errors: true
+- name: Traditional Systemd managment
+  when: not elasticsearch_use_quadlet | bool
+  block:
+    #
+    - name: Stop and disable services (trad)
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+        scope: user
+      loop:
+        - pod-elasticsearch
+      ignore_errors: true
 
-- name: Remove systemd services
-  ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/systemd/user/{{ item }}"
-    state: absent
-  loop:
-    - pod-elasticsearch.service
-    - container-elasticsearch-node.service
-    - container-elasticsearch-gui.service
+    # stopping the container remove the pod, do I need this?
+    - name: Remove pod and containers
+      containers.podman.podman_pod:
+        name: elasticsearch
+        state: absent
+      ignore_errors: true
+
+    # .................................................................
+    # These are only present when generated
+    #
+    - name: Remove systemd services
+      when: not elasticsearch_use_quadlet | bool
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.config/systemd/user/{{ item }}"
+        state: absent
+      loop:
+        - pod-elasticsearch.service
+        - container-elasticsearch-node.service
+        - container-elasticsearch-gui.service
 
 - name: Remove Quadlet files
   ansible.builtin.file:

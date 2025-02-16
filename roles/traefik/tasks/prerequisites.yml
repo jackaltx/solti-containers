@@ -1,6 +1,7 @@
 ---
 # Get container user mapping first
 - name: Get directory ownership
+  become: true
   ansible.builtin.stat:
     path: "{{ traefik_data_dir }}/config"
   register: dir_info
