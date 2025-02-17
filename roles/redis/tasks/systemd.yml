@@ -14,7 +14,7 @@
 - name: Set service name based on deployment type
   set_fact:
     redis_service_name: "pod-redis"
-    redis_pod_key: "redis"
+    redis_pod_key: "redis.pod"
   when: not redis_use_quadlet | bool
 
 # .......................................................................................
