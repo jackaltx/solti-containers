@@ -1,3 +1,4 @@
+---
 # ....................................................................................
 - name: Verify Redis pod is running
   command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
