@@ -14,7 +14,7 @@
 - name: Set service name based on deployment type
   set_fact:
     elasticsearch_service_name: "pod-elasticsearch"
-    elasticsearch_pod_key: "elasticsearch"
+    elasticsearch_pod_key: "elasticsearch.pod"
   when: not elasticsearch_use_quadlet | bool
 
 # .......................................................................................
