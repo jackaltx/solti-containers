@@ -31,7 +31,7 @@
     state: absent
   loop:
     - pod-redis.service
-    - container-redis-server.service
+    - container-redis-svc.service
     - container-redis-gui.service
 
 # .................................................................
@@ -41,7 +41,7 @@
     state: absent
   loop:
     - redis.pod
-    - redis-server.container
+    - redis-svc.container
     - redis-gui.container
 
 # .................................................................
@@ -52,6 +52,7 @@
 
 # .................................................................
 - name: Remove data directory
+  become: true
   ansible.builtin.file:
     path: "{{ redis_data_dir }}"
     state: absent
@@ -59,7 +60,7 @@
 
   # .................................................................
 - name: Remove all traces
-  when: redis_state == 'absent' and redis_purge | default(false)
+  when: redis_state == 'absent' and redis_delete_data | default(false)
   block:
     - name: Remove configuration
       file:

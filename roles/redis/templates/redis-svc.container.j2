@@ -4,11 +4,11 @@ After=network-online.target
 
 [Container]
 Image={{ redis_image }}
-ContainerName=redis-server
+ContainerName=redis-svc
 Pod={{ redis_pod_key}}
 Volume={{ redis_data_dir }}/config:/usr/local/etc/redis:Z
 Volume={{ redis_data_dir }}/data:/data:Z
-Command=redis-server /usr/local/etc/redis/redis.conf
+Exec=redis-svc /usr/local/etc/redis/redis.conf
 
 [Service]
 Restart=always

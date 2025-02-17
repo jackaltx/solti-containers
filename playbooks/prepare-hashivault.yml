@@ -85,10 +85,6 @@
           retries: 3
           delay: 5
 
-        - name: Enable lingering for user
-          command: "loginctl enable-linger {{ ansible_user_id }}"
-          changed_when: false
-
         # .................................................................
         - name: Enable lingering for user
           command: "loginctl enable-linger {{ ansible_user_id }}"
@@ -112,8 +108,6 @@
                 mode: "0644"
 
         # .................................................................
-        # different from others  arrrrg@@@@@!!!!!!!
-        # SELinux configuration (when on RHEL/CentOS)
         - name: Configure SELinux
           block:
             - name: Install SELinux policy tools

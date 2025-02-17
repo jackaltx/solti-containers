@@ -3,5 +3,3 @@
   hosts: mattermost_svc
   roles:
     - role: mattermost
-      vars:
-        mattermost_postgres_password: "your_secure_password"

@@ -25,7 +25,7 @@
     mode: "0644"
   loop:
     - { src: redis.pod.j2, dest: redis.pod }
-    - { src: redis-server.container.j2, dest: redis-server.container }
+    - { src: redis-svc.container.j2, dest: redis-svc.container }
     - { src: redis-gui.container.j2, dest: redis-gui.container }
   when: redis_enable_gui | bool
 

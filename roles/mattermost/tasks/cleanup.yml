@@ -35,7 +35,7 @@
 # ...........................................
 - name: Remove Quadlet files
   ansible.builtin.file:
-    path: "{{ ansible_user_dir }}/.config/systemd/user/{{ item }}"
+    path: "{{ ansible_user_dir }}/.config/containers/systemd/{{ item }}"
     state: absent
   loop:
     - mattermost-db.container

@@ -9,8 +9,11 @@
 
   tasks:
     #
+    # ==========================================================
     # These tasks run as the regular user
-    # ...........................................................................
+
+    # once you have deployed, this will fail!
+    #
     - name: Create Traefik directories
       file:
         path: "{{ traefik_data_dir }}/{{ item }}"
@@ -24,27 +27,31 @@
         - acme
         - logs
 
-    # ...........................................................................
+    # ==========================================================
+    # These tasks require root
+
+    # ...........................................................
     - name: Perform system-level tasks
       become: true
       block:
         #
-        - name: Set proper SELinux context for Elasticsearch directories
-          ansible.builtin.command:
-            cmd: "chcon -Rt container_file_t {{ traefik_data_dir }}"
-          changed_when: false
-          when: ansible_selinux.status == "enabled"
-
+        # ...........................................................
         # RHEL/CentOS specific tasks
+        #
         - name: Configure RHEL repositories
-          when: ansible_os_family == "RedHat"
           block:
+            - name: Set SELinux context for traefik directories
+              ansible.builtin.command: chcon -Rt container_file_t {{ traefik_data_dir }}
+              when: ansible_os_family == "RedHat"
+
             - name: Enable CRB repository
               rhsm_repository:
                 name: codeready-builder-for-rhel-9-x86_64-rpms
                 state: enabled
               when: ansible_distribution_major_version == "9"
+          when: ansible_os_family == "RedHat"
 
+        # ...........................................................
         # Debian/Ubuntu specific tasks
         - name: Configure Debian prerequisites
           when: ansible_os_family == "Debian"
@@ -65,6 +72,7 @@
                 name: podman-compose
                 state: present
 
+        # .................................................................
         # Common tasks for all distributions
         - name: Install required packages
           package:
@@ -79,11 +87,29 @@
           retries: 3
           delay: 5
 
+        # .................................................................
         - name: Enable lingering for user
           command: "loginctl enable-linger {{ ansible_user_id }}"
           changed_when: false
 
-        # SELinux configuration (when on RHEL/CentOS)
+        # .................................................................
+        - name: Configure container DNS
+          block:
+            - name: Create containers configuration directory
+              file:
+                path: "{{ ansible_env.HOME }}/.config/containers"
+                state: directory
+                mode: "0755"
+
+            - name: Configure DNS in containers.conf
+              copy:
+                dest: "{{ ansible_env.HOME }}/.config/containers/containers.conf"
+                content: |
+                  [containers]
+                  dns_servers = ["1.1.1.1", "8.8.8.8"]
+                mode: "0644"
+
+        # .................................................................
         - name: Configure SELinux
           block:
             - name: Install SELinux policy tools
@@ -92,7 +118,7 @@
                   - policycoreutils-python-utils
                 state: present
 
-            - name: Set SELinux context for Traefik directories
+            - name: Set SELinux context for vault directories
               sefcontext:
                 target: "{{ traefik_data_dir }}(/.*)?"
                 setype: container_file_t
@@ -100,8 +126,6 @@
 
             - name: Apply SELinux context
               command: restorecon -Rv "{{ traefik_data_dir }}"
-              register: restorecon_result
-              changed_when: restorecon_result.rc == 0
           when:
             - ansible_os_family == "RedHat"
             - ansible_selinux.status is defined
