@@ -1,0 +1,38 @@
+---
+# Get container user mapping first
+- name: Get directory ownership
+  become: true
+  ansible.builtin.stat:
+    path: "{{ traefik_data_dir }}/config"
+  register: dir_info
+
+- name: Debug ownership
+  ansible.builtin.debug:
+    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+
+- name: Create Traefik directories
+  file:
+    path: "{{ traefik_data_dir }}/{{ item }}"
+    state: directory
+    mode: "0750"
+    owner: "{{ dir_info.stat.uid | default(ansible_user_id) }}"
+    group: "{{ dir_info.stat.gid | default(ansible_user_id) }}"
+  loop:
+    - "" # Base directory
+    - config
+    - acme
+    - logs
+
+- name: Template Traefik configuration
+  template:
+    src: traefik.yaml.j2
+    dest: "{{ traefik_data_dir }}/config/traefik.yaml"
+    mode: "0640"
+    owner: "{{ dir_info.stat.uid | default(ansible_user_id) }}"
+    group: "{{ dir_info.stat.gid | default(ansible_user_id) }}"
+  notify: restart traefik
+
+- name: Verify Linode token is available
+  ansible.builtin.fail:
+    msg: "LINODE_TOKEN environment variable must be set"
+  when: lookup('env', 'LINODE_TOKEN') == ''

@@ -2,7 +2,17 @@
 # handlers/main.yml
 - name: restart mattermost
   ansible.builtin.systemd:
-    name: "pod-mattermost"
+    name: "{{ mattermost_service_name }}"
     state: restarted
     scope: user
   listen: "restart mattermost"
+
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+- name: Reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user

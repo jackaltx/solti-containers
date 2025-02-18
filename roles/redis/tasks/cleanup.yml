@@ -1,4 +1,14 @@
 ---
+#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#
+- name: Set service name based on deployment type
+  set_fact:
+    redis_service_name: "pod-redis"
+    redis_pod_key: "redis"
+  when: not redis_use_quadlet | bool
+
+# .................................................................
 - name: Stop and disable services
   ansible.builtin.systemd:
     name: "{{ item }}"
@@ -6,40 +16,59 @@
     enabled: no
     scope: user
   loop:
-    - pod-redis
+    - "{{ redis_service_name }}"
   ignore_errors: true
 
-- name: Remove pod and containers
-  containers.podman.podman_pod:
-    name: redis
-    state: absent
-  ignore_errors: true
+# .................................................................
 
+# .................................................................
+# These are only present when generated
+#
 - name: Remove systemd services
+  when: not redis_use_quadlet | bool
   ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/.config/systemd/user/{{ item }}"
     state: absent
   loop:
     - pod-redis.service
-    - container-redis-server.service
+    - container-redis-svc.service
     - container-redis-gui.service
 
+# .................................................................
 - name: Remove Quadlet files
   ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item }}"
     state: absent
   loop:
     - redis.pod
-    - redis-server.container
+    - redis-svc.container
     - redis-gui.container
 
+# .................................................................
 - name: Reload systemd user daemon
   ansible.builtin.systemd:
     daemon_reload: yes
     scope: user
 
+# .................................................................
 - name: Remove data directory
+  become: true
   ansible.builtin.file:
     path: "{{ redis_data_dir }}"
     state: absent
   when: redis_delete_data | bool
+
+  # .................................................................
+- name: Remove all traces
+  when: redis_state == 'absent' and redis_delete_data | default(false)
+  block:
+    - name: Remove configuration
+      file:
+        path: "{{ redis_data_dir }}"
+        state: absent
+    - name: Remove systemd files
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_fileglob:
+        - "~/.config/systemd/user/*redis*"

@@ -1,0 +1,65 @@
+---
+- name: Verify Traefik Installation
+  hosts: traefik_svc
+  tasks:
+    - name: Verify Traefik pod is running
+      command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
+      register: pod_status
+      failed_when: "'traefik' not in pod_status.stdout"
+      changed_when: false
+
+    - name: Show pod status
+      debug:
+        var: pod_status.stdout_lines
+
+    - name: Verify Traefik container is running
+      command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=traefik"
+      register: container_status
+      failed_when: "'traefik' not in container_status.stdout"
+      changed_when: false
+
+    - name: Show container status
+      debug:
+        var: container_status.stdout_lines
+
+    - name: Check Traefik API health
+      uri:
+        url: "http://127.0.0.1:8080/api/rawdata"
+        return_content: yes
+      register: health_check
+      ignore_errors: yes
+
+    - name: Show health check result
+      debug:
+        var: health_check
+
+    - name: Verify network configuration
+      command: podman network inspect {{ traefik_network_name }}
+      register: network_info
+      changed_when: false
+
+    - name: Show network info
+      debug:
+        var: network_info.stdout_lines
+
+    - name: Check ACME configuration
+      stat:
+        path: "{{ traefik_data_dir }}/acme/acme.json"
+      register: acme_file
+
+    - name: Show ACME file status
+      debug:
+        msg: "ACME file exists: {{ acme_file.stat.exists }}"
+
+    # Test HTTP to HTTPS redirect
+    - name: Test HTTP redirect
+      uri:
+        url: "http://{{ ansible_host }}"
+        follow_redirects: none
+        status_code: 301
+      register: redirect_test
+      ignore_errors: yes
+
+    - name: Show redirect test result
+      debug:
+        var: redirect_test

@@ -1,0 +1,22 @@
+---
+- name: Install Vault
+  when: vault_state == 'present'
+  block:
+    - name: Include prerequisites tasks
+      ansible.builtin.include_tasks: prerequisites.yml
+
+    - name: Include TLS tasks
+      ansible.builtin.include_tasks: tls.yml
+      when: vault_enable_tls | bool
+
+    - name: Include container tasks
+      ansible.builtin.include_tasks: containers.yml
+
+    - name: Include systemd tasks
+      ansible.builtin.include_tasks: systemd.yml
+
+- name: Remove Vault
+  when: vault_state == 'absent'
+  block:
+    - name: Include cleanup tasks
+      ansible.builtin.include_tasks: cleanup.yml

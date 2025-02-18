@@ -1,6 +1,6 @@
 ---
 #
-# prepare-podman-host.yml - Run with ansible-playbook -K prepare-podman-host.yml
+# prepare-elasticsearch.yml - Run with ansible-playbook -K prepare-elasticsearch.yml
 #
 - name: Prepare system for container deployments
   hosts: elasticsearch_svc
@@ -28,12 +28,15 @@
     - name: Perform system-level tasks
       become: true
       block:
+        #
+        # ...........................................................
         - name: Set proper SELinux context for Elasticsearch directories
           ansible.builtin.command:
             cmd: "chcon -Rt container_file_t {{ elasticsearch_data_dir }}"
           changed_when: false
           when: ansible_selinux.status == "enabled"
 
+        # ...........................................................
         # RHEL/CentOS specific tasks
         - name: Configure RHEL repositories
           block:
@@ -44,6 +47,7 @@
               when: ansible_distribution_major_version == "9"
           when: ansible_os_family == "RedHat"
 
+        # ...........................................................
         # Debian/Ubuntu specific tasks
         - name: Configure Debian prerequisites
           block:
@@ -64,6 +68,7 @@
                 state: present
           when: ansible_os_family == "Debian"
 
+          # .................................................................
         # Common tasks for all distributions
         - name: Install required packages
           ansible.builtin.package:
@@ -78,10 +83,31 @@
           retries: 3
           delay: 5
 
+        # .................................................................
         - name: Enable lingering for user
           ansible.builtin.command: "loginctl enable-linger {{ ansible_user_id }}"
           changed_when: false
 
+        # # .................................................................
+        # - name: Configure container DNS
+        #   block:
+        #     - name: Create containers configuration directory
+        #       file:
+        #         path: "{{ ansible_env.HOME }}/.config/containers"
+        #         state: directory
+        #         mode: "0755"
+
+        #     - name: Configure DNS in containers.conf
+        #       copy:
+        #         dest: "{{ ansible_env.HOME }}/.config/containers/containers.conf"
+        #         content: |
+        #           [containers]
+        #           dns_servers = ["1.1.1.1", "8.8.8.8"]
+        #         mode: "0644"
+
+        # .................................................................
+        #  Elasticsearch specific
+        # .................................................................
         - name: Set virtual memory for Elasticsearch
           sysctl:
             name: vm.max_map_count
@@ -90,6 +116,7 @@
             state: present
             reload: true
 
+        # .................................................................
         - name: Configure systemd limits
           block:
             - name: Create systemd override directory
@@ -98,6 +125,7 @@
                 state: directory
                 mode: "0755"
 
+            # see es_resource_limits.md for explanation
             - name: Configure systemd ulimits
               copy:
                 dest: /etc/systemd/system/user@.service.d/elasticsearch.conf
@@ -107,8 +135,3 @@
                   LimitNOFILE=65535
                 mode: "0644"
               notify: Reload systemd
-
-  handlers:
-    - name: Reload systemd
-      ansible.builtin.systemd:
-        daemon_reload: yes

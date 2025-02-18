@@ -1,0 +1,67 @@
+---
+#
+# .......................................................................
+- name: Verify prerequisites
+  assert:
+    that:
+      - vault_data_dir is defined
+      - vault_api_port is defined
+    fail_msg: "Required variables not properly configured"
+
+#
+# .......................................................................
+# Get container user mapping first
+- name: Get directory ownership
+  become: true
+  ansible.builtin.stat:
+    path: "{{ vault_data_dir }}/config"
+  register: dir_info
+
+- name: Debug ownership
+  ansible.builtin.debug:
+    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+
+# .......................................................................
+- name: Become root and change setting files
+  become: true
+  block:
+    #
+    # .......................................................................
+    - name: Create Vault directories
+      file:
+        path: "{{ vault_data_dir }}/{{ item }}"
+        state: directory
+        mode: "0750"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      loop:
+        - "" # Base directory
+        - config
+        - data
+        - logs
+        - tls
+
+    # .......................................................................
+    - name: Template Vault configuration
+      template:
+        src: vault.hcl.j2
+        dest: "{{ vault_data_dir }}/config/vault.hcl"
+        mode: "0640"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart vault
+
+    # .......................................................................
+    - name: Configure SELinux for data directories
+      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+      block:
+        - name: Set SELinux context for Redis directories
+          ansible.builtin.sefcontext:
+            target: "{{ vault_data_dir }}(/.*)?"
+            setype: container_file_t
+            state: present
+
+        - name: Apply SELinux context
+          ansible.builtin.command: restorecon -R -v "{{ vault_data_dir }}"
+          register: restorecon_result
+          changed_when: restorecon_result.rc == 0

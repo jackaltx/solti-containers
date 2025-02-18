@@ -1,0 +1,47 @@
+---
+#
+# .......................................................................................
+- name: Ensure required directories exist
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - .config/systemd/user
+    - .config/containers/systemd
+
+# .......................................................................................
+- name: Template Quadlet configuration files
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: traefik.pod.j2, dest: traefik.pod }
+    - { src: traefik-svc.container.j2, dest: traefik-svc.container } # container name must match filename!!
+
+# .......................................................................................
+# Generator  add pod- or container-  to --name  by default
+# Older podman versions may have issues
+#
+- name: Generate systemd units
+  command:
+    cmd: podman generate systemd --name traefik --files --new
+    chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
+  register: systemd_generate
+  changed_when: systemd_generate.rc == 0
+
+# .......................................................................................
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+    scope: user
+
+# .......................................................................................
+# TODO: modify for privileged
+- name: Enable and start services
+  systemd:
+    name: pod-traefik
+    state: started
+    enabled: yes
+    scope: user

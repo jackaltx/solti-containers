@@ -1,0 +1,41 @@
+ui = {{ vault_enable_ui | lower }}
+
+storage "{{ vault_storage_type }}" {
+{% if vault_storage_type == "file" %}
+  path = "/vault/data"
+{% elif vault_storage_type == "raft" %}
+  path = "/vault/data"
+  node_id = "{{ vault_raft_node_id }}"
+  {% if vault_raft_retry_join | length > 0 %}
+  retry_join {
+    {% for peer in vault_raft_retry_join %}
+    leader_api_addr = "{{ peer }}"
+    {% endfor %}
+  }
+  {% endif %}
+{% endif %}
+}
+
+listener "tcp" {
+  address = "0.0.0.0:8200"
+  {% if vault_enable_tls %}
+  tls_cert_file = "/vault/tls/{{ vault_tls_cert_file | basename }}"
+  tls_key_file  = "/vault/tls/{{ vault_tls_key_file | basename }}"
+  {% if vault_tls_ca_file %}
+  tls_ca_file   = "/vault/tls/{{ vault_tls_ca_file | basename }}"
+  {% endif %}
+  tls_min_version = "{{ vault_tls_min_version }}"
+  {% else %}
+  tls_disable = true
+  {% endif %}
+}
+
+api_addr = "{% if vault_enable_tls %}https{% else %}http{% endif %}://127.0.0.1:{{ vault_api_port }}"
+cluster_addr = "{% if vault_enable_tls %}https{% else %}http{% endif %}://127.0.0.1:{{ vault_cluster_port }}"
+
+{% if vault_enable_audit %}
+audit "file" {
+  path = "/vault/logs/audit.log"
+}
+{% endif %}
+

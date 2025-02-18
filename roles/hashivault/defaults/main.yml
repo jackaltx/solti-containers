@@ -1,0 +1,42 @@
+---
+# Installation state
+vault_state: present
+vault_force_reload: false
+
+# TLS Configuration
+# -- Plan is to put this in a private network and use traefik for TLS
+vault_enable_tls: false
+vault_tls_cert_file: ""
+vault_tls_key_file: ""
+vault_tls_ca_file: ""
+vault_tls_min_version: "tls12"
+
+# Container settings
+vault_image: "docker.io/hashicorp/vault:1.15"
+vault_ui_image: "docker.io/hashicorp/vault-ui:latest" # If using separate UI container
+vault_api_port: 8200
+vault_cluster_port: 8201
+vault_ui_port: 8200 # Same as API port when using integrated UI
+
+# Directory_settings
+vault_data_dir: "{{ ansible_user_dir }}/vault-data"
+
+# Security settings
+vault_enable_ui: true
+vault_initial_root_token: "" # Generated on first init if not provided
+vault_enable_audit: true
+
+# Storage settings
+vault_storage_type: "file" # Options: file, raft, consul
+vault_raft_node_id: "node1"
+vault_raft_retry_join: [] # List of raft peer addresses
+
+# Cleanup settings
+vault_delete_data: false
+
+# Systemd interface  (use Quadlet to interface with systemd or  use systemd directly)
+vault_use_quadlet: true # Toggle between Quadlet and traditional
+
+# This will be overriden in systemd.yml and cleanup.yml if NOT quadlet
+vault_service_name: "vault-pod"
+vault_pod_key: "vault.pod"

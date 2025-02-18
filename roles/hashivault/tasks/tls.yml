@@ -1,0 +1,33 @@
+---
+- name: Check TLS certificate and key paths
+  ansible.builtin.fail:
+    msg: "Both certificate and key files must be provided when TLS is enabled"
+  when: 
+    - vault_enable_tls | bool
+    - (not vault_tls_cert_file or not vault_tls_key_file)
+
+- name: Copy TLS certificate
+  ansible.builtin.copy:
+    src: "{{ vault_tls_cert_file }}"
+    dest: "{{ vault_data_dir }}/tls/{{ vault_tls_cert_file | basename }}"
+    mode: '0644'
+  when: vault_enable_tls | bool
+  notify: restart vault
+
+- name: Copy TLS private key
+  ansible.builtin.copy:
+    src: "{{ vault_tls_key_file }}"
+    dest: "{{ vault_data_dir }}/tls/{{ vault_tls_key_file | basename }}"
+    mode: '0600'
+  when: vault_enable_tls | bool
+  notify: restart vault
+
+- name: Copy CA certificate if provided
+  ansible.builtin.copy:
+    src: "{{ vault_tls_ca_file }}"
+    dest: "{{ vault_data_dir }}/tls/{{ vault_tls_ca_file | basename }}"
+    mode: '0644'
+  when: 
+    - vault_enable_tls | bool
+    - vault_tls_ca_file != ""
+  notify: restart vault

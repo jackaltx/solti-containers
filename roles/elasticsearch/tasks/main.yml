@@ -11,11 +11,7 @@
           1. Set elasticsearch_password in your playbook
           2. Set ELASTIC_PASSWORD environment variable
       when: >
-        (elasticsearch_password | default('')) == ''
-
-    - name: Password is
-      debug:
-        var: elasticsearch_password
+        (elasticsearch_password | default('')) == 'changemeplease'
 
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml

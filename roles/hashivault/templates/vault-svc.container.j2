@@ -1,0 +1,25 @@
+[Unit]
+Description=HashiCorp Vault Container
+After=network-online.target
+
+[Container]
+Image={{ vault_image }}
+ContainerName=vault-svc
+Pod={{ vault_pod_key }}
+Volume={{ vault_data_dir }}/config:/vault/config:Z,U
+Volume={{ vault_data_dir }}/data:/vault/data:Z,U
+Volume={{ vault_data_dir }}/logs:/vault/logs:Z,U
+Volume={{ vault_data_dir }}/tls:/vault/tls:Z,U
+Environment=VAULT_ADDR=http://127.0.0.1:8200
+Environment=VAULT_API_ADDR=http://127.0.0.1:8200
+Environment=VAULT_CLUSTER_ADDR=http://127.0.0.1:8201
+AddCapability=IPC_LOCK
+Command=server
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+TimeoutStopSec=70
+
+[Install]
+WantedBy=default.target

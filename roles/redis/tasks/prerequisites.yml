@@ -41,7 +41,7 @@
         reload: true
 
     # .....................................................................................
-    - name: Configure SELinux for Redis directories
+    - name: Configure SELinux for data directories
       when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
       block:
         - name: Set SELinux context for Redis directories

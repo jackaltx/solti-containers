@@ -6,7 +6,12 @@
 
 - name: restart elasticsearch
   ansible.builtin.systemd:
-    name: "pod-elasticsearch"
+    name: "{{ elasticsearch_service_name }}"
     state: restarted
     scope: user
   listen: "restart elasticsearch"
+
+- name: Reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user

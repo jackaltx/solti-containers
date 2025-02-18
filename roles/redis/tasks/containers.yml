@@ -1,4 +1,6 @@
 ---
+#
+# ....................................................................................
 - name: Create Redis pod
   containers.podman.podman_pod:
     name: redis
@@ -7,18 +9,20 @@
       - "127.0.0.1:{{ redis_gui_port }}:8081"
     state: started
 
+# ....................................................................................
 - name: Deploy Redis container
   containers.podman.podman_container:
-    name: redis-server
+    name: redis-svc
     pod: redis
     image: "{{ redis_image }}"
     state: started
     volume:
       - "{{ redis_data_dir }}/config:/usr/local/etc/redis:Z"
       - "{{ redis_data_dir }}/data:/data:Z"
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    command: ["redis-svc", "/usr/local/etc/redis/redis.conf"]
     restart_policy: always
 
+# ....................................................................................
 - name: Deploy Redis Commander container
   containers.podman.podman_container:
     name: redis-gui
@@ -26,6 +30,6 @@
     image: "{{ redis_commander_image }}"
     state: started
     env:
-      REDIS_HOSTS: "local:redis-server:6379:0:{{ redis_password }}"
+      REDIS_HOSTS: "local:redis-svc:6379:0:{{ redis_password }}"
     restart_policy: always
   when: redis_enable_gui | bool

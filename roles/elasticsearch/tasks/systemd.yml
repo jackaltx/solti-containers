@@ -10,8 +10,15 @@
     - .config/systemd/user
     - .config/containers/systemd
 
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+- name: Set service name based on deployment type
+  set_fact:
+    elasticsearch_service_name: "pod-elasticsearch"
+    elasticsearch_pod_key: "elasticsearch.pod"
+  when: not elasticsearch_use_quadlet | bool
+
 # .......................................................................................
-- name: Template Quadlet configuration files
+- name: Template System configuration files for either quadlet and systemd
   ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
@@ -29,6 +36,7 @@
 # Older podman versions may have issues
 #
 - name: Generate systemd units from Quadlets
+  when: not elasticsearch_use_quadlet | bool
   ansible.builtin.command:
     cmd: podman generate systemd --name elasticsearch --files --new
     chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
@@ -41,9 +49,10 @@
     daemon_reload: yes
     scope: user
 
+# .......................................................................................
 - name: Enable and start pod with systemd
   ansible.builtin.systemd:
-    name: pod-elasticsearch
+    name: "{{ elasticsearch_service_name }}"
     state: started
     enabled: yes
     scope: user

@@ -5,7 +5,7 @@ After=network-online.target
 [Container]
 Image={{ mattermost_image }}
 ContainerName=mattermost-svc
-Pod=mattermost
+Pod={{ mattermost_pod_key }}
 User=2000:2000
 Volume={{ mattermost_data_dir }}/config:/mattermost/config:Z,U
 Volume={{ mattermost_data_dir }}/data:/mattermost/data:Z,U

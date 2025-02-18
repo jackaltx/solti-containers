@@ -5,8 +5,8 @@ After=network-online.target
 [Container]
 Image={{ redis_commander_image }}
 ContainerName=redis-gui
-Pod=redis
-Environment=REDIS_HOSTS=local:redis-server:6379:0:{{ redis_password }}
+Pod={{ redis_pod_key }}
+Environment=REDIS_HOSTS=local:redis-svc:6379:0:{{ redis_password }}
 
 [Service]
 Restart=always

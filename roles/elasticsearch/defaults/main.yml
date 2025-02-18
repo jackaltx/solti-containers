@@ -21,11 +21,28 @@ elasticsearch_data_dir: "{{ ansible_user_dir }}/elasticsearch-data"
 elasticsearch_port: 9200
 elasticsearch_memory: "1g"
 elasticsearch_discovery_type: "single-node"
-elasticsearch_gui_port: 8080
+elasticsearch_gui_port: 8088
 
 # Security settings
 elasticsearch_enable_security: true
-elasticsearch_password: "changemeplease"
+elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD') | default('changemeplease') }}"
 
 # Cleanup settings
 elasticsearch_delete_data: false
+
+# Systemd interface  (use Quadlet to interface with systemd or  use systemd directly)
+elasticsearch_use_quadlet: true # Toggle between Quadlet and traditional
+
+# This will be overriden in systemd.yml and cleanup.yml if NOT quadlet
+elasticsearch_service_name: "elasticsearch-pod"
+elasticsearch_pod_key: "elasticsearch.pod"
+
+# this too long, move to systemd fact  (or set a default and let the non default change as required???)
+elasticsearch_systemd_dir: "{{ ansible_env.HOME }}/.config/{{ 'containers' if elasticsearch_use_quadlet else 'systemd' }}/{{ 'systemd' if elasticsearch_use_quadlet else 'user' }}"
+
+# DNS Settings (NOTE this is global.)
+elasticsearch_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+elasticsearch_dns_searches:
+  - "{{ ansible_domain }}"
