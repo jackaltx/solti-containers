@@ -6,6 +6,7 @@ After=network-online.target
 Image={{ elasticsearch_elasticvue_image }}
 ContainerName=elasticsearch-gui
 Pod={{ elasticsearch_pod_key }}
+DNS=1.1.1.1,8.8.8.8
 
 [Service]
 Restart=always

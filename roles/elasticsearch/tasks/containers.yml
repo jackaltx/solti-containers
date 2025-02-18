@@ -4,17 +4,21 @@
 - name: Create Elasticsearch pod
   containers.podman.podman_pod:
     name: elasticsearch
+    dns: ["1.1.1.1", "8.8.8.8"]
     ports:
       - "127.0.0.1:{{ elasticsearch_port }}:9200"
       - "127.0.0.1:{{ elasticsearch_gui_port }}:8080"
 
 # ....................................................................................
+# See es_resource_limits.md for explanation of ulimit
+#
 - name: Deploy Elasticsearch container
   containers.podman.podman_container:
     name: elasticsearch-node
     pod: elasticsearch
     image: "{{ elasticsearch_image }}"
     state: started
+    dns: ["1.1.1.1", "8.8.8.8"]
     volume:
       - "{{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z,U"
       - "{{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z,U"
