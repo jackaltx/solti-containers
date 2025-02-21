@@ -1,17 +1,43 @@
 ---
-- name: Create Vault pod
+#
+# ............................................................................
+- name: Ensure required directories exist
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - .config/systemd/user
+    - .config/containers/systemd
+
+# ............................................................................
+- name: Create Vault pod Quadlet
   containers.podman.podman_pod:
     name: vault
+    state: quadlet
+    dns: ["1.1.1.1", "8.8.8.8"]
+    dns_search: "a0a0.org"
+    network: ct-net
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ vault_api_port }}:8200"
       - "127.0.0.1:{{ vault_cluster_port }}:8201"
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+      - |
+        [Install]
+        WantedBy=default.target
 
-- name: Deploy Vault container
+# ............................................................................
+- name: Create Vault container Quadlet
   containers.podman.podman_container:
     name: vault-svc
-    pod: vault
+    pod: vault.pod
     image: "{{ vault_image }}"
-    state: started
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     command: "server"
     volume:
       - "{{ vault_data_dir }}/config:/vault/config:Z"
@@ -22,11 +48,21 @@
       VAULT_ADDR: "http://127.0.0.1:8200"
       VAULT_API_ADDR: "http://127.0.0.1:8200"
       VAULT_CLUSTER_ADDR: "http://127.0.0.1:8201"
-    cap_add:
-      - IPC_LOCK
-    restart_policy: always
-
-- name: Verify container status
-  command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=vault"
-  register: container_status
-  changed_when: false
+    quadlet_options:
+      - "Label=traefik.enable=true"
+      - "Label=traefik.http.routers.hashivault.rule=Host(`hashivault.a0a0.org`,`vault.a0a0.org`)"
+      - "Label=traefik.http.routers.hashivault.entrypoints=web,websecure"
+      - "Label=traefik.http.services.hashivault.loadbalancer.server.port=8200"
+      - "AddCapability=IPC_LOCK"
+      - |
+        [Unit]
+        Description=HashiCorp Vault Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target

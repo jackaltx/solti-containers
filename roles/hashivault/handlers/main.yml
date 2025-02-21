@@ -11,7 +11,7 @@
     scope: user
   listen: "restart vault"
 
-- name: Reload systemd user daemon
+- name: reload systemd user daemon
   ansible.builtin.systemd:
     daemon_reload: yes
     scope: user

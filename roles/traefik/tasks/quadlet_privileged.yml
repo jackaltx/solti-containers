@@ -1,0 +1,120 @@
+---
+# .............................................................................
+- name: Ensure required directories exist
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - .config/systemd/user
+    - .config/containers/systemd
+#
+# .............................................................................
+# Socket Preparation
+# .............................................................................
+#
+- name: Ensure Podman socket directory exists with correct permissions
+  become: true
+  ansible.builtin.file:
+    path: "/run/podman"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Enable and start Podman socket service
+  become: true
+  ansible.builtin.systemd:
+    name: podman.socket
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Check root Podman socket exists
+  become: true
+  ansible.builtin.stat:
+    path: "/run/podman/podman.sock"
+  register: root_socket_stat
+  failed_when: not root_socket_stat.stat.exists
+  changed_when: false
+
+- name: Set proper SELinux context on system Podman socket
+  become: true
+  ansible.builtin.command: chcon -t container_file_t /run/podman/podman.sock
+  when:
+    - traefik_privileged
+    - ansible_selinux.status == "enabled"
+  changed_when: true
+#
+# .............................................................................
+# Generate Quadlets
+# .............................................................................
+#
+- name: Create privileged Traefik pod Quadlet
+  become: true
+  containers.podman.podman_pod:
+    name: traefik
+    state: quadlet
+    dns: ["1.1.1.1", "8.8.8.8"]
+    dns_search: "a0a0.org"
+    quadlet_dir: "{{ traefik_dns_servers | join(',') }}"
+    network: "{{ traefik_internal_network }}"
+    userns: "keep-id"
+    ports:
+      - "0.0.0.0:{{ traefik_http_port }}:80"
+      - "0.0.0.0:{{ traefik_https_port }}:443"
+      - "127.0.0.1:{{ traefik_dashboard_port }}:8080"
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+      - |
+        [Install]
+        WantedBy=default.target
+
+# .............................................................................
+- name: Create privileged Traefik container Quadlet
+  become: true
+  containers.podman.podman_container:
+    name: traefik-svc
+    pod: traefik.pod
+    image: "{{ traefik_image }}"
+    state: quadlet
+    quadlet_dir: "/etc/containers/systemd"
+    volume:
+      - "{{ traefik_data_dir }}/config:/etc/traefik:Z,ro"
+      - "{{ traefik_data_dir }}/acme:/etc/traefik/acme:Z"
+      - "{{ traefik_data_dir }}/logs:/logs:Z"
+      - "/run/podman/podman.sock:/var/run/docker.sock:ro"
+    env:
+      LINODE_TOKEN: "{{ lookup('env', 'LINODE_TOKEN') }}"
+    quadlet_options:
+      - |
+        [Unit]
+        Description=Traefik Container (Privileged)
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target
+#
+# .............................................................................
+# Quadlet hooks into systemd via a daemon-reload
+# .............................................................................
+#
+- name: Reload systemd daemon
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+# .............................................................................
+- name: Enable and start pod with systemd
+  become: true
+  ansible.builtin.systemd:
+    name: traefik-pod
+    state: started
+    enabled: yes

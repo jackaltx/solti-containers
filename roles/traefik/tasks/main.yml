@@ -1,19 +1,14 @@
----
-- name: traefik_state
-  ansible.builtin.debug:
-    var: traefik_state
-
 - name: Install Traefik
   when: traefik_state == 'present'
   block:
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml
 
-    - name: Include container tasks
-      ansible.builtin.include_tasks: containers.yml
+    # - name: Setup container networks
+    #   ansible.builtin.include_tasks: networks.yml
 
-    - name: Include systemd tasks
-      ansible.builtin.include_tasks: systemd.yml
+    - name: Deploy Traefik with appropriate privileges
+      ansible.builtin.include_tasks: "quadlet_{{ 'privileged' if traefik_privileged else 'rootless' }}.yml"
 
 - name: Remove Traefik
   when: traefik_state == 'absent'

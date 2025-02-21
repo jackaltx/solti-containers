@@ -1,35 +1,80 @@
 ---
 #
 # ....................................................................................
-- name: Create Redis pod
+- name: Create Redis pod Quadlet
   containers.podman.podman_pod:
     name: redis
+    state: quadlet
+    dns: ["1.1.1.1", "8.8.8.8"]
+    dns_search: "a0a0.org"
+    network: ct-net
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ redis_port }}:6379"
       - "127.0.0.1:{{ redis_gui_port }}:8081"
-    state: started
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+      - |
+        [Install]
+        WantedBy=default.target
 
 # ....................................................................................
-- name: Deploy Redis container
+- name: Create Redis server container Quadlet
   containers.podman.podman_container:
     name: redis-svc
-    pod: redis
+    pod: redis.pod
     image: "{{ redis_image }}"
-    state: started
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     volume:
       - "{{ redis_data_dir }}/config:/usr/local/etc/redis:Z"
       - "{{ redis_data_dir }}/data:/data:Z"
-    command: ["redis-svc", "/usr/local/etc/redis/redis.conf"]
-    restart_policy: always
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    quadlet_options:
+      - |
+        [Unit]
+        Description=Redis Server Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target
 
 # ....................................................................................
-- name: Deploy Redis Commander container
+- name: Wait a moment for quadlet to be written
+  ansible.builtin.wait_for:
+    timeout: 10
+# ....................................................................................
+- name: Create Redis Commander container Quadlet
+  when: redis_enable_gui | bool
   containers.podman.podman_container:
     name: redis-gui
-    pod: redis
+    pod: redis.pod
     image: "{{ redis_commander_image }}"
-    state: started
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     env:
       REDIS_HOSTS: "local:redis-svc:6379:0:{{ redis_password }}"
-    restart_policy: always
-  when: redis_enable_gui | bool
+    quadlet_options:
+      - "Label=traefik.enable=true"
+      - "Label=traefik.http.routers.redis.rule=Host(`redis-ui.a0a0.org`)"
+      - "Label=traefik.http.routers.redis.entrypoints=web,websecure"
+      - "Label=traefik.http.services.redis.loadbalancer.server.port=8081"
+      - |
+        [Unit]
+        Description=Redis Commander GUI Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target

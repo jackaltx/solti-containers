@@ -18,26 +18,7 @@
   when: not vault_use_quadlet | bool
 
 # .......................................................................................
-- name: Template System configuration files for either quadlet and systemd
-  ansible.builtin.template:
-    src: "{{ item.src }}"
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
-    mode: "0644"
-  loop:
-    - { src: vault.pod.j2, dest: vault.pod }
-    - { src: vault-svc.container.j2, dest: vault-svc.container }
-
-# .......................................................................................
-- name: Generate systemd units
-  when: not vault_use_quadlet | bool
-  command:
-    cmd: podman generate systemd --name vault --files --new
-    chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
-  register: generate_result
-  changed_when: generate_result.rc == 0
-
-# .......................................................................................
-- name: Reload systemd user daemon
+- name: reload systemd user daemon
   ansible.builtin.systemd:
     daemon_reload: yes
     scope: user

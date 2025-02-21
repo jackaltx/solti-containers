@@ -3,16 +3,14 @@
 traefik_state: present
 traefik_force_reload: false
 
+# Directory settings
+traefik_data_dir: "{{ ansible_user_dir }}/traefik-data"
+
 # Container settings
 traefik_image: "docker.io/library/traefik:v2.10"
-traefik_data_dir: "{{ ansible_user_dir }}/traefik-data"
-traefik_network_name: vlan11_network
-
-# Network settings
-traefik_external_network: vlan11_network # Existing network on br11
-traefik_external_network_bridge: br11 # which vlan bridge to attach to
-traefik_internal_network: svc_internal # New internal service network
-traefik_internal_subnet: "172.24.0.0/16" # Private subnet for internal network
+traefik_dns_servers: ["1.1.1.1", "8.8.8.8"]
+traefik_dns_search: "a0a0.org"
+traefik_internal_network: ct-net
 
 # Port settings
 traefik_privileged: false
@@ -23,8 +21,8 @@ traefik_dashboard_enabled: true
 
 # Let's Encrypt settings
 traefik_enable_ssl: true
-traefik_acme_email: "admin@example.com"
-traefik_acme_staging: false
+traefik_acme_email: "jack@lavnet.net"
+traefik_acme_staging: true
 
 # Cleanup settings
 traefik_delete_data: false

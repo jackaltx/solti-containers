@@ -25,6 +25,13 @@ providers:
 entryPoints:
   web:
     address: ":80"
+{% if traefik_enable_ssl %}
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+{% endif %}
 
   websecure:
     address: ":443"

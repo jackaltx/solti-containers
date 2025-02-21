@@ -12,7 +12,7 @@
     daemon_reload: yes
     scope: user
 
-- name: Reload systemd user daemon
+- name: reload systemd user daemon
   ansible.builtin.systemd:
     daemon_reload: yes
     scope: user

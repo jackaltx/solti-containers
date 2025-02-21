@@ -19,39 +19,7 @@
   when: not mattermost_use_quadlet | bool
 
 # .......................................................................................
-- name: Template System configuration files for either quadlet and systemd
-  ansible.builtin.template:
-    src: "{{ item.src }}"
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
-    mode: "0644"
-  loop:
-    - { src: mattermost.pod.j2, dest: mattermost.pod }
-    - { src: mattermost-db.container.j2, dest: mattermost-db.container }
-    - { src: mattermost-svc.container.j2, dest: mattermost-svc.container }
-
-# .......................................................................................
-- name: Create environment file for runtime secrets
-  ansible.builtin.template:
-    src: mattermost-db.env.j2
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/mattermost-db.env"
-    mode: "0600"
-  vars:
-    content: |
-      POSTGRES_USER={{ mattermost_db_user }}
-      POSTGRES_PASSWORD={{ vault_mattermost_postgres_password }}
-      POSTGRES_DB={{ mattermost_db_name }}
-
-# .......................................................................................
-- name: Generate systemd units from Quadlets
-  when: not mattermost_use_quadlet | bool
-  ansible.builtin.command:
-    cmd: podman generate systemd --name mattermost --files --new
-    chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
-  register: generate_result
-  changed_when: generate_result.rc == 0
-
-# .......................................................................................
-- name: Reload systemd user daemon
+- name: reload systemd user daemon
   ansible.builtin.systemd:
     daemon_reload: yes
     scope: user

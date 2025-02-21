@@ -1,72 +1,78 @@
 ---
 #
-# ..........................................................
-- name: Ensure pod is removed if it exists
-  containers.podman.podman_pod:
-    name: mattermost
-    state: absent
-  ignore_errors: true
+# ..................................................................................
+- name: Ensure required directories exist
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - .config/systemd/user
+    - .config/containers/systemd
+    - .config/containers/systemd/env
 
-# ..........................................................
-- name: Create Mattermost pod
+# ..................................................................................
+- name: Create environment file for database secrets
+  ansible.builtin.template:
+    src: mattermost-db.env.j2
+    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/mattermost-db.env"
+    mode: "0600"
+
+# ..................................................................................
+- name: Create Mattermost pod Quadlet
   containers.podman.podman_pod:
     name: mattermost
+    state: quadlet
+    dns: ["1.1.1.1", "8.8.8.8"]
+    dns_search: "a0a0.org"
+    network: ct-net
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ mattermost_port }}:8065"
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+        Type=forking
+        RemainAfterExit=yes
+        TimeoutStartSec=300
+      - |
+        [Install]
+        WantedBy=default.target
 
-- name: Wait for pod creation
-  ansible.builtin.pause:
-    seconds: 5
-
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-- name: Verify pod status
-  ansible.builtin.command: podman pod inspect mattermost
-  register: pod_status
-  changed_when: false
-
-# ..........................................................
-- name: Deploy PostgreSQL container
+# ..................................................................................
+- name: Create PostgreSQL container Quadlet
   containers.podman.podman_container:
     name: mattermost-db
-    pod: mattermost
+    pod: mattermost.pod
     image: "{{ mattermost_postgres_image }}"
-    state: started
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     volume:
       - "{{ mattermost_data_dir }}/postgres:/var/lib/postgresql/data:Z"
-    env:
-      POSTGRES_USER: "{{ mattermost_db_user }}"
-      POSTGRES_PASSWORD: "{{ mattermost_postgres_password }}"
-      POSTGRES_DB: "{{ mattermost_db_name }}"
-    restart_policy: always
+    quadlet_options:
+      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/mattermost-db.env"
+      - |
+        [Unit]
+        Description=Mattermost Database Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target
 
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-- name: Verify PostgreSQL container status
-  ansible.builtin.command: podman inspect mattermost-db
-  register: postgres_status
-  changed_when: false
-
-# ..........................................................
-- name: Wait for PostgreSQL to initialize
-  ansible.builtin.pause:
-    seconds: 10
-  when:
-    - not ansible_check_mode
-
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-- name: Verify pod still exists
-  ansible.builtin.command: podman pod inspect mattermost
-  register: pod_status_before_mattermost
-  changed_when: false
-
-# ..........................................................
-- name: Deploy Mattermost container
+# ..................................................................................
+- name: Create Mattermost container Quadlet
   containers.podman.podman_container:
     name: mattermost-svc
-    pod: mattermost
+    pod: mattermost.pod
     image: "{{ mattermost_image }}"
-    state: started
-    security_opt:
-      - label=disable
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     volume:
       - "{{ mattermost_data_dir }}/config:/mattermost/config:Z,U"
       - "{{ mattermost_data_dir }}/data:/mattermost/data:Z,U"
@@ -80,13 +86,23 @@
       MM_DBNAME: "{{ mattermost_db_name }}"
       MM_SQLSETTINGS_DRIVERNAME: "postgres"
       MM_SQLSETTINGS_DATASOURCE: "postgres://{{ mattermost_db_user }}:{{ mattermost_postgres_password }}@mattermost-db:5432/{{ mattermost_db_name }}?sslmode=disable"
-    restart_policy: always
-
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-- name: Verify container statuses
-  ansible.builtin.command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=mattermost"
-  register: container_status
-  changed_when: false
-  failed_when: >
-    'mattermost-db' not in container_status.stdout or
-    'mattermost-svc' not in container_status.stdout
+    security_opt:
+      - label=disable
+    quadlet_options:
+      - "Label=traefik.enable=true"
+      - "Label=traefik.http.routers.mattermost.rule=Host(`mattermost.a0a0.org`)"
+      - "Label=traefik.http.routers.mattermost.entrypoints=web,websecure"
+      - "Label=traefik.http.services.mattermost.loadbalancer.server.port=8065"
+      - "User=2000:2000"
+      - |
+        [Unit]
+        Description=Mattermost Application Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target

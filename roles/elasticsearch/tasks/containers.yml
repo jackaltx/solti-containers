@@ -1,73 +1,87 @@
 ---
 #
 # ....................................................................................
-- name: Create Elasticsearch pod
+- name: Create Elasticsearch pod Quadlet
   containers.podman.podman_pod:
     name: elasticsearch
+    state: quadlet
     dns: ["1.1.1.1", "8.8.8.8"]
+    dns_search: "a0a0.org"
+    network: ct-net
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ elasticsearch_port }}:9200"
       - "127.0.0.1:{{ elasticsearch_gui_port }}:8080"
+    quadlet_options:
+      - "DNS={{ elasticsearch_dns_servers | join(',') }}"
+      - |
+        [Service]
+        Restart=always
+      - |
+        [Install]
+        WantedBy=default.target
 
 # ....................................................................................
 # See es_resource_limits.md for explanation of ulimit
 #
-- name: Deploy Elasticsearch container
+- name: Create Elasticsearch node container Quadlet
   containers.podman.podman_container:
     name: elasticsearch-node
-    pod: elasticsearch
+    pod: elasticsearch.pod
     image: "{{ elasticsearch_image }}"
-    state: started
-    dns: ["1.1.1.1", "8.8.8.8"]
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     volume:
       - "{{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z,U"
       - "{{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z,U"
       - "{{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z,U"
     env:
-      ES_JAVA_OPTS: "-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }}"
+      ES_JAVA_OPTS: "-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }} -Djava.security.manager=allow -Djava.locale.providers=SPI,JRE"
       discovery.type: "{{ elasticsearch_discovery_type }}"
       ELASTIC_PASSWORD: "{{ elasticsearch_password }}"
       xpack.security.enabled: "{{ elasticsearch_enable_security | string }}"
       bootstrap.memory_lock: "true"
-    ulimit:
-      - "memlock=-1:-1"
-      - "nofile=65535:65535"
-    restart_policy: always
+    quadlet_options:
+      - "Label=traefik.enable=true"
+      - "Label=traefik.http.routers.elasticsearch.rule=Host(`elasticsearch.a0a0.org`,`es.a0a0.org`)"
+      - "Label=traefik.http.routers.elasticsearch.entrypoints=web,websecure"
+      - "Label=traefik.http.services.elasticsearch.loadbalancer.server.port=9200"
+      - "User=2000:2000"
+      - "Ulimit=memlock=-1:-1"
+      - "Ulimit=nofile=65535:65535"
+      - |
+        [Unit]
+        Description=Elasticsearch Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+        LimitMEMLOCK=infinity
+        LimitNOFILE=65535
+      - |
+        [Install]
+        WantedBy=default.target
 
 # ....................................................................................
-- name: Wait a moment for logs to be written
-  ansible.builtin.wait_for:
-    timeout: 2
-
-- name: Get Elasticsearch logs
-  ansible.builtin.shell: "cat {{ elasticsearch_data_dir }}/logs/docker-cluster.log"
-  register: es_logs
-  ignore_errors: yes
-
-- name: Display recent logs
-  ansible.builtin.debug:
-    msg: "{{ es_logs.stdout_lines | default([]) }}"
-
-# ....................................................................................
-- name: Verify DNS resolution
-  ansible.builtin.command: >
-    podman exec elasticsearch-node 
-    getent hosts {{ ansible_domain }}
-  register: dns_check
-  changed_when: false
-  failed_when: dns_check.rc != 0
-  ignore_errors: true
-
-- name: Display DNS verification results
-  ansible.builtin.debug:
-    msg: "DNS Check Results: {{ dns_check.stdout_lines | default([]) }}"
-  when: dns_check is defined
-
-# ....................................................................................
-- name: Deploy Elasticvue container
+- name: Create Elasticvue container Quadlet
   containers.podman.podman_container:
     name: elasticsearch-gui
-    pod: elasticsearch
+    pod: elasticsearch.pod
     image: "{{ elasticsearch_elasticvue_image }}"
-    state: started
-    restart_policy: always
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_options:
+      - |
+        [Unit]
+        Description=Elasticsearch GUI Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target

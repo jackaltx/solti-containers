@@ -5,7 +5,7 @@
 - name: Prepare system for Mattermost installation
   hosts: mattermost_svc
   vars:
-    redis_data_dir: "{{ ansible_env.HOME }}/mattermost-data"
+    mattermost_data_dir: "{{ ansible_env.HOME }}/mattermost-data"
 
   tasks:
     #
@@ -96,23 +96,6 @@
         - name: Enable lingering for user
           command: "loginctl enable-linger {{ ansible_user_id }}"
           changed_when: false
-
-        # .................................................................
-        - name: Configure container DNS
-          block:
-            - name: Create containers configuration directory
-              file:
-                path: "{{ ansible_env.HOME }}/.config/containers"
-                state: directory
-                mode: "0755"
-
-            - name: Configure DNS in containers.conf
-              copy:
-                dest: "{{ ansible_env.HOME }}/.config/containers/containers.conf"
-                content: |
-                  [containers]
-                  dns_servers = ["1.1.1.1", "8.8.8.8"]
-                mode: "0644"
 
         # .................................................................
         - name: Configure SELinux
