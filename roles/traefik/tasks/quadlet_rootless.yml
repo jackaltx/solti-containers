@@ -25,7 +25,7 @@
   when: ansible_selinux.status == "enabled"
   block:
     - name: Add persistent SELinux file context for Podman socket
-      ansible.posix.sefcontext:
+      community.general.sefcontext:
         target: "{{ ansible_env.XDG_RUNTIME_DIR }}/podman/podman.sock"
         setype: container_file_t
         state: present
@@ -49,9 +49,9 @@
     quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     network: "{{ traefik_internal_network }}"
     ports:
-      - "0.0.0.0:{{ traefik_http_port }}:80"
-      - "0.0.0.0:{{ traefik_https_port }}:443"
-      - "127.0.0.1:{{ traefik_dashboard_port }}:8080"
+      - "0.0.0.0:{{ traefik_http_port }}:9080"
+      - "0.0.0.0:{{ traefik_https_port }}:9043"
+      - "127.0.0.1:{{ traefik_dashboard_port }}:9090" # traefik entry
     quadlet_options:
       - |
         [Service]
@@ -69,14 +69,15 @@
     state: quadlet
     quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     volume:
-      - "{{ traefik_data_dir }}/config:/etc/traefik:Z,ro"
-      - "{{ traefik_data_dir }}/acme:/etc/traefik/acme:Z"
-      - "{{ traefik_data_dir }}/logs:/logs:Z"
-      - "{{ ansible_env.XDG_RUNTIME_DIR }}/podman/podman.sock:/var/run/docker.sock:ro"
+      - "{{ traefik_data_dir }}/config:/etc/traefik:Z,U,ro"
+      - "{{ traefik_data_dir }}/acme:/etc/traefik/acme:Z,U"
+      - "{{ traefik_data_dir }}/logs:/logs:Z,U"
+      - "{{ ansible_env.XDG_RUNTIME_DIR }}/podman/podman.sock:/var/run/docker.sock:ro,Z"
     env:
       LINODE_TOKEN: "{{ lookup('env', 'LINODE_TOKEN') }}"
     quadlet_options:
       - "User=1000:1000"
+      - "Exec=traefik --configFile=/etc/traefik/traefik.yaml"
       - |
         [Unit]
         Description=Traefik Container
@@ -100,7 +101,7 @@
     scope: user
 
 # .............................................................................
-- name: Enable and start pod with systemd
+- name: Enable and start rootless pod with systemd
   ansible.builtin.systemd:
     name: traefik-pod
     state: started

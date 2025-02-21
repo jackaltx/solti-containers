@@ -9,25 +9,31 @@ api:
 
 log:
   level: DEBUG
-  filePath: "/logs/traefik.log"
+  #filePath: "/logs/traefik.log"
 
 accessLog:
   filePath: "/logs/access.log"
 
 providers:
   docker:
+    #endpoint: "unix:///run/user/{{ ansible_user_uid }}/podman/podman.sock"
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     network: "{{ traefik_internal_network }}"
-    httpClientTimeout: 60  # Increase timeout
+    httpClientTimeout: 300
     watch: true
 
 entryPoints:
+
+  # what is this port!!!!!
+  traefik:
+    address: ":9090"
+
   web:
-    address: ":80"
+    address: ":{{ traefik_http_port }}"
 
   websecure:
-    address: ":443"
+    address: ":{{ traefik_https_port }}"
 {% if traefik_enable_ssl %}
     http:
       tls:

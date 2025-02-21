@@ -24,7 +24,7 @@
     scope: user
 
 # .......................................................................................
-- name: Enable and start pod with systemd
+- name: Enable and start rootless pod with systemd
   ansible.builtin.systemd:
     name: "{{ elasticsearch_service_name }}"
     state: started

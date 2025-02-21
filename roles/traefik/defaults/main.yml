@@ -7,7 +7,7 @@ traefik_force_reload: false
 traefik_data_dir: "{{ ansible_user_dir }}/traefik-data"
 
 # Container settings
-traefik_image: "docker.io/library/traefik:v2.10"
+traefik_image: "docker.io/library/traefik:v3"
 traefik_dns_servers: ["1.1.1.1", "8.8.8.8"]
 traefik_dns_search: "a0a0.org"
 traefik_internal_network: ct-net
