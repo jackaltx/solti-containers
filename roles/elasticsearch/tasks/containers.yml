@@ -43,8 +43,10 @@
       bootstrap.memory_lock: "true"
     quadlet_options:
       - "Label=traefik.enable=true"
-      - "Label=traefik.http.routers.elasticsearch.rule=Host(`elasticsearch.a0a0.org`,`es.a0a0.org`)"
-      - "Label=traefik.http.routers.elasticsearch.entrypoints=web,websecure"
+      - "Label=traefik.http.routers.elasticsearch0.rule=Host(`elasticsearch.a0a0.org`)"
+      - "Label=traefik.http.routers.elasticsearch0.entrypoints=web,websecure"
+      - "Label=traefik.http.routers.elasticsearch1.rule=Host(`es.a0a0.org`)"
+      - "Label=traefik.http.routers.elasticsearch1.entrypoints=web,websecure"
       - "Label=traefik.http.services.elasticsearch.loadbalancer.server.port=9200"
       - "User=2000:2000"
       - "Ulimit=memlock=-1:-1"

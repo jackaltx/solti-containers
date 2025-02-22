@@ -49,9 +49,9 @@
     quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     network: "{{ traefik_internal_network }}"
     ports:
-      - "0.0.0.0:{{ traefik_http_port }}:9080"
-      - "0.0.0.0:{{ traefik_https_port }}:9043"
-      - "127.0.0.1:{{ traefik_dashboard_port }}:9090" # traefik entry
+      - "0.0.0.0:{{ traefik_http_port }}:8080"
+      - "0.0.0.0:{{ traefik_https_port }}:8443"
+      - "127.0.0.1:{{ traefik_dashboard_port }}:9000" # traefik entry
     quadlet_options:
       - |
         [Service]
@@ -76,7 +76,8 @@
     env:
       LINODE_TOKEN: "{{ lookup('env', 'LINODE_TOKEN') }}"
     quadlet_options:
-      - "User=1000:1000"
+      - "User=root:root"
+      - "SecurityLabelDisable=true"
       - "Exec=traefik --configFile=/etc/traefik/traefik.yaml"
       - |
         [Unit]

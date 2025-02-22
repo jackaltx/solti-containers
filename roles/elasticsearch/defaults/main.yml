@@ -30,8 +30,9 @@ elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD') | default('changem
 # Cleanup settings
 elasticsearch_delete_data: false
 
-# Systemd interface  (use Quadlet to interface with systemd or  use systemd directly)
-elasticsearch_use_quadlet: true # Toggle between Quadlet and traditional
+# Systemd interface  (use Quadlet to interface with systemd or use systemd directly)
+# TODO...remove this capability.  I am not going back.
+elasticsearch_use_quadlet: true
 
 # This will be overriden in systemd.yml and cleanup.yml if NOT quadlet
 elasticsearch_service_name: "elasticsearch-pod"

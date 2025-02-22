@@ -25,9 +25,9 @@ providers:
 
 entryPoints:
 
-  # what is this port!!!!!
+  # Traefik api/dashboard port
   traefik:
-    address: ":9090"
+    address: ":9000"
 
   web:
     address: ":{{ traefik_http_port }}"
@@ -39,9 +39,6 @@ entryPoints:
       tls:
         certResolver: letsencrypt
 {% endif %}
-
-  dashboard:
-    address: ":9000"
 
 {% if traefik_enable_ssl %}
 certificatesResolvers:
@@ -59,12 +56,3 @@ certificatesResolvers:
           - "8.8.8.8:53"
         delayBeforeCheck: 30
 {% endif %}
-
-# Enabled dashboard via a router
-http:
-  routers:
-    dashboard:
-      rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
-      service: api@internal
-      entrypoints:
-        - dashboard

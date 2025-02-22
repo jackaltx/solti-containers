@@ -11,4 +11,4 @@
       ansible.builtin.include_role:
         name: redis
         tasks_from: verify
-        vars_from: redis
+        vars_from: main

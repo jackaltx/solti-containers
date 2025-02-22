@@ -8,7 +8,7 @@
     enabled: no
     scope: user
   loop:
-    - "{{ redis_service_name }}"
+    - "{{ service_name }}"
   ignore_errors: true
 
 # .................................................................
@@ -16,13 +16,11 @@
   ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item }}"
     state: absent
-  loop:
-    - redis.pod
-    - redis-svc.container
-    - redis-gui.container
+  loop: "{{ service_quadlets }}"
 
 # .................................................................
 # This removes the pod/container services from systemd
+# SMELL this is for rootless!!!
 - name: Reload systemd user daemon
   ansible.builtin.systemd:
     daemon_reload: yes
@@ -30,11 +28,11 @@
 
   # .................................................................
 - name: Remove all traces
-  when: redis_state == 'absent' and redis_delete_data | default(false)
+  when: system_state == 'absent' and system_delete_data | default(false)
   block:
     - name: Remove configuration
       file:
-        path: "{{ redis_data_dir }}"
+        path: "{{ system_data_dir }}"
         state: absent
     - name: Remove systemd files
       file:

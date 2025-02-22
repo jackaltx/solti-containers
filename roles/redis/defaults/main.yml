@@ -17,7 +17,7 @@ redis_data_dir: "{{ ansible_user_dir }}/redis-data"
 # Redis settings
 redis_port: 6379
 redis_gui_port: 8081
-redis_password: "changeme"
+redis_password: "{{ lookup('env', 'REDIS_PASSWORD') | default('changeme') }}"
 redis_maxmemory: "256mb"
 redis_maxmemory_policy: "allkeys-lru"
 
@@ -33,9 +33,42 @@ redis_enable_gui: true
 # Cleanup settings
 redis_delete_data: false
 
-# Systemd interface  (use Quadlet to interface with systemd or  use systemd directly)
-redis_use_quadlet: true # Toggle between Quadlet and traditional
-
-# This will be overridden in systemd.yml and cleanup.yml if NOT quadlet
+# ....................................................................................
+# quadlets
+#        "redis-infra",
+#        "redis-svc",
+#        "redis-gui"
+#        "redis-pod"
+#
 redis_service_name: "redis-pod"
 redis_pod_key: "redis.pod"
+
+# ----------------------------------------------
+# Common variables needed by base role
+#
+
+service_name: "redis-pod"
+service_pod_key: "redis.pod"
+service_quadlets:
+  - "redis-svc",
+  - "redis-gui"
+  - "redis-pod"  
+
+service_data_dir: "{{ redis_data_dir }}"
+service_config_dir: "{{ redis_data_dir }}/config"
+service_image: "{{ redis_image }}"
+
+service_dirs:
+  - { path: "", mode: "0750" }
+  - { path: "config", mode: "0755" }
+  - { path: "data", mode: "0750" }
+
+service_ports:
+  - "127.0.0.1:{{ redis_port }}:6379"
+  - "127.0.0.1:{{ redis_gui_port }}:8081"
+
+service_volumes:
+  - "{{ service_data_dir }}/config:/usr/local/etc/redis:Z"
+  - "{{ service_data_dir }}/data:/data:Z"
+
+service_command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
