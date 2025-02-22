@@ -21,4 +21,8 @@
   when: redis_state == 'absent'
   block:
     - name: Include cleanup tasks
-      ansible.builtin.include_tasks: cleanup.yml
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/cleanup.yml"
+      vars:
+        service_state: "{{ redis_state }}"
+        service_delete_data: "{{ redis_delete_data }}"

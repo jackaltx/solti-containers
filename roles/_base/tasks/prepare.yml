@@ -24,7 +24,7 @@
         path: "{{ service_config_dir }}"
       register: dir_check
 
-    - name: Fail if service config  doesn't exist
+    - name: Fail if service config dir doesn't exist
       fail:
         msg: "Directory does not exist:  {{ service_config_dir }}"
       when: not dir_check.stat.exists

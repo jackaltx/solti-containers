@@ -47,12 +47,16 @@ redis_pod_key: "redis.pod"
 # Common variables needed by base role
 #
 
+# I am so confuse...how can this be set in here and work????
+service_state: "{{ redis_state }}"
+
+service_root: "redis"
 service_name: "redis-pod"
 service_pod_key: "redis.pod"
 service_quadlets:
-  - "redis-svc",
+  - "redis-svc"
   - "redis-gui"
-  - "redis-pod"  
+  - "redis-pod"
 
 service_data_dir: "{{ redis_data_dir }}"
 service_config_dir: "{{ redis_data_dir }}/config"
