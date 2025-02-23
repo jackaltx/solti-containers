@@ -48,31 +48,26 @@ redis_pod_key: "redis.pod"
 #
 
 # I am so confuse...how can this be set in here and work????
-service_state: "{{ redis_state }}"
-
-service_root: "redis"
-service_name: "redis-pod"
-service_pod_key: "redis.pod"
-service_quadlets:
-  - "redis-svc"
-  - "redis-gui"
-  - "redis-pod"
-
-service_data_dir: "{{ redis_data_dir }}"
-service_config_dir: "{{ redis_data_dir }}/config"
-service_image: "{{ redis_image }}"
-
-service_dirs:
-  - { path: "", mode: "0750" }
-  - { path: "config", mode: "0755" }
-  - { path: "data", mode: "0750" }
-
-service_ports:
-  - "127.0.0.1:{{ redis_port }}:6379"
-  - "127.0.0.1:{{ redis_gui_port }}:8081"
-
-service_volumes:
-  - "{{ service_data_dir }}/config:/usr/local/etc/redis:Z"
-  - "{{ service_data_dir }}/data:/data:Z"
-
-service_command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+service:
+  state: "{{ redis_state }}"
+  root: "redis"
+  name: "redis-pod"
+  pod_key: "redis.pod"
+  quadlets:
+    - "redis-svc"
+    - "redis-gui"
+    - "redis-pod"
+  data_dir: "{{ redis_data_dir }}"
+  config_dir: "{{ redis_data_dir }}/config"
+  image: "{{ redis_image }}"
+  dirs:
+    - { path: "", mode: "0750" }
+    - { path: "config", mode: "0755" }
+    - { path: "data", mode: "0750" }
+  ports:
+    - "127.0.0.1:{{ redis_port }}:6379"
+    - "127.0.0.1:{{ redis_gui_port }}:8081"
+  volumes:
+    - "{{ service_data_dir }}/config:/usr/local/etc/redis:Z"
+    - "{{ service_data_dir }}/data:/data:Z"
+  command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
