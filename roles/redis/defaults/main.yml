@@ -47,9 +47,8 @@ redis_pod_key: "redis.pod"
 # Common variables needed by base role
 #
 
-# I am so confuse...how can this be set in here and work????
-service:
-  state: "{{ redis_state }}"
+service_properties:
+  state: "present"
   root: "redis"
   name: "redis-pod"
   pod_key: "redis.pod"
@@ -68,6 +67,8 @@ service:
     - "127.0.0.1:{{ redis_port }}:6379"
     - "127.0.0.1:{{ redis_gui_port }}:8081"
   volumes:
-    - "{{ service_data_dir }}/config:/usr/local/etc/redis:Z"
-    - "{{ service_data_dir }}/data:/data:Z"
+    [
+      "{{ redis_data_dir }}/config:/usr/local/etc/redis:Z",
+      "{{ redis_data_dir }}/data:/data:Z",
+    ]
   command: ["redis-server", "/usr/local/etc/redis/redis.conf"]

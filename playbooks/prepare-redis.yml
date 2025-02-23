@@ -1,3 +1,4 @@
+---
 - name: Prepare system for Redis installation
   hosts: redis_svc
   vars:
@@ -8,4 +9,4 @@
       ansible.builtin.include_role:
         name: redis
         tasks_from: prepare
-        vars_from: main
+        defaults_from: main

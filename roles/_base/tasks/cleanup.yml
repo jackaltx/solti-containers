@@ -1,5 +1,14 @@
 ---
 #
+#
+# TODO: test idempotence
+# ....................................................................................
+
+- name: Debug service_properties in prepare
+  ansible.builtin.debug:
+    var: service_properties
+    verbosity: 1
+
 # .................................................................
 - name: Stop and disable services
   ansible.builtin.systemd:
@@ -8,7 +17,7 @@
     enabled: no
     scope: user
   loop:
-    - "{{ service_name }}"
+    - "{{ service_properties.name }}"
   ignore_errors: true
 
 # .................................................................
@@ -16,7 +25,7 @@
   ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item }}"
     state: absent
-  loop: "{{ service_quadlets }}"
+  loop: "{{ service_properties.quadlets }}"
 
 # .................................................................
 # This removes the pod/container services from systemd
@@ -26,21 +35,18 @@
     daemon_reload: yes
     scope: user
 
-- debug:
-    msg: "Service state: {{ service_state }} and delete: {{ service_delete_data }}"
-
-  # .................................................................
+# .................................................................
 - name: Remove all traces
   when: service_state == 'absent' and service_delete_data | default(false)
   block:
     - name: Remove configuration
       become: true
       file:
-        path: "{{ service_data_dir }}"
+        path: "{{ service_properties.data_dir }}"
         state: absent
     - name: Remove systemd files
       file:
         path: "{{ item }}"
         state: absent
       with_fileglob:
-        - "~/.config/systemd/user/*{{ service_root }}*"
+        - "~/.config/systemd/user/*{{ service_properties.root }}*"

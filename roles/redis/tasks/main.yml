@@ -24,5 +24,5 @@
       ansible.builtin.include_tasks:
         file: "../_base/tasks/cleanup.yml"
       vars:
-        service_state: "{{ redis_state }}"
+        service_state: "absent"
         service_delete_data: "{{ redis_delete_data }}"
