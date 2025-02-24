@@ -13,7 +13,6 @@
       - "127.0.0.1:{{ elasticsearch_port }}:9200"
       - "127.0.0.1:{{ elasticsearch_gui_port }}:8080"
     quadlet_options:
-      - "DNS={{ elasticsearch_dns_servers | join(',') }}"
       - |
         [Service]
         Restart=always
@@ -87,3 +86,17 @@
       - |
         [Install]
         WantedBy=default.target
+
+# .......................................................................................
+- name: reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+# .......................................................................................
+- name: Enable and start rootless pod with systemd
+  ansible.builtin.systemd:
+    name: "{{ elasticsearch_service_name }}"
+    state: started
+    enabled: yes
+    scope: user

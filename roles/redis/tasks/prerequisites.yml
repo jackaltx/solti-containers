@@ -1,5 +1,17 @@
 ---
-- name: Verify prerequisites
+#
+#  This is where the configuration is push to the container
+#  Is is run every time a deployment is done.
+#
+#  TODO: test for config directory!!!
+#
+#  Flow:
+#    1. push config file while retaining ownership
+#    2. pump up system memory
+#    3. reapply selinux
+#
+
+- name: Verify prerequisite variables
   assert:
     that:
       - redis_password != "changeme"

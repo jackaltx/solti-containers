@@ -1,6 +1,7 @@
 ---
 #
 # ..................................................................................
+# TODO  this should be part of _base
 - name: Ensure required directories exist
   ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/{{ item }}"
@@ -12,6 +13,7 @@
     - .config/containers/systemd/env
 
 # ..................................................................................
+# TODO  is thos part of prerequisites??
 - name: Create environment file for database secrets
   ansible.builtin.template:
     src: mattermost-db.env.j2
@@ -106,3 +108,17 @@
       - |
         [Install]
         WantedBy=default.target
+
+# .......................................................................................
+- name: reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+# .......................................................................................
+- name: Enable and start rootless pod with systemd
+  ansible.builtin.systemd:
+    name: "{{ mattermost_service_name }}"
+    state: started
+    enabled: yes
+    scope: user

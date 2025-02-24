@@ -66,3 +66,17 @@
       - |
         [Install]
         WantedBy=default.target
+
+# .......................................................................................
+- name: reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+# .......................................................................................
+- name: Enable and start services
+  systemd:
+    name: "{{ vault_service_name }}"
+    state: started
+    enabled: yes
+    scope: user

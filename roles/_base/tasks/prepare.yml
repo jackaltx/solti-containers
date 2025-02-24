@@ -11,19 +11,18 @@
 - name: Validate required variables in _base
   assert:
     that:
-      - service_properties.image is defined and service_properties.image != ""
       - service_properties.data_dir is defined and service_properties.data_dir != ""
       - service_properties.config_dir is defined and service_properties.config_dir != ""
       - service_properties.dirs | length > 0
     fail_msg: |
       Required variables not properly configured:
-      - service_properties.image: Container image
       - service_properties.data_dir: Containers configuration directory
       - service_properties.config_dir: Containers configuration directory
       - service_properties.dirs: List of required directories
 
 # ....................................................................................
 - name: Check service directory status
+  become: true
   block:
     - name: Check if service config exists
       ansible.builtin.stat:

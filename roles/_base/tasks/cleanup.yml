@@ -35,9 +35,14 @@
     daemon_reload: yes
     scope: user
 
+- name: Debug service file removal
+  ansible.builtin.debug:
+    msg: "_base.cleanup:  state: {{ service_properties.state }}, del_data: {{ service_delete_data }}"
+    verbosity: 0
+
 # .................................................................
 - name: Remove all traces
-  when: service_state == 'absent' and service_delete_data | default(false)
+  when: service_properties.state == 'absent' and service_delete_data | default(false)
   block:
     - name: Remove configuration
       become: true

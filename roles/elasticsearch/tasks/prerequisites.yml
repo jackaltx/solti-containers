@@ -1,5 +1,16 @@
 ---
 #
+#  This is run on every deploy
+#
+
+- name: Verify prerequisite variables
+  assert:
+    that:
+      - elasticsearch_password != "changeme"
+      - elasticsearch_data_dir is defined
+      - elasticsearch_port is defined
+    fail_msg: "Required variables not properly configured"
+
 # .......................................................................
 # Get container user mapping first
 - name: Get directory ownership

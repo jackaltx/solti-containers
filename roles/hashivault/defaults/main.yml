@@ -40,3 +40,21 @@ vault_use_quadlet: true # Toggle between Quadlet and traditional
 # This will be overriden in systemd.yml and cleanup.yml if NOT quadlet
 vault_service_name: "vault-pod"
 vault_pod_key: "vault.pod"
+
+# =======================================================================
+service_properties:
+  state: "present" # override in playbook
+  root: "vault"
+  name: "vault-pod"
+  pod_key: "vault.pod"
+  quadlets:
+    - "vault-svc"
+    - "vault-pod"
+  data_dir: "{{ vault_data_dir }}" # override in playbook
+  config_dir: "{{ vault_data_dir }}/config"
+  dirs:
+    - { path: "", mode: "0750" }
+    - { path: "config", mode: "0750" }
+    - { path: "data", mode: "0750" }
+    - { path: "logs", mode: "0750" }
+    - { path: "tls", mode: "0750" }

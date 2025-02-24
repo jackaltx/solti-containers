@@ -6,7 +6,7 @@
 
 - name: restart vault
   ansible.builtin.systemd:
-    name: "{{ vault_storage_type }}"
+    name: "{{ vault_service_name }}"
     state: restarted
     scope: user
   listen: "restart vault"

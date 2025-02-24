@@ -41,3 +41,26 @@ mattermost_use_quadlet: true # Toggle between Quadlet and traditional
 # This will be overriden in systemd.yml and cleanup.yml if NOT quadlet
 mattermost_service_name: "mattermost-pod"
 mattermost_pod_key: "mattermost.pod"
+
+# =======================================================================
+service_properties:
+  state: "present" # override in playbook
+  root: "mattermost"
+  name: "mattermost-pod"
+  pod_key: "mattermost.pod"
+  quadlets:
+    - "mattermost-node" # TODO  convert this to mattermost-svc
+    - "mattermost-gui"
+    - "mattermost-pod"
+  data_dir: "{{ mattermost_data_dir }}" # override in playbook
+  config_dir: "{{ mattermost_data_dir }}/config"
+  dirs:
+    - { path: "", mode: "0755" }
+    - { path: "config", mode: "0775" }
+    - { path: "data", mode: "0775" }
+    - { path: "logs", mode: "0775" } # Allow container to create and manage logs
+    - { path: "plugins", mode: "0775" }
+    - { path: "client", mode: "0775" }
+    - { path: "client/plugins", mode: "0775" }
+    - { path: "bleve-indexes", mode: "0775" }
+    - { path: "postgres", mode: "0755" } # PostgreSQL will manage its own permissions

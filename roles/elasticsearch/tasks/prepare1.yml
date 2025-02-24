@@ -1,0 +1,120 @@
+---
+#
+# prepare-elasticsearch.yml - Run with ansible-playbook -K prepare-elasticsearch.yml
+#
+- name: Prepare system for container deployments
+  hosts: elasticsearch_svc
+  vars:
+    elasticsearch_data_dir: "{{ ansible_env.HOME }}/elasticsearch-data" # Use HOME instead of user_dir
+
+  tasks:
+    #
+    # These tasks run as the regular user
+    # ...........................................................................
+    - name: Create Elasticsearch directories
+      ansible.builtin.file:
+        path: "{{ elasticsearch_data_dir }}/{{ item }}"
+        state: directory
+        mode: "0770"
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
+      loop:
+        - "" # Creates the base directory
+        - config
+        - data
+        - logs
+
+    # ...........................................................................
+    - name: Perform system-level tasks
+      become: true
+      block:
+        #
+        # ...........................................................
+        - name: Set proper SELinux context for Elasticsearch directories
+          ansible.builtin.command:
+            cmd: "chcon -Rt container_file_t {{ elasticsearch_data_dir }}"
+          changed_when: false
+          when: ansible_selinux.status == "enabled"
+
+        # ...........................................................
+        # RHEL/CentOS specific tasks
+        - name: Configure RHEL repositories
+          block:
+            - name: Enable CRB repository
+              rhsm_repository:
+                name: codeready-builder-for-rhel-9-x86_64-rpms
+                state: enabled
+              when: ansible_distribution_major_version == "9"
+          when: ansible_os_family == "RedHat"
+
+        # ...........................................................
+        # Debian/Ubuntu specific tasks
+        - name: Configure Debian prerequisites
+          block:
+            - name: Install required dependencies
+              ansible.builtin.apt:
+                name:
+                  - apt-transport-https
+                  - ca-certificates
+                  - curl
+                  - gnupg
+                  - python3-pip
+                state: present
+                update_cache: yes
+
+            - name: Install podman-compose via pip
+              ansible.builtin.pip:
+                name: podman-compose
+                state: present
+          when: ansible_os_family == "Debian"
+
+          # .................................................................
+        # Common tasks for all distributions
+        - name: Install required packages
+          ansible.builtin.package:
+            name: "{{ packages }}"
+            state: present
+          vars:
+            packages:
+              - podman
+              - "{{ 'podman-compose' if ansible_os_family == 'RedHat' else '' }}"
+          register: package_result
+          until: package_result is success
+          retries: 3
+          delay: 5
+
+        # .................................................................
+        - name: Enable lingering for user
+          ansible.builtin.command: "loginctl enable-linger {{ ansible_user_id }}"
+          changed_when: false
+
+        # .................................................................
+        #  Elasticsearch specific
+        # .................................................................
+        - name: Set virtual memory for Elasticsearch
+          sysctl:
+            name: vm.max_map_count
+            value: "262144"
+            sysctl_set: true
+            state: present
+            reload: true
+
+        # .................................................................
+        - name: Configure systemd limits
+          block:
+            - name: Create systemd override directory
+              ansible.builtin.file:
+                path: /etc/systemd/system/user@.service.d
+                state: directory
+                mode: "0755"
+
+            # see es_resource_limits.md for explanation
+            - name: Configure systemd ulimits
+              copy:
+                dest: /etc/systemd/system/user@.service.d/elasticsearch.conf
+                content: |
+                  [Service]
+                  LimitMEMLOCK=infinity
+                  LimitNOFILE=65535
+                mode: "0644"
+              notify: Reload systemd
