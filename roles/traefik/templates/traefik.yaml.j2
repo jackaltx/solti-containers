@@ -5,52 +5,54 @@ global:
 
 api:
   dashboard: {{ traefik_dashboard_enabled | lower }}
-  insecure: false  # Never expose dashboard without authentication
+  insecure: true  # Never expose dashboard without authentication  (testing only)
 
 log:
-  level: INFO
-  filePath: "/logs/traefik.log"
+  level: DEBUG
+  #filePath: "/logs/traefik.log"
 
 accessLog:
   filePath: "/logs/access.log"
 
 providers:
   docker:
+    #endpoint: "unix:///run/user/{{ ansible_user_uid }}/podman/podman.sock"
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
-    network: traefik
+    network: "{{ service_network }}"
+    httpClientTimeout: 300
     watch: true
 
 entryPoints:
+
+  # Traefik api/dashboard port
+  traefik:
+    address: ":9000"
+
   web:
-    address: ":80"
-    {% if traefik_enable_ssl %}
-    http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
-    {% endif %}
+    address: ":{{ traefik_http_port }}"
 
   websecure:
-    address: ":443"
-    {% if traefik_enable_ssl %}
+    address: ":{{ traefik_https_port }}"
+{% if traefik_enable_ssl %}
     http:
       tls:
         certResolver: letsencrypt
-    {% endif %}
+{% endif %}
 
+{% if traefik_enable_ssl %}
 certificatesResolvers:
   letsencrypt:
     acme:
       email: "{{ traefik_acme_email }}"
       storage: "/etc/traefik/acme/acme.json"
-      {% if traefik_acme_staging %}
+{% if traefik_acme_staging %}
       caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
-      {% endif %}
+{% endif %}
       dnsChallenge:
         provider: linode
         resolvers:
           - "1.1.1.1:53"
           - "8.8.8.8:53"
         delayBeforeCheck: 30
+{% endif %}

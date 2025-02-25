@@ -6,7 +6,19 @@
 
 - name: restart traefik
   ansible.builtin.systemd:
-    name: "pod-traefik"
+    name: "traefik-pod"
     state: restarted
     scope: user
   listen: "restart traefik"
+
+- name: restart privileged traefik
+  become: true
+  ansible.builtin.systemd:
+    name: "traefik-pod"
+    state: restarted
+  listen: "restart privileged traefik"
+
+- name: reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user

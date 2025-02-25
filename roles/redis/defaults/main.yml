@@ -5,7 +5,6 @@ redis_state: present
 redis_force_reload: false
 
 # No TLS, cause this is for fast local use only
-#
 
 # Container settings
 redis_image: "docker.io/library/redis:7.2-alpine"
@@ -17,7 +16,7 @@ redis_data_dir: "{{ ansible_user_dir }}/redis-data"
 # Redis settings
 redis_port: 6379
 redis_gui_port: 8081
-redis_password: "changeme"
+redis_password: "{{ lookup('env', 'REDIS_PASSWORD') | default('changeme') }}"
 redis_maxmemory: "256mb"
 redis_maxmemory_policy: "allkeys-lru"
 
@@ -28,14 +27,45 @@ redis_tls_key_file: ""
 redis_tls_auth_clients: "no"
 
 # GUI settings
+# SMELL false will mess up _base/tasks/cleanup.yml
 redis_enable_gui: true
 
 # Cleanup settings
 redis_delete_data: false
 
-# Systemd interface  (use Quadlet to interface with systemd or  use systemd directly)
-redis_use_quadlet: true # Toggle between Quadlet and traditional
-
-# This will be overridden in systemd.yml and cleanup.yml if NOT quadlet
+#
 redis_service_name: "redis-pod"
 redis_pod_key: "redis.pod"
+
+# =======================================================================
+service_network: "example-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"
+
+# =======================================================================
+service_properties:
+  root: "redis"
+  name: "redis-pod"
+  pod_key: "redis.pod"
+  quadlets:
+    - "redis-svc.container"
+    - "redis-gui.container"
+    - "redis.pod"
+  data_dir: "{{ redis_data_dir }}"
+  config_dir: "config"
+  image: "{{ redis_image }}"
+  dirs:
+    - { path: "", mode: "0750" }
+    - { path: "config", mode: "0755" }
+    - { path: "data", mode: "0750" }
+  ports:
+    - "127.0.0.1:{{ redis_port }}:6379"
+    - "127.0.0.1:{{ redis_gui_port }}:8081"
+  volumes:
+    [
+      "{{ redis_data_dir }}/config:/usr/local/etc/redis:Z",
+      "{{ redis_data_dir }}/data:/data:Z",
+    ]
+  command: ["redis-server", "/usr/local/etc/redis/redis.conf"]

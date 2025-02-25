@@ -1,0 +1,6 @@
+# Container networking
+service_network: "ct-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"

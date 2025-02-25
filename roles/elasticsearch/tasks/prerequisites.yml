@@ -1,5 +1,16 @@
 ---
 #
+#  This is run on every deploy
+#
+
+- name: Verify prerequisite variables
+  assert:
+    that:
+      - elasticsearch_password != "changeme"
+      - elasticsearch_data_dir is defined
+      - elasticsearch_port is defined
+    fail_msg: "Required variables not properly configured"
+
 # .......................................................................
 # Get container user mapping first
 - name: Get directory ownership
@@ -41,22 +52,6 @@
         owner: "{{ dir_info.stat.uid }}"
         group: "{{ dir_info.stat.gid }}"
       notify: restart elasticsearch
-
-    - name: Ensure containers DNS configuration directory exists
-      ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.config/containers"
-        state: directory
-        mode: "0750"
-        owner: "{{ dir_info.stat.uid }}"
-        group: "{{ dir_info.stat.gid }}"
-
-    - name: Configure container DNS settings
-      ansible.builtin.template:
-        src: containers.conf.j2
-        dest: "{{ ansible_env.HOME }}/.config/containers/containers.conf"
-        mode: "0644"
-        owner: "{{ dir_info.stat.uid }}"
-        group: "{{ dir_info.stat.gid }}"
 
     # .....................................................................................
     - name: Configure SELinux for data directories

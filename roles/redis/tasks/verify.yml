@@ -15,7 +15,6 @@
 #        "redis-infra",
 #        "redis-svc",
 #        "redis-gui"
-# trad
 #
 
 - name: Verify Redis container is running

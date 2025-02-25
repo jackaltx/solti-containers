@@ -25,24 +25,35 @@ elasticsearch_gui_port: 8088
 
 # Security settings
 elasticsearch_enable_security: true
-elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD') | default('changemeplease') }}"
+elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD') | default('changeme') }}"
 
 # Cleanup settings
 elasticsearch_delete_data: false
-
-# Systemd interface  (use Quadlet to interface with systemd or  use systemd directly)
-elasticsearch_use_quadlet: true # Toggle between Quadlet and traditional
 
 # This will be overriden in systemd.yml and cleanup.yml if NOT quadlet
 elasticsearch_service_name: "elasticsearch-pod"
 elasticsearch_pod_key: "elasticsearch.pod"
 
-# this too long, move to systemd fact  (or set a default and let the non default change as required???)
-elasticsearch_systemd_dir: "{{ ansible_env.HOME }}/.config/{{ 'containers' if elasticsearch_use_quadlet else 'systemd' }}/{{ 'systemd' if elasticsearch_use_quadlet else 'user' }}"
-
-# DNS Settings (NOTE this is global.)
-elasticsearch_dns_servers:
+# =======================================================================
+service_network: "example-net"
+service_dns_servers:
   - "1.1.1.1"
   - "8.8.8.8"
-elasticsearch_dns_searches:
-  - "{{ ansible_domain }}"
+service_dns_search: "example.com"
+
+# =======================================================================
+service_properties:
+  root: "elasticsearch"
+  name: "elasticsearch-pod"
+  pod_key: "elasticsearch.pod"
+  quadlets:
+    - "elasticsearch-svc.container"
+    - "elasticsearch-gui.container"
+    - "elasticsearch.pod"
+  data_dir: "{{ elasticsearch_data_dir }}" # override in playbook
+  config_dir: "config"
+  dirs:
+    - { path: "", mode: "0750" }
+    - { path: "config", mode: "0775" }
+    - { path: "data", mode: "0770" }
+    - { path: "logs", mode: "0770" }

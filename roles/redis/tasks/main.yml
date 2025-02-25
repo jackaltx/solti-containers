@@ -2,6 +2,7 @@
 - name: Install Redis
   when: redis_state == 'present'
   block:
+    #
     - name: Verify password is set
       ansible.builtin.fail:
         msg: "redis_password must be set and not default value"
@@ -11,18 +12,22 @@
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml
 
-    # - name: Include TLS tasks
-    #   ansible.builtin.include_tasks: tls.yml
-    #   when: redis_enable_tls | bool
+    - name: Ensue network setup
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/networks.yml"
 
     - name: Include container tasks
-      ansible.builtin.include_tasks: containers.yml
+      ansible.builtin.include_tasks: quadlet_rootless.yml
 
-    - name: Include systemd tasks
-      ansible.builtin.include_tasks: systemd.yml
+    # TODO  build quad_privileged
 
 - name: Remove Redis
   when: redis_state == 'absent'
   block:
+    # ...............................................................................
     - name: Include cleanup tasks
-      ansible.builtin.include_tasks: cleanup.yml
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/cleanup.yml"
+      vars:
+        service_state: absent
+        service_delete_data: "{{ redis_delete_data }}"

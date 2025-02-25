@@ -5,18 +5,25 @@
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml
 
-    - name: Include container tasks
-      ansible.builtin.include_tasks: containers.yml
-
     - name: Include TLS tasks
       ansible.builtin.include_tasks: tls.yml
-      when: mattermost_state == 'present'
 
-    - name: Include systemd tasks
-      ansible.builtin.include_tasks: systemd.yml
+    - name: Ensue network setup
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/networks.yml"
+
+    - name: Include container tasks
+      ansible.builtin.include_tasks: quadlet_rootless.yml
+
+    # TODO  build quad_privileged
 
 - name: Remove Mattermost
   when: mattermost_state == 'absent'
   block:
+    # ...............................................................................
     - name: Include cleanup tasks
-      ansible.builtin.include_tasks: cleanup.yml
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/cleanup.yml"
+      vars:
+        service_state: absent
+        service_delete_data: "{{ mattermost_delete_data }}"

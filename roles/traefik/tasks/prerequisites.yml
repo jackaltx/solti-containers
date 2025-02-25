@@ -1,4 +1,6 @@
 ---
+#
+# .......................................................................
 # Get container user mapping first
 - name: Get directory ownership
   become: true
@@ -10,29 +12,80 @@
   ansible.builtin.debug:
     msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
 
-- name: Create Traefik directories
-  file:
-    path: "{{ traefik_data_dir }}/{{ item }}"
-    state: directory
-    mode: "0750"
-    owner: "{{ dir_info.stat.uid | default(ansible_user_id) }}"
-    group: "{{ dir_info.stat.gid | default(ansible_user_id) }}"
-  loop:
-    - "" # Base directory
-    - config
-    - acme
-    - logs
+# .......................................................................
+- name: Become root and change setting files
+  become: true
+  block:
+    - name: Create Traefik directories
+      file:
+        path: "{{ traefik_data_dir }}/{{ item }}"
+        state: directory
+        mode: "0750"
+        owner: "{{ dir_info.stat.uid | default(ansible_user_id) }}"
+        group: "{{ dir_info.stat.gid | default(ansible_user_id) }}"
+      loop:
+        - "" # Base directory
+        - config
+        - acme
+        - logs
 
-- name: Template Traefik configuration
-  template:
-    src: traefik.yaml.j2
-    dest: "{{ traefik_data_dir }}/config/traefik.yaml"
-    mode: "0640"
-    owner: "{{ dir_info.stat.uid | default(ansible_user_id) }}"
-    group: "{{ dir_info.stat.gid | default(ansible_user_id) }}"
-  notify: restart traefik
+    # .....................................................................................
+    - name: Verify Linode token is available
+      ansible.builtin.fail:
+        msg: "LINODE_TOKEN environment variable must be set"
+      when: lookup('env', 'LINODE_TOKEN') == ''
 
-- name: Verify Linode token is available
-  ansible.builtin.fail:
-    msg: "LINODE_TOKEN environment variable must be set"
-  when: lookup('env', 'LINODE_TOKEN') == ''
+    # .....................................................................................
+    - name: Template Traefik configuration
+      template:
+        src: traefik.yaml.j2
+        dest: "{{ traefik_data_dir }}/config/traefik.yaml"
+        mode: "0640"
+        owner: "{{ dir_info.stat.uid | default(ansible_user_id) }}"
+        group: "{{ dir_info.stat.gid | default(ansible_user_id) }}"
+      notify: restart traefik
+
+    # .....................................................................................
+    - name: Configure SELinux for data directories
+      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+      block:
+        - name: Set SELinux context for data directories
+          ansible.builtin.sefcontext:
+            target: "{{ traefik_data_dir }}(/.*)?"
+            setype: container_file_t
+            state: present
+
+        - name: Apply SELinux context
+          ansible.builtin.command: restorecon -R -v "{{ traefik_data_dir }}"
+          register: restorecon_result
+          changed_when: restorecon_result.rc == 0
+
+        # .....................................................................................
+        - name: Create and install SELinux policy module for Traefik socket access
+          become: true
+          when:
+            - not traefik_privileged
+          block:
+            - name: Create temporary policy file
+              ansible.builtin.copy:
+                dest: /tmp/traefik-podman.te
+                content: |
+                  module traefik-podman 1.0;
+
+                  require {
+                    type container_t;
+                    type container_runtime_t;
+                    class unix_stream_socket connectto;
+                  }
+
+                  #============= container_t ==============
+                  allow container_t container_runtime_t:unix_stream_socket connectto;
+                mode: "0644"
+
+            - name: Compile and install SELinux module
+              ansible.builtin.shell: |
+                cd /tmp
+                checkmodule -M -m -o traefik-podman.mod traefik-podman.te
+                semodule_package -o traefik-podman.pp -m traefik-podman.mod
+                semodule -i traefik-podman.pp
+              changed_when: true
