@@ -25,9 +25,9 @@
   containers.podman.podman_pod:
     name: mattermost
     state: quadlet
-    dns: ["1.1.1.1", "8.8.8.8"]
-    dns_search: "a0a0.org"
-    network: ct-net
+    dns: "{{ service_dns_servers }}"
+    dns_search: "{{ service_dns_search }}"
+    network: "{{ service_network }}"
     quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ mattermost_port }}:8065"

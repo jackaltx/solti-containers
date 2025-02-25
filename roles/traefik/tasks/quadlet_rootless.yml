@@ -44,10 +44,10 @@
   containers.podman.podman_pod:
     name: traefik
     state: quadlet
-    dns: "{{ traefik_dns_servers | join(',') }}"
-    dns_search: "{{ traefik_dns_search }}"
+    dns: "{{ service_dns_servers }}"
+    dns_search: "{{ service_dns_search }}"
+    network: "{{ service_network }}"
     quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
-    network: "{{ traefik_internal_network }}"
     ports:
       - "0.0.0.0:{{ traefik_http_port }}:8080"
       - "0.0.0.0:{{ traefik_https_port }}:8443"

@@ -8,9 +8,6 @@ traefik_data_dir: "{{ ansible_user_dir }}/traefik-data"
 
 # Container settings
 traefik_image: "docker.io/library/traefik:v3"
-traefik_dns_servers: ["1.1.1.1", "8.8.8.8"]
-traefik_dns_search: "a0a0.org"
-traefik_internal_network: ct-net
 
 # Port settings
 traefik_privileged: false
@@ -26,3 +23,26 @@ traefik_acme_staging: true
 
 # Cleanup settings
 traefik_delete_data: false
+
+# =======================================================================
+service_network: "example-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"
+
+# =======================================================================
+service_properties:
+  root: "traefik"
+  name: "traefik-pod"
+  pod_key: "traefik.pod"
+  quadlets:
+    - "traefik-svc.container"
+    - "traefik.pod"
+  data_dir: "{{ traefik_data_dir }}" # override in playbook
+  config_dir: "config"
+  dirs:
+    - { path: "", mode: "0750" }
+    - { path: "config", mode: "0750" }
+    - { path: "acme", mode: "0750" }
+    - { path: "logs", mode: "0750" }

@@ -55,10 +55,10 @@
   containers.podman.podman_pod:
     name: traefik
     state: quadlet
-    dns: ["1.1.1.1", "8.8.8.8"]
-    dns_search: "a0a0.org"
+    dns: "{{ service_dns_servers }}"
+    dns_search: "{{ service_dns_search }}"
+    network: "{{ service_network }}"
     quadlet_dir: "{{ traefik_dns_servers | join(',') }}"
-    network: "{{ traefik_internal_network }}"
     userns: "keep-id"
     ports:
       - "0.0.0.0:{{ traefik_http_port }}:80"

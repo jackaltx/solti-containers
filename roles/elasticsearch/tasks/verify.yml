@@ -14,7 +14,7 @@
 - name: Verify Elasticsearch containers are running
   command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=elasticsearch"
   register: container_status
-  #failed_when: "'elasticsearch-node' not in container_status.stdout"
+  #failed_when: "'elasticsearch-svc' not in container_status.stdout"
   changed_when: false
 
 - name: Show container status
@@ -24,7 +24,7 @@
 # ...................................................................................
 - name: Wait for Elasticsearch to be ready
   command: >
-    podman exec elasticsearch-node 
+    podman exec elasticsearch-svc 
     curl -s -u elastic:{{ elasticsearch_password }}
     http://localhost:9200/_cluster/health
   register: health_check
@@ -37,7 +37,7 @@
 # ...................................................................................
 - name: Show cluster health
   command: >
-    podman exec elasticsearch-node 
+    podman exec elasticsearch-svc 
     curl -s -u elastic:{{ elasticsearch_password }}
     http://localhost:9200/_cluster/health?pretty
   register: cluster_health
@@ -51,7 +51,7 @@
 # ...................................................................................
 - name: Get Elasticsearch info
   command: >
-    podman exec elasticsearch-node 
+    podman exec elasticsearch-svc 
     curl -s -u elastic:{{ elasticsearch_password }}
     http://localhost:9200/?pretty
   register: es_info
@@ -65,7 +65,7 @@
 # ...................................................................................
 - name: Create test document
   command: >
-    podman exec elasticsearch-node 
+    podman exec elasticsearch-svc 
     curl -s -u elastic:{{ elasticsearch_password }}
     -X POST "http://localhost:9200/{{ test_index }}/_doc?refresh=true"
     -H 'Content-Type: application/json'
@@ -81,7 +81,7 @@
 # ...................................................................................
 - name: Search test document
   command: >
-    podman exec elasticsearch-node 
+    podman exec elasticsearch-svc 
     curl -s -u elastic:{{ elasticsearch_password }}
     "http://localhost:9200/{{ test_index }}/_search?pretty"
   register: search_result
@@ -95,7 +95,7 @@
 # ...................................................................................
 - name: Get memory stats
   command: >
-    podman exec elasticsearch-node 
+    podman exec elasticsearch-svc 
     curl -s -u elastic:{{ elasticsearch_password }}
     http://localhost:9200/_nodes/stats/jvm?pretty
   register: memory_stats
@@ -110,7 +110,7 @@
 # Cleanup
 - name: Delete test index
   command: >
-    podman exec elasticsearch-node 
+    podman exec elasticsearch-svc 
     curl -s -u elastic:{{ elasticsearch_password }}
     -X DELETE "http://localhost:9200/{{ test_index }}"
   changed_when: false

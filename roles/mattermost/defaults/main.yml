@@ -43,17 +43,23 @@ mattermost_service_name: "mattermost-pod"
 mattermost_pod_key: "mattermost.pod"
 
 # =======================================================================
+service_network: "example-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"
+
+# =======================================================================
 service_properties:
-  state: "present" # override in playbook
   root: "mattermost"
   name: "mattermost-pod"
   pod_key: "mattermost.pod"
   quadlets:
-    - "mattermost-node" # TODO  convert this to mattermost-svc
-    - "mattermost-gui"
-    - "mattermost-pod"
+    - "mattermost-svc.container"
+    - "mattermost-db.container"
+    - "mattermost.pod"
   data_dir: "{{ mattermost_data_dir }}" # override in playbook
-  config_dir: "{{ mattermost_data_dir }}/config"
+  config_dir: "config"
   dirs:
     - { path: "", mode: "0755" }
     - { path: "config", mode: "0775" }

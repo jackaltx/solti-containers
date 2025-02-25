@@ -40,7 +40,16 @@ can add too much time in my testing cycle.
 ### Why Elasticsearch
 
 I have only used it once before and it was impressive as a backend.  Currently I am using
-Alloy-Loki for logs. I would like to have an alternative.  
+Alloy-Loki for logs. I would like to have an alternative as well as learn how to better use
+no-sqls.
+
+### Why Traefik
+
+This is my first experience.  I have learned much and know so little about container
+networking.  I don't like it yet, but this my a love-hate thing.  Another high-maintenance
+relastionship.  It reminds of project long ago and far away. This one has layers.
+
+However....container networking will blow your mind.
 
 ## Where next with this project
 
@@ -48,5 +57,5 @@ So far the only one I am missing is a good fuzzer and  s3 storage candidates.
 
 ## Solti-Containers documentaiton
 
-Claude create a draft project, include examples and at the end what documentation
+Claude: create a draft project, include examples and at the end what documentation
 standard you choose to use.

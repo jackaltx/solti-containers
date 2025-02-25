@@ -13,5 +13,10 @@
 - name: Remove Traefik
   when: traefik_state == 'absent'
   block:
+    # ...............................................................................
     - name: Include cleanup tasks
-      ansible.builtin.include_tasks: cleanup.yml
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/cleanup.yml"
+      vars:
+        service_state: absent
+        service_delete_data: "{{ traefik_delete_data }}"

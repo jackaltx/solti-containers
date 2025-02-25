@@ -26,12 +26,12 @@
   block:
     - name: Check if service config exists
       ansible.builtin.stat:
-        path: "{{ service_properties.config_dir }}"
+        path: "{{ service_properties.data_dir }}/{{ service_properties.config_dir }}"
       register: dir_check
 
     - name: Fail if service config dir doesn't exist
       fail:
-        msg: "Directory does not exist:  {{ service_properties.config_dir }}"
+        msg: "Directory does not exist: {{ service_properties.data_dir }}/{{ service_properties.config_dir }}"
       when: not dir_check.stat.exists
 
     - name: Set ownership facts from existing directory

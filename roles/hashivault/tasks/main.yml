@@ -9,6 +9,10 @@
       ansible.builtin.include_tasks: tls.yml
       when: vault_enable_tls | bool
 
+    - name: Ensue network setup
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/networks.yml"
+
     - name: Include container tasks
       ansible.builtin.include_tasks: quadlet_rootless.yml
 
@@ -17,14 +21,10 @@
 - name: Remove Vault
   when: vault_state == 'absent'
   block:
-    #
-    - name: Set the redis service state to absent
-      set_fact:
-        service_properties: "{{ service_properties | combine({'state': 'absent'}) }}"
-
     # ...............................................................................
     - name: Include cleanup tasks
       ansible.builtin.include_tasks:
         file: "../_base/tasks/cleanup.yml"
       vars:
+        service_state: absent
         service_delete_data: "{{ vault_delete_data }}"

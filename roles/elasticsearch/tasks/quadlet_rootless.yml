@@ -5,9 +5,9 @@
   containers.podman.podman_pod:
     name: elasticsearch
     state: quadlet
-    dns: ["1.1.1.1", "8.8.8.8"]
-    dns_search: "a0a0.org"
-    network: ct-net
+    dns: "{{ service_dns_servers }}"
+    dns_search: "{{ service_dns_search }}"
+    network: "{{ service_network }}"
     quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ elasticsearch_port }}:9200"
@@ -25,7 +25,7 @@
 #
 - name: Create Elasticsearch node container Quadlet
   containers.podman.podman_container:
-    name: elasticsearch-node
+    name: elasticsearch-svc
     pod: elasticsearch.pod
     image: "{{ elasticsearch_image }}"
     state: quadlet

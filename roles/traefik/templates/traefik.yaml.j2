@@ -19,7 +19,7 @@ providers:
     #endpoint: "unix:///run/user/{{ ansible_user_uid }}/podman/podman.sock"
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
-    network: "{{ traefik_internal_network }}"
+    network: "{{ service_network }}"
     httpClientTimeout: 300
     watch: true
 

@@ -42,16 +42,22 @@ vault_service_name: "vault-pod"
 vault_pod_key: "vault.pod"
 
 # =======================================================================
+service_network: "example-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"
+
+# =======================================================================
 service_properties:
-  state: "present" # override in playbook
   root: "vault"
   name: "vault-pod"
   pod_key: "vault.pod"
   quadlets:
-    - "vault-svc"
-    - "vault-pod"
+    - "vault-svc.container"
+    - "vault.pod"
   data_dir: "{{ vault_data_dir }}" # override in playbook
-  config_dir: "{{ vault_data_dir }}/config"
+  config_dir: "config"
   dirs:
     - { path: "", mode: "0750" }
     - { path: "config", mode: "0750" }

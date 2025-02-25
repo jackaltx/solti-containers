@@ -1,31 +1,6 @@
----
-# Common variables for container services
-service_state: present
-service_force_reload: false
-
-# Directory settings
-service_data_dir: "{{ ansible_user_dir }}/{{ service_name }}-data"
-service_ownership_path: "{{ service_data_dir }}/{{ service_ownership_check_dir | default('config') }}"
-service_dirs: [] # Must be provided by specific service
-
 # Container networking
 service_network: "ct-net"
 service_dns_servers:
   - "1.1.1.1"
   - "8.8.8.8"
-service_dns_search: "a0a0.org"
-
-# Cleanup settings
-service_delete_data: false
-
-# Quadlet settings
-service_quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
-
-# SELinux settings
-selinux_enabled: "{{ ansible_selinux.status is defined and ansible_selinux.status == 'enabled' }}"
-
-# SMELL has others, like rocky and alma. Debian is working on a selinux implementation.
-selinux_distros:
-  - RedHat
-  - Fedora
-  - CentOS
+service_dns_search: "example.com"

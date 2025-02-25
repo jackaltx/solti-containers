@@ -5,7 +5,6 @@ redis_state: present
 redis_force_reload: false
 
 # No TLS, cause this is for fast local use only
-#
 
 # Container settings
 redis_image: "docker.io/library/redis:7.2-alpine"
@@ -28,36 +27,34 @@ redis_tls_key_file: ""
 redis_tls_auth_clients: "no"
 
 # GUI settings
+# SMELL false will mess up _base/tasks/cleanup.yml
 redis_enable_gui: true
 
 # Cleanup settings
 redis_delete_data: false
 
-# ....................................................................................
-# quadlets
-#        "redis-infra",
-#        "redis-svc",
-#        "redis-gui"
-#        "redis-pod"
 #
 redis_service_name: "redis-pod"
 redis_pod_key: "redis.pod"
 
-# ----------------------------------------------
-# Common variables needed by base role
-#
+# =======================================================================
+service_network: "example-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"
 
+# =======================================================================
 service_properties:
-  state: "present"
   root: "redis"
   name: "redis-pod"
   pod_key: "redis.pod"
   quadlets:
-    - "redis-svc"
-    - "redis-gui"
-    - "redis-pod"
+    - "redis-svc.container"
+    - "redis-gui.container"
+    - "redis.pod"
   data_dir: "{{ redis_data_dir }}"
-  config_dir: "{{ redis_data_dir }}/config"
+  config_dir: "config"
   image: "{{ redis_image }}"
   dirs:
     - { path: "", mode: "0750" }
