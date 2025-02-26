@@ -6,10 +6,6 @@
   hosts: mattermost_svc
   vars:
     mattermost_data_dir: "{{ ansible_env.HOME }}/mattermost-data"
-
-  tasks:
-    - name: Prepare Mattermost
-      ansible.builtin.include_role:
-        name: mattermost
-        tasks_from: prepare
-        defaults_from: main
+    mattermost_state: prepare
+  roles:
+    - role: mattermost

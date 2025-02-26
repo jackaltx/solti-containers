@@ -3,9 +3,7 @@
 - name: Deploy Elasticsearch
   hosts: elasticsearch_svc
   vars:
+    mattermost_state: present
     elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
-
   roles:
     - role: elasticsearch
-      vars:
-        elasticsearch_memory: "1g"

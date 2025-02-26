@@ -2,9 +2,7 @@
 - name: Deploy Redis
   hosts: redis_svc
   vars:
-    redis_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
-
+    redis_state: present
+    redis_password: "{{ lookup('env', 'REDIS_PASSWORD', default='') }}"
   roles:
     - role: redis
-      vars:
-        redis_maxmemory: "512mb"

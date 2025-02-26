@@ -6,10 +6,6 @@
   hosts: hashivault_svc
   vars:
     vault_data_dir: "{{ ansible_env.HOME }}/vault-data"
-
-  tasks:
-    - name: Prepare Hashivault
-      ansible.builtin.include_role:
-        name: hashivault
-        tasks_from: prepare
-        defaults_from: main
+    vault_state: prepare
+  roles:
+    - role: hashivault

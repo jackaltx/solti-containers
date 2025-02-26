@@ -2,6 +2,7 @@
 ---
 - name: Deploy HashiVault
   hosts: hashivault_svc
-
+  vars:
+    hashivault_state: present
   roles:
     - role: hashivault
