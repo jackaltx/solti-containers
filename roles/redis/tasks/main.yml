@@ -58,6 +58,9 @@
     #   when: >
     #     (redis_password | default('')) == ''
 
+    - debug:
+        msg: "{{ redis_data_dir }}/{{ service_properties.config_dir }}"
+
     - name: Verify required directories exist
       become: true
       ansible.builtin.stat:

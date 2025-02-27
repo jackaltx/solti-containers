@@ -111,15 +111,17 @@ generate_playbook() {
         exit 1
     fi
 
-    # Process the template with variables
-    export service_role="${service}"
-    export service_hosts="${service}_svc"
-    export service_state="${state}"
-    
-    envsubst < "$STANDARD_TEMPLATE" > "$TEMP_PLAYBOOK"
-    
-    # Clean up environment variables
-    unset service_role service_hosts service_state
+    # Create playbook directly with the proper substitutions
+    cat > "$TEMP_PLAYBOOK" << EOF
+---
+# Works for: prepare, deploy, remove
+- name: Manage ${service} Service
+  hosts: ${service}_svc
+  vars:
+    ${service}_state: ${state}
+  roles:
+    - role: ${service}
+EOF
     
     echo "Generated playbook for ${service} ${action}"
 }
@@ -168,14 +170,10 @@ cat "${TEMP_PLAYBOOK}"
 echo "----------------"
 echo ""
 
-# Handle prepare action (needs sudo)
-if [[ "$ACTION" == "prepare" ]]; then
-    echo "Executing with sudo privileges: ansible-playbook -K -i ${INVENTORY} ${TEMP_PLAYBOOK}"
-    ansible-playbook -K -i "${INVENTORY}" "${TEMP_PLAYBOOK}" 2>&1 | tee "${LOG_FILE}"
-else
-    echo "Executing: ansible-playbook -i ${INVENTORY} ${TEMP_PLAYBOOK}"
-    ansible-playbook -i "${INVENTORY}" "${TEMP_PLAYBOOK}" 2>&1 | tee "${LOG_FILE}"
-fi
+# Do the work!
+echo "Executing with sudo privileges: ansible-playbook -K -i ${INVENTORY} ${TEMP_PLAYBOOK}"
+ansible-playbook -K -i "${INVENTORY}" "${TEMP_PLAYBOOK}" 2>&1 | tee "${LOG_FILE}"
+
 
 # Check execution status
 EXIT_CODE=${PIPESTATUS[0]}
