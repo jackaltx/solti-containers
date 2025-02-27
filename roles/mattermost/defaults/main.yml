@@ -35,13 +35,6 @@ mattermost_log_level: "WARN"
 # Cleanup settings
 mattermost_delete_data: false
 
-# Systemd interface  (use Quadlet to interface with systemd or  use systemd directly)
-mattermost_use_quadlet: true # Toggle between Quadlet and traditional
-
-# This will be overriden in systemd.yml and cleanup.yml if NOT quadlet
-mattermost_service_name: "mattermost-pod"
-mattermost_pod_key: "mattermost.pod"
-
 # =======================================================================
 service_network: "example-net"
 service_dns_servers:

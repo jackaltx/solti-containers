@@ -30,10 +30,6 @@ elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD') | default('changem
 # Cleanup settings
 elasticsearch_delete_data: false
 
-# SMELL evaluate these if they exist in service_properties{}
-elasticsearch_service_name: "elasticsearch-pod"
-elasticsearch_pod_key: "elasticsearch.pod"
-
 # =======================================================================
 service_pod:
   ports:

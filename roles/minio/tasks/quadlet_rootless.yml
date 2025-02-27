@@ -112,7 +112,7 @@
 # .......................................................................................
 - name: Enable and start rootless pod with systemd
   ansible.builtin.systemd:
-    name: "{{ minio_service_name }}"
+    name: "{{ service_properties.name }}"
     state: started
     enabled: yes
     scope: user

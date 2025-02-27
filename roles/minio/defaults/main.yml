@@ -27,10 +27,6 @@ minio_enable_console: true
 # Cleanup settings
 minio_delete_data: false
 
-# Systemd interface
-minio_service_name: "minio-pod"
-minio_pod_key: "minio.pod"
-
 # =======================================================================
 service_network: "example-net"
 service_dns_servers:
