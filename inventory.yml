@@ -86,5 +86,4 @@ all:
           # _svc only vars
           vars:
             debug_level: warn
-            traefik_network_name: vlan11_network
             traefik_dashboard_enabled: true

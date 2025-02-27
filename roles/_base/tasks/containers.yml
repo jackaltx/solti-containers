@@ -2,43 +2,45 @@
 # Not currently used
 
 # TODO one pod for all..yes this could be ok.
+# testing with elasticsearch
 #
 - name: Create service pod Quadlet
   containers.podman.podman_pod:
-    name: "{{ service_name }}"
+    name: "{{ service_properties.root }}"
     state: quadlet
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
     quadlet_dir: "{{ service_quadlet_dir }}"
-    ports: "{{ service_ports }}"
-    quadlet_options: "{{ service_pod_options | default([]) }}"
-
+    ports: "{{ service_pod.ports }}"
+    quadlet_options: "{{ service_pod.quadlet_options | default([]) }}"
+#
+#
 # SMELL this feels wrong
 # TODO pass in list of containers for this pod.
 
-- name: Create main service container
-  containers.podman.podman_container:
-    name: "{{ service_name }}-main" # Standardized primary container name
-    pod: "{{ service_name }}.pod"
-    image: "{{ service_image }}"
-    state: quadlet
-    quadlet_dir: "{{ service_quadlet_dir }}"
-    volume: "{{ service_volumes }}"
-    env: "{{ service_env | default({}) }}"
-    command: "{{ service_command | default(omit) }}"
-    quadlet_options: "{{ service_container_options | default([]) }}"
+# - name: Create main service container
+#   containers.podman.podman_container:
+#     name: "{{ service_name }}-main" # Standardized primary container name
+#     pod: "{{ service_name }}.pod"
+#     image: "{{ service_image }}"
+#     state: quadlet
+#     quadlet_dir: "{{ service_quadlet_dir }}"
+#     volume: "{{ service_volumes }}"
+#     env: "{{ service_env | default({}) }}"
+#     command: "{{ service_command | default(omit) }}"
+#     quadlet_options: "{{ service_container_options | default([]) }}"
 
-- name: Create additional service containers
-  when: service_containers | length > 0
-  loop: "{{ service_containers }}"
-  containers.podman.podman_container:
-    name: "{{ service_name }}-{{ item.name }}"
-    pod: "{{ service_name }}.pod"
-    image: "{{ item.image }}"
-    state: quadlet
-    quadlet_dir: "{{ service_quadlet_dir }}"
-    volume: "{{ item.volumes | default([]) }}"
-    env: "{{ item.env | default({}) }}"
-    command: "{{ item.command | default(omit) }}"
-    quadlet_options: "{{ item.options | default([]) }}"
+# - name: Create additional service containers
+#   when: service_containers | length > 0
+#   loop: "{{ service_containers }}"
+#   containers.podman.podman_container:
+#     name: "{{ service_name }}-{{ item.name }}"
+#     pod: "{{ service_name }}.pod"
+#     image: "{{ item.image }}"
+#     state: quadlet
+#     quadlet_dir: "{{ service_quadlet_dir }}"
+#     volume: "{{ item.volumes | default([]) }}"
+#     env: "{{ item.env | default({}) }}"
+#     command: "{{ item.command | default(omit) }}"
+#     quadlet_options: "{{ item.options | default([]) }}"

@@ -16,19 +16,7 @@
 - name: Become root and change setting files
   become: true
   block:
-    - name: Create Traefik directories
-      file:
-        path: "{{ traefik_data_dir }}/{{ item }}"
-        state: directory
-        mode: "0750"
-        owner: "{{ dir_info.stat.uid | default(ansible_user_id) }}"
-        group: "{{ dir_info.stat.gid | default(ansible_user_id) }}"
-      loop:
-        - "" # Base directory
-        - config
-        - acme
-        - logs
-
+    #
     # .....................................................................................
     - name: Verify Linode token is available
       ansible.builtin.fail:

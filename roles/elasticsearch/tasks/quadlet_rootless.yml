@@ -20,6 +20,11 @@
         [Install]
         WantedBy=default.target
 
+#
+# - name: Create Elasticsearch pod via _base
+#   ansible.builtin.include_tasks:
+#     file: ../_base/tasks/containers.yml
+
 # ....................................................................................
 # See es_resource_limits.md for explanation of ulimit
 #

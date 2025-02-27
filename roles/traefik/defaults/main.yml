@@ -19,7 +19,7 @@ traefik_dashboard_enabled: true
 # Let's Encrypt settings
 traefik_enable_ssl: true
 traefik_acme_email: "jack@lavnet.net"
-traefik_acme_staging: true
+traefik_acme_staging: false
 
 # Cleanup settings
 traefik_delete_data: false

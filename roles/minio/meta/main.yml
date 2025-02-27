@@ -1,0 +1,29 @@
+---
+galaxy_info:
+  role_name: minio
+  namespace: jackaltx
+  author: jackaltx
+  description: Deploy MinIO S3-compatible object storage using Podman containers
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+
+  galaxy_tags:
+    - minio
+    - s3
+    - storage
+    - object-storage
+    - podman
+    - containers
+
+dependencies: []

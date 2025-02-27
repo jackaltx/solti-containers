@@ -25,6 +25,8 @@ Let me address the why for each serice
 
 I want a private collector of notices that can do phone and screen with the ability
 to sent out messages.  I can use gist in th wild, but some things need to be private.
+Jabber and MQT apeal to me for the "notice", but it is good to have a collector that one
+can look at for debugging.
 
 ### Why Hashicorp's Vault
 
@@ -36,6 +38,8 @@ be my first container version.
 
 I want a fast Key-Value store to collect my testing reports as they run. File systems
 can add too much time in my testing cycle.
+
+Their license changes may cause me to move on to Valkey.  
 
 ### Why Elasticsearch
 
@@ -49,11 +53,11 @@ This is my first experience.  I have learned much and know so little about conta
 networking.  I don't like it yet, but this my a love-hate thing.  Another high-maintenance
 relastionship.  It reminds of project long ago and far away. This one has layers.
 
-However....container networking will blow your mind.
+However....container networking still is a fuzzy in my mind.
 
 ## Where next with this project
 
-So far the only one I am missing is a good fuzzer and  s3 storage candidates.
+So far the only one I am missing is a good fuzzer (jepson), vulnerability assessment tool (rending, trivy) and  s3 storage (minIO).
 
 ## Solti-Containers documentaiton
 

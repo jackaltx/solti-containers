@@ -44,14 +44,12 @@
       ansible.builtin.include_tasks:
         file: ../_base/tasks/prepare.yml
 
-# =======================================================================
-# DEPLOYMENT
-# =======================================================================
+    # =======================================================================
+    # DEPLOYMENT
+    # =======================================================================
 
-- name: Install Vault
-  when: vault_state == 'present'
-  block:
     - name: Verify required directories exist
+      become: true
       ansible.builtin.stat:
         path: "{{ vault_data_dir }}/{{ service_properties.config_dir }}"
       register: config_dir_check

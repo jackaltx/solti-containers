@@ -1,0 +1,60 @@
+---
+# ....................................................................................
+- name: Verify MinIO pod is running
+  command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
+  register: pod_status
+  failed_when: "'minio' not in pod_status.stdout"
+  changed_when: false
+
+- name: Show pod status
+  debug:
+    var: pod_status.stdout_lines
+
+# ....................................................................................
+- name: Verify MinIO containers are running
+  command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=minio"
+  register: container_status
+  failed_when: "'minio-svc' not in container_status.stdout"
+  changed_when: false
+
+- name: Show container status
+  debug:
+    var: container_status.stdout_lines
+
+# ....................................................................................
+- name: Wait for MinIO to be ready
+  uri:
+    url: "http://localhost:{{ minio_api_port }}/minio/health/live"
+    method: GET
+    status_code: 200
+  register: health_check
+  until: health_check.status == 200
+  retries: 30
+  delay: 5
+  changed_when: false
+
+- name: Show MinIO health check result
+  debug:
+    var: health_check
+
+# ....................................................................................
+- name: Check MinIO version
+  command: >
+    podman exec minio-svc minio --version
+  register: minio_version
+  changed_when: false
+
+- name: Show MinIO version
+  debug:
+    var: minio_version.stdout_lines
+
+# ....................................................................................
+- name: Get MinIO disk usage
+  command: >
+    podman exec minio-svc du -sh /data
+  register: disk_usage
+  changed_when: false
+
+- name: Show disk usage
+  debug:
+    var: disk_usage.stdout_lines
