@@ -1,0 +1,24 @@
+# service-mgr.yml.j2
+---
+# Works for:  prepare, deploy, remove
+- name: Manage {{ service_role }}  Service
+  hosts: {{ service_hosts }}
+  vars:
+    redis_state: {{ service_state}}
+  roles:
+    - role: {{ service_role }}
+    
+
+# service-subtask-mgr.yml.j2
+---
+# Works for verify
+- name: Manage {{ service_role }}  Service
+  hosts: {{ service_hosts }}
+  vars:
+    redis_state: {{ service_state}}
+  tasks:
+    - name: Include roles vars
+        ansible.builtin.include_role:
+          name: {{ service_role }}
+          tasks_from: {{ sub_task }}
+          vars_from: main

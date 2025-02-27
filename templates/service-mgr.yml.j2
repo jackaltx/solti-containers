@@ -1,0 +1,8 @@
+---
+# Works for:  prepare, deploy, remove
+- name: Manage {{ service_role }}  Service
+  hosts: {{ service_hosts }}
+  vars:
+    {{service_role}}_state: {{ service_state}}
+  roles:
+    - role: {{ service_role }}

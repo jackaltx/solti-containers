@@ -16,6 +16,9 @@ all:
     # basically non-ssh stuff, like LXC containers
     mylab_non_ssh: false
 
+    test_index: "test-ansible"
+    test_doc: '{"message": "Verification {{ ansible_date_time.iso8601 }}"}'
+
   children:
     # ................................................
     mylab:
@@ -42,6 +45,12 @@ all:
           # mattermost_svc only vars
           vars:
             debug_level: warn
+            mattermost_data_dir: "{{ ansible_env.HOME }}/mattermost-data"
+            mattermost_delete_data: false
+
+            test_email: "test-{{ ansible_date_time.epoch }}@example.com"
+            test_username: "testuser-{{ ansible_date_time.epoch }}"
+            test_password: "Test123!"
 
         # ========================================
         elasticsearch_svc:
@@ -53,6 +62,9 @@ all:
           # _svc only vars
           vars:
             debug_level: warn
+            elasticsearch_data_dir: "{{ ansible_env.HOME }}/elasticsearch-data" #
+            elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
+            elasticsearch_delete_data: false
 
         # ========================================
         redis_svc:
@@ -64,6 +76,9 @@ all:
           # _svc only vars
           vars:
             debug_level: warn
+            redis_data_dir: "{{ ansible_env.HOME }}/redis-data"
+            redis_password: "{{ lookup('env', 'REDIS_PASSWORD', default='') }}"
+            redis_delete_data: false
 
         # ========================================
         hashivault_svc:
@@ -75,6 +90,8 @@ all:
           # _svc only vars
           vars:
             debug_level: warn
+            vault_data_dir: "{{ ansible_env.HOME }}/vault-data"
+            hashivault_delete_data: false
 
         # ========================================
         traefik_svc:
@@ -87,3 +104,6 @@ all:
           vars:
             debug_level: warn
             traefik_dashboard_enabled: true
+            traefik_data_dir: "{{ ansible_env.HOME }}/traefik-data"
+            traefik_force_reload: false
+            traefik_delete_data: false
