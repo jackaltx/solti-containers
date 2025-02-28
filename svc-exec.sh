@@ -2,11 +2,12 @@
 #
 # svc-exec - Execute specific tasks for services using dynamically generated Ansible playbooks
 #
-# Usage: svc-exec <service> <entry>
+# Usage: svc-exec [-K] <service> [entry]
 #
 # Example:
-#   svc-exec elasticsearch verify
-#   svc-exec redis configure
+#   svc-exec elasticsearch verify     # No sudo prompt
+#   svc-exec -K redis configure       # With sudo prompt
+#   svc-exec mattermost               # Default entry point, no sudo
 
 # Exit on error
 set -e
@@ -26,15 +27,22 @@ SUPPORTED_SERVICES=(
     "redis"
     "mattermost"
     "traefik"
-    "minio"
 )
 
 # Default entry point if not specified
 DEFAULT_ENTRY="verify"
 
+# Initialize variables
+USE_SUDO=false
+SERVICE=""
+ENTRY=""
+
 # Display usage information
 usage() {
-    echo "Usage: $(basename $0) <service> [entry]"
+    echo "Usage: $(basename $0) [-K] <service> [entry]"
+    echo ""
+    echo "Options:"
+    echo "  -K      - Prompt for sudo password (needed for some operations)"
     echo ""
     echo "Parameters:"
     echo "  service - The service to manage"
@@ -46,9 +54,9 @@ usage() {
     done
     echo ""
     echo "Examples:"
-    echo "  $(basename $0) elasticsearch verify"
-    echo "  $(basename $0) redis configure"
-    echo "  $(basename $0) mattermost"  # Will use default entry point
+    echo "  $(basename $0) elasticsearch verify     # No sudo prompt"
+    echo "  $(basename $0) -K redis configure       # With sudo prompt"
+    echo "  $(basename $0) mattermost               # Default entry, no sudo"
     exit 1
 }
 
@@ -85,7 +93,22 @@ EOF
     echo "Generated ${entry} playbook for ${service}"
 }
 
-# Validate arguments
+# Parse command line options
+while getopts "K" opt; do
+    case ${opt} in
+        K)
+            USE_SUDO=true
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+# Shift past the options
+shift $((OPTIND - 1))
+
+# Validate remaining arguments
 if [[ $# -lt 1 || $# -gt 2 ]]; then
     echo "Error: Incorrect number of arguments"
     usage
@@ -111,6 +134,11 @@ generate_exec_playbook "$SERVICE" "$ENTRY"
 # Display execution info
 echo "Executing task: ${ENTRY} for service: ${SERVICE}"
 echo "Using generated playbook: $TEMP_PLAYBOOK"
+if $USE_SUDO; then
+    echo "Using sudo: Yes (will prompt for password)"
+else
+    echo "Using sudo: No"
+fi
 echo ""
 
 # Display playbook content
@@ -120,9 +148,14 @@ cat "${TEMP_PLAYBOOK}"
 echo "----------------"
 echo ""
 
-# Always use sudo for all operations
-echo "Executing with sudo privileges: ansible-playbook -K -i ${INVENTORY} ${TEMP_PLAYBOOK}"
-ansible-playbook -K -i "${INVENTORY}" "${TEMP_PLAYBOOK}"
+# Execute the playbook with or without sudo prompt
+if $USE_SUDO; then
+    echo "Executing with sudo privileges: ansible-playbook -K -i ${INVENTORY} ${TEMP_PLAYBOOK}"
+    ansible-playbook -K -i "${INVENTORY}" "${TEMP_PLAYBOOK}"
+else
+    echo "Executing: ansible-playbook -i ${INVENTORY} ${TEMP_PLAYBOOK}"
+    ansible-playbook -i "${INVENTORY}" "${TEMP_PLAYBOOK}"
+fi
 
 # Check execution status
 EXIT_CODE=$?
