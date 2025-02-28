@@ -13,7 +13,7 @@ traefik_image: "docker.io/library/traefik:v3"
 traefik_privileged: false
 traefik_http_port: "{{ '80' if traefik_privileged else '8080' }}"
 traefik_https_port: "{{ '443' if traefik_privileged else '8443' }}"
-traefik_dashboard_port: 9000
+traefik_dashboard_port: 9999
 traefik_dashboard_enabled: true
 
 # Let's Encrypt settings

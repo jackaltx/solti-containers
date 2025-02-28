@@ -1,13 +1,12 @@
 #!/bin/bash
 #
-# manage-svc - Manage services using dynamically generated Ansible playbooks
+# svc-exec - Execute specific tasks for services using dynamically generated Ansible playbooks
 #
-# Usage: manage-svc <service> <action>
+# Usage: svc-exec <service> <entry>
 #
 # Example:
-#   manage-svc elasticsearch prepare
-#   manage-svc hashivault deploy
-#   manage-svc redis remove
+#   svc-exec elasticsearch verify
+#   svc-exec redis configure
 
 # Exit on error
 set -e
@@ -30,37 +29,26 @@ SUPPORTED_SERVICES=(
     "minio"
 )
 
-# Supported actions
-SUPPORTED_ACTIONS=(
-    "prepare"
-    "deploy"
-    "remove"
-)
-
-# Map actions to state values
-declare -A STATE_MAP
-STATE_MAP["prepare"]="prepare"
-STATE_MAP["deploy"]="present"
-STATE_MAP["remove"]="absent"
+# Default entry point if not specified
+DEFAULT_ENTRY="verify"
 
 # Display usage information
 usage() {
-    echo "Usage: $(basename $0) <service> <action>"
+    echo "Usage: $(basename $0) <service> [entry]"
+    echo ""
+    echo "Parameters:"
+    echo "  service - The service to manage"
+    echo "  entry   - The entry point task (default: verify)"
     echo ""
     echo "Services:"
     for svc in "${SUPPORTED_SERVICES[@]}"; do
         echo "  - $svc"
     done
     echo ""
-    echo "Actions:"
-    for action in "${SUPPORTED_ACTIONS[@]}"; do
-        echo "  - $action"
-    done
-    echo ""
     echo "Examples:"
-    echo "  $(basename $0) elasticsearch prepare"
-    echo "  $(basename $0) hashivault deploy"
-    echo "  $(basename $0) redis remove"
+    echo "  $(basename $0) elasticsearch verify"
+    echo "  $(basename $0) redis configure"
+    echo "  $(basename $0) mattermost"  # Will use default entry point
     exit 1
 }
 
@@ -75,47 +63,37 @@ is_service_supported() {
     return 1
 }
 
-# Check if an action is supported
-is_action_supported() {
-    local action="$1"
-    for act in "${SUPPORTED_ACTIONS[@]}"; do
-        if [[ "$act" == "$action" ]]; then
-            return 0
-        fi
-    done
-    return 1
-}
-
-# Generate playbook from template
-generate_playbook() {
+# Generate task execution playbook 
+generate_exec_playbook() {
     local service="$1"
-    local action="$2"
-    local state="${STATE_MAP[$action]}"
+    local entry="$2"
     
-    # Create playbook directly with the proper substitutions
+    # Create playbook directly with proper substitutions
     cat > "$TEMP_PLAYBOOK" << EOF
 ---
-# Works for: prepare, deploy, remove
-- name: Manage ${service} Service
+# Dynamic execution playbook
+- name: Execute ${entry} for ${service} Service
   hosts: ${service}_svc
-  vars:
-    ${service}_state: ${state}
-  roles:
-    - role: ${service}
+  tasks:
+    - name: Include roles tasks
+      ansible.builtin.include_role:
+        name: ${service}
+        tasks_from: ${entry}
+        vars_from: main
 EOF
     
-    echo "Generated playbook for ${service} ${action}"
+    echo "Generated ${entry} playbook for ${service}"
 }
 
 # Validate arguments
-if [[ $# -ne 2 ]]; then
+if [[ $# -lt 1 || $# -gt 2 ]]; then
     echo "Error: Incorrect number of arguments"
     usage
 fi
 
-# Extract arguments
+# Extract parameters
 SERVICE="$1"
-ACTION="$2"
+ENTRY="${2:-$DEFAULT_ENTRY}"  # Use default if not provided
 
 # Validate service
 if ! is_service_supported "$SERVICE"; then
@@ -123,22 +101,15 @@ if ! is_service_supported "$SERVICE"; then
     usage
 fi
 
-# Validate action
-if ! is_action_supported "$ACTION"; then
-    echo "Error: Unsupported action '$ACTION'"
-    usage
-fi
-
 # Generate timestamp for files
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-TEMP_PLAYBOOK="${TEMP_DIR}/${SERVICE}-${ACTION}-${TIMESTAMP}.yml"
+TEMP_PLAYBOOK="${TEMP_DIR}/${SERVICE}-${ENTRY}-${TIMESTAMP}.yml"
 
 # Generate the playbook
-generate_playbook "$SERVICE" "$ACTION"
+generate_exec_playbook "$SERVICE" "$ENTRY"
 
 # Display execution info
-echo "Managing service: $SERVICE"
-echo "Action: $ACTION"
+echo "Executing task: ${ENTRY} for service: ${SERVICE}"
 echo "Using generated playbook: $TEMP_PLAYBOOK"
 echo ""
 
@@ -149,7 +120,7 @@ cat "${TEMP_PLAYBOOK}"
 echo "----------------"
 echo ""
 
-# Always use sudo for all states
+# Always use sudo for all operations
 echo "Executing with sudo privileges: ansible-playbook -K -i ${INVENTORY} ${TEMP_PLAYBOOK}"
 ansible-playbook -K -i "${INVENTORY}" "${TEMP_PLAYBOOK}"
 
@@ -157,7 +128,7 @@ ansible-playbook -K -i "${INVENTORY}" "${TEMP_PLAYBOOK}"
 EXIT_CODE=$?
 if [[ ${EXIT_CODE} -eq 0 ]]; then
     echo ""
-    echo "Success: ${SERVICE} ${ACTION} completed successfully"
+    echo "Success: ${ENTRY} for ${SERVICE} completed successfully"
     
     # Remove the temporary playbook on success
     echo "Cleaning up generated playbook"
@@ -166,7 +137,7 @@ if [[ ${EXIT_CODE} -eq 0 ]]; then
     exit 0
 else
     echo ""
-    echo "Error: ${SERVICE} ${ACTION} failed with exit code ${EXIT_CODE}"
+    echo "Error: ${ENTRY} for ${SERVICE} failed with exit code ${EXIT_CODE}"
     echo "Generated playbook preserved for debugging: ${TEMP_PLAYBOOK}"
     exit 1
 fi

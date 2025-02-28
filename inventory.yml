@@ -80,6 +80,9 @@ all:
             redis_password: "{{ lookup('env', 'REDIS_PASSWORD', default='') }}"
             redis_delete_data: false
 
+            test_key: "test:ansible"
+            test_value: "Verification {{ ansible_date_time.iso8601 }}"
+
         # ========================================
         hashivault_svc:
           hosts:
@@ -105,5 +108,21 @@ all:
             debug_level: warn
             traefik_dashboard_enabled: true
             traefik_data_dir: "{{ ansible_env.HOME }}/traefik-data"
+
             traefik_force_reload: false
             traefik_delete_data: false
+
+        # ========================================
+        minio_svc:
+          hosts:
+            firefly:
+              # host_vars
+
+          # .......................................
+          # _svc only vars
+          vars:
+            debug_level: warn
+            minio_dashboard_enabled: true
+            minio_data_dir: "{{ ansible_env.HOME }}/minio-data"
+
+            minio_delete_data: false
