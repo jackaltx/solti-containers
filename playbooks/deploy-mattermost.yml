@@ -1,7 +1,0 @@
----
-- name: Deploy Mattermost
-  hosts: mattermost_svc
-  vars:
-    mattermost_state: present
-  roles:
-    - role: mattermost

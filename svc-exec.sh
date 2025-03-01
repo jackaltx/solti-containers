@@ -27,6 +27,7 @@ SUPPORTED_SERVICES=(
     "redis"
     "mattermost"
     "traefik"
+    "minio"
 )
 
 # Default entry point if not specified

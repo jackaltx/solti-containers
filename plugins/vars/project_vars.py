@@ -12,7 +12,7 @@ DOCUMENTATION = '''
     short_description: Set project root variable
     description: Determines project root based on ansible.cfg location
     options: {}
-    author: YourName
+    author: Claude
     version_added: "1.0"
 '''
 

@@ -1,0 +1,134 @@
+---
+# vault-initialize.yml
+# This playbook initializes a deployed HashiVault instance and manages root tokens
+
+# ..............................................
+# Check vault status before attempting initialization
+- name: Check if Vault is already initialized
+  command: podman exec vault-svc vault status -format=json
+  register: vault_status
+  failed_when: false
+  changed_when: false
+  no_log: true
+
+- name: Parse vault status
+  set_fact:
+    vault_initialized: "{{ (vault_status.stdout | from_json).initialized | default(false) }}"
+    vault_sealed: "{{ (vault_status.stdout | from_json).sealed | default(true) }}"
+  when: vault_status.rc == 0
+
+- name: Display current vault status
+  debug:
+    msg:
+      - "Vault initialized: {{ vault_initialized | default(false) }}"
+      - "Vault sealed: {{ vault_sealed | default(true) }}"
+
+# ..............................................
+# Create secure directory for keys
+- name: Ensure keys directory exists with secure permissions
+  file:
+    path: "{{ vault_keys_output_dir }}"
+    state: directory
+    mode: "0700"
+  when: vault_init_required and not (vault_initialized | default(false))
+
+# ..............................................
+# Initialize vault if required
+- name: Initialize Vault
+  block:
+    - name: Run vault init command
+      command: >
+        podman exec vault-svc vault operator init 
+        -key-shares={{ vault_key_shares }} 
+        -key-threshold={{ vault_key_threshold }}
+        -format=json
+      register: vault_init
+      no_log: true
+
+    - name: Save initialization output securely
+      copy:
+        content: "{{ vault_init.stdout }}"
+        dest: "{{ vault_keys_file }}"
+        mode: "0600"
+
+    - name: Create backup copy if requested
+      copy:
+        src: "{{ vault_keys_file }}"
+        dest: "{{ vault_keys_file }}.bak"
+        mode: "0600"
+      when: vault_keys_backup
+
+    - name: Parse init output
+      set_fact:
+        vault_unseal_keys: "{{ vault_init.stdout | from_json | json_query('unseal_keys_b64') }}"
+        vault_root_token: "{{ vault_init.stdout | from_json | json_query('root_token') }}"
+      no_log: true
+
+    - name: Update vault status
+      set_fact:
+        vault_initialized: true
+        vault_sealed: true
+
+  when: vault_init_required and not (vault_initialized | default(false))
+
+# ..............................................
+# Read existing keys if vault is already initialized
+- name: Read existing keys
+  block:
+    - name: Check if keys file exists
+      stat:
+        path: "{{ vault_keys_file }}"
+      register: keys_file
+
+    - name: Load keys from file
+      slurp:
+        src: "{{ vault_keys_file }}"
+      register: encoded_keys
+      when: keys_file.stat.exists
+
+    - name: Parse existing keys
+      set_fact:
+        vault_keys_json: "{{ encoded_keys['content'] | b64decode | from_json }}"
+        vault_unseal_keys: "{{ (encoded_keys['content'] | b64decode | from_json).unseal_keys_b64 }}"
+        vault_root_token: "{{ (encoded_keys['content'] | b64decode | from_json).root_token }}"
+      when: keys_file.stat.exists
+      no_log: true
+
+  when: vault_initialized | default(false)
+
+# ..............................................
+# Unseal vault if requested
+- name: Unseal vault
+  block:
+    - name: Apply unseal keys (up to threshold)
+      command: "podman exec vault-svc vault operator unseal {{ item }}"
+      loop: "{{ vault_unseal_keys[:vault_key_threshold] }}"
+      register: unseal_result
+      no_log: true
+
+    - name: Verify unsealed status
+      command: podman exec vault-svc vault status -format=json
+      register: final_status
+      changed_when: false
+
+    - name: Show unsealed status
+      debug:
+        msg: "Vault is now unsealed: {{ not ((final_status.stdout | from_json).sealed) }}"
+
+  when: vault_unseal_now and vault_sealed | default(true) and vault_initialized | default(false)
+
+# ..............................................
+# Output safe notice about root token
+- name: Provide guidance on root token
+  debug:
+    msg:
+      - "=============================================================="
+      - "HashiVault has been initialized successfully!"
+      - "Secure key information has been stored at: {{ vault_keys_file }}"
+      - ""
+      - "IMPORTANT: For production use, consider the following:"
+      - "1. Move the keys to a secure key management solution"
+      - "2. Delete the local key files after secure storage"
+      - "3. Create non-root administrative accounts as soon as possible"
+      - "=============================================================="
+  when: vault_initialized | default(false)

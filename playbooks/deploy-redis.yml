@@ -1,8 +1,0 @@
----
-- name: Deploy Redis
-  hosts: redis_svc
-  vars:
-    redis_state: present
-    redis_password: "{{ lookup('env', 'REDIS_PASSWORD', default='') }}"
-  roles:
-    - role: redis

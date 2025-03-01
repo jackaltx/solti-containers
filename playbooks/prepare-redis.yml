@@ -1,8 +1,0 @@
----
-- name: Prepare system for Redis installation
-  hosts: redis_svc
-  vars:
-    redis_data_dir: "{{ ansible_env.HOME }}/redis-data"
-    redis_state: prepare
-  roles:
-    - role: redis

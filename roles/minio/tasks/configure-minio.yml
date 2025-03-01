@@ -1,0 +1,277 @@
+# configure-minio.yml
+---
+- name: Configure MinIO after deployment
+  hosts: minio_svc
+  vars:
+    # Root credentials - will be loaded from HashiVault or fallback to these
+    # Credential preference: HashiVault > Environment Variables > Inventory > Defaults
+    minio_root_user_default: "minioadmin"
+    minio_root_password_default: "changeme"
+
+    # HashiVault integration (optional)
+    use_vault: "{{ lookup('env', 'USE_VAULT') | default(false) | bool }}"
+    vault_host: "{{ lookup('env', 'VAULT_HOST') | default('localhost') }}"
+    vault_port: "{{ lookup('env', 'VAULT_PORT') | default(8200) }}"
+    vault_token: "{{ lookup('env', 'VAULT_TOKEN') | default('') }}"
+
+    # Define new users - can be set in inventory or vars
+    minio_users:
+      - username: "app-user"
+        password: "app-password-changeme"
+        policy: "readwrite"
+        comment: "Application service user"
+      - username: "backup-user"
+        password: "backup-password-changeme"
+        policy: "readonly"
+        comment: "Backup automation user"
+
+    # Define buckets - can be set in inventory or vars
+    minio_buckets:
+      - name: "app-data"
+        policy: "download"
+      - name: "backups"
+        policy: "none"
+      - name: "logs"
+        policy: "download"
+
+    # MinIO connection settings
+    minio_api_port: 9000
+    minio_host: "localhost"
+    minio_secure: false
+    minio_mc_alias: "local"
+
+    # Optional versioning configuration
+    minio_enable_versioning:
+      - bucket: "app-data"
+        status: "Enabled"
+      - bucket: "backups"
+        status: "Enabled"
+
+  tasks:
+    # First include the role vars to ensure we have access to all settings
+    - name: Include role vars
+      ansible.builtin.include_vars:
+        file: "{{ role_path }}/roles/minio/defaults/main.yml"
+      ignore_errors: true
+
+    # ================================================
+    # Get credentials from HashiVault if configured
+    # ================================================
+    - name: Load credentials from HashiVault or fallback sources
+      include_tasks: "{{ role_path }}/roles/minio/tasks/get_minio_secrets.yml"
+      when: use_vault | bool
+
+    # ================================================
+    # Install and configure MinIO Client (mc)
+    # ================================================
+    - name: Check if MinIO Client is already installed
+      command: podman exec minio-svc which mc
+      register: mc_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install MinIO Client if needed
+      when: mc_check.rc != 0
+      block:
+        - name: Download MinIO Client
+          command: >
+            podman exec minio-svc 
+            wget -q -O /usr/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc
+          register: mc_install
+          changed_when: true
+
+        - name: Make mc executable
+          command: >
+            podman exec minio-svc chmod +x /usr/bin/mc
+          changed_when: true
+
+    # ================================================
+    # Configure MinIO Client
+    # ================================================
+    - name: Configure MinIO Client
+      command: >
+        podman exec minio-svc
+        mc alias set {{ minio_mc_alias }} 
+        {{ 'https' if minio_secure else 'http' }}://{{ minio_host }}:{{ minio_api_port }} 
+        {{ minio_root_user }} {{ minio_root_password }}
+      register: mc_config
+      changed_when: mc_config.rc == 0
+      no_log: true
+
+    - name: Verify MinIO connection
+      command: >
+        podman exec minio-svc
+        mc admin info {{ minio_mc_alias }}
+      register: minio_info
+      changed_when: false
+      no_log: true
+      failed_when: "'Error' in minio_info.stderr"
+
+    - name: Show MinIO server information
+      debug:
+        msg: "Successfully connected to MinIO server"
+      when: minio_info.rc == 0
+
+    # ================================================
+    # Create custom policies
+    # ================================================
+    - name: Create readwrite policy JSON file
+      copy:
+        dest: /tmp/readwrite-policy.json
+        content: |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "s3:ListBucket",
+                  "s3:GetObject",
+                  "s3:PutObject",
+                  "s3:DeleteObject",
+                  "s3:ListMultipartUploadParts",
+                  "s3:AbortMultipartUpload"
+                ],
+                "Resource": [
+                  "arn:aws:s3:::*"
+                ]
+              }
+            ]
+          }
+        mode: "0644"
+      register: rw_policy
+
+    - name: Create readonly policy JSON file
+      copy:
+        dest: /tmp/readonly-policy.json
+        content: |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "s3:ListBucket",
+                  "s3:GetObject"
+                ],
+                "Resource": [
+                  "arn:aws:s3:::*"
+                ]
+              }
+            ]
+          }
+        mode: "0644"
+      register: ro_policy
+
+    - name: Copy policy files to container
+      command: podman cp {{ item.dest }} minio-svc:{{ item.dest }}
+      loop:
+        - { dest: "/tmp/readwrite-policy.json" }
+        - { dest: "/tmp/readonly-policy.json" }
+      when: rw_policy.changed or ro_policy.changed
+
+    - name: Create policies in MinIO
+      command: >
+        podman exec minio-svc
+        mc admin policy create {{ minio_mc_alias }} {{ item.name }} {{ item.file }}
+      loop:
+        - { name: "readwrite", file: "/tmp/readwrite-policy.json" }
+        - { name: "readonly", file: "/tmp/readonly-policy.json" }
+      register: policy_result
+      changed_when: policy_result.rc == 0
+      failed_when: false # Policy might already exist
+
+    # ================================================
+    # Create users
+    # ================================================
+    - name: Get existing users
+      command: >
+        podman exec minio-svc
+        mc admin user list {{ minio_mc_alias }}
+      register: user_list
+      changed_when: false
+      no_log: true
+
+    - name: Create users
+      command: >
+        podman exec minio-svc
+        mc admin user add {{ minio_mc_alias }} {{ item.username }} {{ item.password }}
+      loop: "{{ minio_users }}"
+      register: user_add
+      # Only create users that don't already exist
+      when: item.username not in user_list.stdout
+      changed_when: user_add.rc == 0
+      no_log: true
+
+    - name: Assign policies to users
+      command: >
+        podman exec minio-svc
+        mc admin policy set {{ minio_mc_alias }} {{ item.policy }} user={{ item.username }}
+      loop: "{{ minio_users }}"
+      register: policy_set
+      changed_when: policy_set.rc == 0
+      failed_when: policy_set.rc != 0
+      no_log: true
+
+    # ================================================
+    # Create buckets
+    # ================================================
+    - name: Get existing buckets
+      command: >
+        podman exec minio-svc
+        mc ls {{ minio_mc_alias }}
+      register: bucket_list
+      changed_when: false
+
+    - name: Create buckets
+      command: >
+        podman exec minio-svc
+        mc mb {{ minio_mc_alias }}/{{ item.name }}
+      loop: "{{ minio_buckets }}"
+      # Only create buckets that don't already exist
+      when: item.name not in bucket_list.stdout
+      register: bucket_create
+      changed_when: bucket_create.rc == 0
+
+    - name: Set bucket policies
+      command: >
+        podman exec minio-svc
+        mc anonymous set {{ item.policy }} {{ minio_mc_alias }}/{{ item.name }}
+      loop: "{{ minio_buckets }}"
+      register: bucket_policy
+      changed_when: bucket_policy.rc == 0
+      when: item.policy != "none"
+
+    # ================================================
+    # Configure versioning
+    # ================================================
+    - name: Configure bucket versioning
+      command: >
+        podman exec minio-svc
+        mc version {{ item.status | lower }} {{ minio_mc_alias }}/{{ item.bucket }}
+      loop: "{{ minio_enable_versioning }}"
+      register: versioning
+      changed_when: versioning.rc == 0
+      when: minio_enable_versioning is defined
+
+    # ================================================
+    # Finalize
+    # ================================================
+    - name: Display summary information
+      debug:
+        msg: |
+          MinIO configuration complete:
+          - Created/updated {{ minio_users | length }} users
+          - Created/updated {{ minio_buckets | length }} buckets
+          - Versioning enabled on {{ minio_enable_versioning | default([]) | length }} buckets
+
+          MinIO API: {{ 'https' if minio_secure else 'http' }}://{{ minio_host }}:{{ minio_api_port }}
+          MinIO Console: {{ 'https' if minio_secure else 'http' }}://{{ minio_host }}:{{ minio_console_port }}
+
+    - name: Clean up temporary files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/tmp/readwrite-policy.json"
+        - "/tmp/readonly-policy.json"
