@@ -1,7 +1,11 @@
 status = error
 
-# Log files location
-property.filename = ${sys:es.logs.base_path}${sys:file.separator}${sys:es.logs.cluster_name}.log
+# Log files location ??? env not set, not sure where this comes from ???
+# property.filename = ${sys:es.logs.base_path}${sys:file.separator}${sys:es.logs.cluster_name}.log
+
+# hardcoded for now
+property.filename = /usr/share/elasticsearch/logs/elasticsearch.log
+
 
 # Console appender configuration
 appender.console.type = Console
@@ -45,3 +49,13 @@ logger.settings.level = error
 
 logger.discovery.name = org.elasticsearch.discovery
 logger.discovery.level = error
+
+# extra logging for debug
+logger.http.name = org.elasticsearch.http
+logger.http.level = debug
+
+logger.rest.name = org.elasticsearch.rest
+logger.rest.level = debug
+
+logger.cors.name = org.elasticsearch.http.cors
+logger.cors.level = trace

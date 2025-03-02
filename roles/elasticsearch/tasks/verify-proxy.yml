@@ -1,0 +1,110 @@
+---
+# ....................................................................................
+- name: Check if Elasticsearch is accessible via Traefik
+  uri:
+    url: "{{ elasticsearch_proxy }}"
+    method: GET
+    headers:
+      Authorization: "ApiKey {{ lookup('env', 'ES_RO_TOKEN') }}"
+    status_code: [200, 401] # Accept both success and unauthorized
+    validate_certs: false
+  register: es_accessible
+  ignore_errors: true
+
+- name: Show accessibility status
+  debug:
+    msg: >-
+      Elasticsearch is {{ 'accessible' if es_accessible.status|default(0) == 200 else 'accessible but requires authentication' if es_accessible.status|default(0) == 401 else 'not accessible' }} via Traefik
+
+# ....................................................................................
+- name: Wait for Elasticsearch to be ready via Traefik
+  uri:
+    url: "{{ elasticsearch_proxy }}/_cluster/health"
+    method: GET
+    headers:
+      Authorization: "ApiKey {{ lookup('env', 'ES_RO_TOKEN') }}"
+    status_code: 200
+    validate_certs: false
+  register: health_check_traefik
+  until: health_check_traefik.status|default(0) == 200
+  retries: 30
+  delay: 5
+  ignore_errors: true
+  changed_when: false
+  no_log: true
+
+# ....................................................................................
+- name: Show cluster health via Traefik
+  uri:
+    url: "{{ elasticsearch_proxy }}/_cluster/health?pretty"
+    method: GET
+    headers:
+      Authorization: "ApiKey {{ lookup('env', 'ES_RO_TOKEN') }}"
+    status_code: 200
+    validate_certs: false
+    return_content: true
+  register: cluster_health_traefik
+  ignore_errors: true
+  changed_when: false
+  no_log: true
+
+- name: Display cluster health via Traefik
+  debug:
+    var: cluster_health_traefik.json|default('Not available')
+  when: cluster_health_traefik.status|default(0) == 200
+
+# ....................................................................................
+- name: Create test document via Traefik (RW token)
+  uri:
+    url: "{{ elasticsearch_proxy }}/{{ test_index }}-traefik/_doc?refresh=true"
+    method: POST
+    headers:
+      Authorization: "ApiKey {{ lookup('env', 'ES_RW_TOKEN') }}"
+    body: "{{ test_doc }}"
+    body_format: json
+    status_code: 201
+    validate_certs: false
+    return_content: true
+  register: index_result_traefik
+  ignore_errors: true
+  changed_when: false
+  no_log: true
+
+- name: Show index result via Traefik
+  debug:
+    var: index_result_traefik.json|default('Not available')
+  when: index_result_traefik.status|default(0) == 201
+
+# ....................................................................................
+- name: Search test document via Traefik (RO token)
+  uri:
+    url: "{{ elasticsearch_proxy }}/{{ test_index }}-traefik/_search?pretty"
+    method: GET
+    headers:
+      Authorization: "ApiKey {{ lookup('env', 'ES_RO_TOKEN') }}"
+    status_code: 200
+    validate_certs: false
+    return_content: true
+  register: search_result_traefik
+  ignore_errors: true
+  changed_when: false
+  no_log: true
+
+- name: Show search result via Traefik
+  debug:
+    var: search_result_traefik.json|default('Not available')
+  when: search_result_traefik.status|default(0) == 200
+
+# ....................................................................................
+# Cleanup
+- name: Delete test index via Traefik (RW token)
+  uri:
+    url: "{{ elasticsearch_proxy }}/{{ test_index }}-traefik"
+    method: DELETE
+    headers:
+      Authorization: "ApiKey {{ lookup('env', 'ES_RW_TOKEN') }}"
+    status_code: [200, 404]
+    validate_certs: false
+  ignore_errors: true
+  changed_when: false
+  no_log: true

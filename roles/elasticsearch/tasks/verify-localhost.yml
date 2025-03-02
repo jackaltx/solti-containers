@@ -1,0 +1,134 @@
+---
+# ....................................................................................
+- name: Check if Elasticsearch is running
+  wait_for:
+    host: localhost
+    port: 9200
+    timeout: 30
+  register: port_check
+  # failed_when: not port_check.started
+
+- name: Show port check status
+  debug:
+    msg: "Elasticsearch port 9200 is {{ 'open' if port_check.state is defined and port_check.state == 'started' else 'closed' }}"
+
+# ....................................................................................
+- name: Wait for Elasticsearch to be ready
+  uri:
+    url: "http://localhost:9200/_cluster/health"
+    method: GET
+    user: elastic
+    password: "{{ elasticsearch_password }}"
+    status_code: 200
+    validate_certs: false
+  register: health_check
+  until: health_check.status == 200
+  retries: 30
+  delay: 5
+  changed_when: false
+  no_log: true
+
+# ....................................................................................
+- name: Show cluster health
+  uri:
+    url: "http://localhost:9200/_cluster/health?pretty"
+    method: GET
+    user: elastic
+    password: "{{ elasticsearch_password }}"
+    status_code: 200
+    validate_certs: false
+    return_content: true
+  register: cluster_health
+  changed_when: false
+  no_log: true
+
+- name: Display cluster health
+  debug:
+    var: cluster_health.json
+
+# ....................................................................................
+- name: Get Elasticsearch info
+  uri:
+    url: "http://localhost:9200/?pretty"
+    method: GET
+    user: elastic
+    password: "{{ elasticsearch_password }}"
+    status_code: 200
+    validate_certs: false
+    return_content: true
+  register: es_info
+  changed_when: false
+  no_log: true
+
+- name: Display Elasticsearch info
+  debug:
+    var: es_info.json
+
+# ....................................................................................
+- name: Create test document
+  uri:
+    url: "http://localhost:9200/{{ test_index }}/_doc?refresh=true"
+    method: POST
+    user: elastic
+    password: "{{ elasticsearch_password }}"
+    body: "{{ test_doc }}"
+    body_format: json
+    status_code: 201
+    validate_certs: false
+    return_content: true
+  register: index_result
+  changed_when: false
+  no_log: true
+
+- name: Show index result
+  debug:
+    var: index_result.json
+
+# ....................................................................................
+- name: Search test document
+  uri:
+    url: "http://localhost:9200/{{ test_index }}/_search?pretty"
+    method: GET
+    user: elastic
+    password: "{{ elasticsearch_password }}"
+    status_code: 200
+    validate_certs: false
+    return_content: true
+  register: search_result
+  changed_when: false
+  no_log: true
+
+- name: Show search result
+  debug:
+    var: search_result.json
+
+# ....................................................................................
+- name: Get memory stats
+  uri:
+    url: "http://localhost:9200/_nodes/stats/jvm?pretty"
+    method: GET
+    user: elastic
+    password: "{{ elasticsearch_password }}"
+    status_code: 200
+    validate_certs: false
+    return_content: true
+  register: memory_stats
+  changed_when: false
+  no_log: true
+
+- name: Show memory usage
+  debug:
+    msg: "{{ memory_stats.json | json_query('nodes.*.jvm.mem.heap_used_percent') }}"
+
+# ....................................................................................
+# Cleanup
+- name: Delete test index
+  uri:
+    url: "http://localhost:9200/{{ test_index }}"
+    method: DELETE
+    user: elastic
+    password: "{{ elasticsearch_password }}"
+    status_code: [200, 404]
+    validate_certs: false
+  changed_when: false
+  no_log: true

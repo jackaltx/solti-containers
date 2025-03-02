@@ -1,5 +1,25 @@
 ---
 #
+
+# ..................................................................................
+# TODO this should be part of _base
+- name: Ensure required directories exist
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - .config/systemd/user
+    - .config/containers/systemd
+    - .config/containers/systemd/env
+
+# ..................................................................................
+- name: Create environment file for Elasticsearch
+  ansible.builtin.template:
+    src: elasticsearch.env.j2
+    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/elasticsearch.env"
+    mode: "0600"
+
 # ....................................................................................
 - name: Create Elasticsearch pod Quadlet
   containers.podman.podman_pod:
@@ -40,19 +60,19 @@
       - "{{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z,U"
       - "{{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z,U"
     env:
-      ES_JAVA_OPTS: "-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }} -Djava.security.manager=allow -Djava.locale.providers=SPI,JRE"
+      # ES_JAVA_OPTS: "-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }} -Djava.security.manager=allow -Djava.locale.providers=SPI,JRE -Des.logs.base_path=/usr/share/elasticsearch/logs -Des.logs.cluster_name=docker-cluster"
       discovery.type: "{{ elasticsearch_discovery_type }}"
       ELASTIC_PASSWORD: "{{ elasticsearch_password }}"
       xpack.security.enabled: "{{ elasticsearch_enable_security | string }}"
       bootstrap.memory_lock: "true"
     quadlet_options:
+      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/elasticsearch.env"
       - "Label=traefik.enable=true"
       - "Label=traefik.http.routers.elasticsearch0.rule=Host(`elasticsearch.a0a0.org`)"
       - "Label=traefik.http.routers.elasticsearch0.entrypoints=web,websecure"
       - "Label=traefik.http.routers.elasticsearch1.rule=Host(`es.a0a0.org`)"
       - "Label=traefik.http.routers.elasticsearch1.entrypoints=web,websecure"
       - "Label=traefik.http.services.elasticsearch.loadbalancer.server.port=9200"
-      - "User=2000:2000"
       - "Ulimit=memlock=-1:-1"
       - "Ulimit=nofile=65535:65535"
       - |

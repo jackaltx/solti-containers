@@ -66,6 +66,8 @@ all:
             elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
             elasticsearch_delete_data: false
 
+            elasticsearch_proxy: "https://es.a0a0.org:8443"
+
         # ========================================
         redis_svc:
           hosts:
@@ -114,14 +116,14 @@ all:
             # Vault connection details
             vault_addr: "http://localhost:8200"
 
-            # .......................................
-            # Setup secrets
-            # .......................................
-
             # Secret engines to enable
             vault_enable_transit: true # Encryption as a service
             vault_enable_pki: true # Certificate authority
             vault_enable_ssh: true # SSH key signing
+
+            # .......................................
+            # Setup secrets
+            # .......................................
 
             # Environment variable secrets to store in Vault
             # If these variables are not set, use dummy values (for development only)

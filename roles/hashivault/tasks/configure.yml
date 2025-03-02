@@ -42,25 +42,6 @@
     msg: "Using vault container name: {{ vault_container_name }}"
 
 # ..............................................
-# Create temp token file for authentication (will be removed after use)
-# - name: Create temporary token file
-#   copy:
-#     content: "{{ vault_token }}"
-#     dest: "/tmp/vault_token"
-#     mode: "0600"
-#   no_log: true
-
-# ..............................................
-# ..............................................
-# ..............................................
-# ..............................................
-# ..............................................
-# Create policies
-
-- name: Debug policies
-  debug:
-    var: vault_policies
-
 # Create policies - using shell module with echo to properly pass the policy content
 - name: Create Vault policies
   shell: |
