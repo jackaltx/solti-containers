@@ -1,5 +1,5 @@
 ---
-# mattermost/tasks/verify-user.yml
+# mattermost/tasks/verify_with_test_user.yml
 # This file contains verification tasks for Mattermost, including creating a test user
 
 # ....................................................................................
@@ -110,15 +110,34 @@
       login_id: "admin@example.com"
       password: "{{ test_password }}"
     status_code: [200, 201]
+    return_content: true
   register: login_response
   failed_when: false
   no_log: true
 
-- name: Set auth token fact
+- name: Debug login response headers (temporary, remove in production)
+  debug:
+    var: login_response
+    verbosity: 1
+
+- name: Set auth token fact using headers dict
   set_fact:
-    auth_token: "{{ login_response.x_headers.Token }}"
+    auth_token: "{{ login_response.headers.Token | default(login_response.headers.token, true) | default('') }}"
   when: login_response.status in [200, 201]
-  # no_log: true
+  no_log: true
+
+- name: Set auth token fact using x_headers if available
+  set_fact:
+    auth_token: "{{ login_response.x_headers.Token | default(login_response.x_headers.token, true) | default(auth_token, true) }}"
+  when:
+    - login_response.status in [200, 201]
+    - login_response.x_headers is defined
+  no_log: true
+
+- name: Check if token was obtained
+  fail:
+    msg: "Could not obtain authentication token from Mattermost API response."
+  when: auth_token is not defined or auth_token == ''
 
 # ....................................................................................
 # Create Test Team if needed
