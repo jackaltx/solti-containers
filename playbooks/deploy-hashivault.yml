@@ -1,7 +1,0 @@
-# deploy-elasticsearch.yml
----
-- name: Deploy HashiVault
-  hosts: hashivault_svc
-
-  roles:
-    - role: hashivault

@@ -1,4 +1,53 @@
 ---
+#
+# mattermost role - supports prepare, present, and absent states
+# States:
+#   prepare: First-time setup of directories and system configuration
+#   present: Deploy and configure mattermost containers
+#   absent: Remove containers (optionally remove data)
+
+- name: Validate state parameter
+  ansible.builtin.fail:
+    msg: "mattermost_state must be one of: prepare, present, absent. Current value: {{ mattermost_state }}"
+  when: mattermost_state not in ['prepare', 'present', 'absent']
+
+- name: Test become capability
+  ansible.builtin.command: whoami
+  register: become_test
+  changed_when: false
+
+# # This task will only run if the previous one succeeded
+# - name: Verify become user is root
+#   ansible.builtin.fail:
+#     msg: "Privilege escalation failed - not running as root"
+#   when: become_test.stdout != "root"
+
+# =======================================================================
+# PREPARATION (one-time setup)
+# =======================================================================
+
+- name: Prepare mattermost (one-time setup)
+  when: mattermost_state == 'prepare'
+  block:
+    - name: Check if already prepared
+      ansible.builtin.stat:
+        path: "{{ mattermost_data_dir }}"
+      register: data_dir_check
+
+    - name: Fail if already prepared
+      ansible.builtin.fail:
+        msg: "Mattermost appears to be already prepared. Directory {{ mattermost_data_dir }} exists."
+      when: data_dir_check.stat.exists
+
+    # ............................................................
+    - name: Base prepare
+      ansible.builtin.include_tasks:
+        file: ../_base/tasks/prepare.yml
+
+# =======================================================================
+# DEPLOYMENT
+# =======================================================================
+
 - name: Install Mattermost
   when: mattermost_state == 'present'
   block:
@@ -8,7 +57,7 @@
     - name: Include TLS tasks
       ansible.builtin.include_tasks: tls.yml
 
-    - name: Ensue network setup
+    - name: Ensure network setup
       ansible.builtin.include_tasks:
         file: "../_base/tasks/networks.yml"
 
@@ -16,6 +65,10 @@
       ansible.builtin.include_tasks: quadlet_rootless.yml
 
     # TODO  build quad_privileged
+
+# =======================================================================
+# DEPLOYMENT
+# =======================================================================
 
 - name: Remove Mattermost
   when: mattermost_state == 'absent'

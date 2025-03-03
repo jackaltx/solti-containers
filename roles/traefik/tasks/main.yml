@@ -1,14 +1,69 @@
+---
+#
+# traefik role - supports prepare, present, and absent states
+# States:
+#   prepare: First-time setup of directories and system configuration
+#   present: Deploy and configure traefik containers
+#   absent: Remove containers (optionally remove data)
+
+- name: Validate state parameter
+  ansible.builtin.fail:
+    msg: "traefik_state must be one of: prepare, present, absent. Current value: {{ traefik_state }}"
+  when: traefik_state not in ['prepare', 'present', 'absent']
+
+- name: Test become capability
+  ansible.builtin.command: whoami
+  register: become_test
+  changed_when: false
+
+# # This task will only run if the previous one succeeded
+# - name: Verify become user is root
+#   ansible.builtin.fail:
+#     msg: "Privilege escalation failed - not running as root"
+#   when: become_test.stdout != "root"
+
+# =======================================================================
+# PREPARATION (one-time setup)
+# =======================================================================
+
+- name: Prepare traefik (one-time setup)
+  when: traefik_state == 'prepare'
+  block:
+    - name: Check if already prepared
+      ansible.builtin.stat:
+        path: "{{ traefik_data_dir }}"
+      register: data_dir_check
+
+    - name: Fail if already prepared
+      ansible.builtin.fail:
+        msg: "traefik appears to be already prepared. Directory {{ traefik_data_dir }} exists."
+      when: data_dir_check.stat.exists
+
+    # ............................................................
+    - name: Base prepare
+      ansible.builtin.include_tasks:
+        file: ../_base/tasks/prepare.yml
+
+# =======================================================================
+# DEPLOYMENT
+# =======================================================================
+
 - name: Install Traefik
   when: traefik_state == 'present'
   block:
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml
 
-    # - name: Setup container networks
-    #   ansible.builtin.include_tasks: networks.yml
+    - name: Ensure network setup
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/networks.yml"
 
     - name: Deploy Traefik with appropriate privileges
       ansible.builtin.include_tasks: "quadlet_{{ 'privileged' if traefik_privileged else 'rootless' }}.yml"
+
+# =======================================================================
+# CLEANUP
+# =======================================================================
 
 - name: Remove Traefik
   when: traefik_state == 'absent'

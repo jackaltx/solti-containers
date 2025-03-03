@@ -1,7 +1,11 @@
 status = error
 
-# Log files location
+# Log files location ??? env not set, not sure where this comes from ???
 property.filename = ${sys:es.logs.base_path}${sys:file.separator}${sys:es.logs.cluster_name}.log
+
+# hardcoded for now
+# property.filename = /usr/share/elasticsearch/logs/elasticsearch.log
+
 
 # Console appender configuration
 appender.console.type = Console
@@ -23,7 +27,7 @@ appender.rolling.strategy.type = DefaultRolloverStrategy
 appender.rolling.strategy.max = 7
 
 # Root logger
-rootLogger.level = error
+rootLogger.level = warn
 rootLogger.appenderRef.console.ref = console
 rootLogger.appenderRef.rolling.ref = rolling
 
@@ -45,3 +49,30 @@ logger.settings.level = error
 
 logger.discovery.name = org.elasticsearch.discovery
 logger.discovery.level = error
+
+
+# User Transaction Log Appender
+appender.userlog.type = RollingFile
+appender.userlog.name = userlog
+appender.userlog.fileName = ${sys:es.logs.base_path}/user_transactions.log
+appender.userlog.filePattern = ${sys:es.logs.base_path}/user_transactions-%d{yyyy-MM-dd}.log
+appender.userlog.layout.type = PatternLayout
+appender.userlog.layout.pattern = [%d{ISO8601}] %m%n
+appender.userlog.policies.type = Policies
+appender.userlog.policies.size.type = SizeBasedTriggeringPolicy
+appender.userlog.policies.size.size = 100MB
+appender.userlog.strategy.type = DefaultRolloverStrategy
+appender.userlog.strategy.max = 30
+
+# User transaction loggers
+logger.authc.name = org.elasticsearch.xpack.security.authc
+logger.authc.level = info
+logger.authc.appenderRef.userlog.ref = userlog
+
+logger.authz.name = org.elasticsearch.xpack.security.authz
+logger.authz.level = info
+logger.authz.appenderRef.userlog.ref = userlog
+
+logger.rest.name = org.elasticsearch.rest
+logger.rest.level = info
+logger.rest.appenderRef.userlog.ref = userlog

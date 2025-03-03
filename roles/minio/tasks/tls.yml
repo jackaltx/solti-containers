@@ -1,0 +1,23 @@
+---
+- name: Check TLS certificate and key paths
+  ansible.builtin.fail:
+    msg: "Both certificate and key files must be provided when TLS is enabled"
+  when: 
+    - minio_enable_tls | bool
+    - (not minio_tls_cert_file or not minio_tls_key_file)
+
+- name: Copy TLS certificate
+  ansible.builtin.copy:
+    src: "{{ minio_tls_cert_file }}"
+    dest: "{{ minio_data_dir }}/tls/{{ minio_tls_cert_file | basename }}"
+    mode: '0644'
+  when: minio_enable_tls | bool
+  notify: restart minio
+
+- name: Copy TLS private key
+  ansible.builtin.copy:
+    src: "{{ minio_tls_key_file }}"
+    dest: "{{ minio_data_dir }}/tls/{{ minio_tls_key_file | basename }}"
+    mode: '0600'
+  when: minio_enable_tls | bool
+  notify: restart minio

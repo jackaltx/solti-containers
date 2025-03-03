@@ -1,8 +1,0 @@
----
-- name: Remove Elasticsearch (not data/config)
-  hosts: elasticsearch_svc
-  vars:
-    elasticsearch_delete_data: false
-    elasticsearch_state: absent
-  roles:
-    - role: elasticsearch

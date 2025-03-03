@@ -33,10 +33,6 @@ redis_enable_gui: true
 # Cleanup settings
 redis_delete_data: false
 
-#
-redis_service_name: "redis-pod"
-redis_pod_key: "redis.pod"
-
 # =======================================================================
 service_network: "example-net"
 service_dns_servers:

@@ -1,7 +1,61 @@
 ---
-- name: Install Vault
-  when: vault_state == 'present'
+#
+# hashivault role - supports prepare, present, and absent states
+# States:
+#   prepare: First-time setup of directories and system configuration
+#   present: Deploy and configure hashivault containers
+#   absent: Remove containers (optionally remove data)
+
+- name: Validate state parameter
+  ansible.builtin.fail:
+    msg: "vault_state must be one of: prepare, present, absent. Current value: {{ vault_state }}"
+  when: vault_state not in ['prepare', 'present', 'absent']
+
+- name: Test become capability
+  ansible.builtin.command: whoami
+  register: become_test
+  changed_when: false
+
+# # This task will only run if the previous one succeeded
+# - name: Verify become user is root
+#   ansible.builtin.fail:
+#     msg: "Privilege escalation failed - not running as root"
+#   when: become_test.stdout != "root"
+
+# =======================================================================
+# PREPARATION (one-time setup)
+# =======================================================================
+
+- name: Prepare hashivault (one-time setup)
+  when: vault_state == 'prepare'
   block:
+    - name: Check if already prepared
+      ansible.builtin.stat:
+        path: "{{ vault_data_dir }}"
+      register: data_dir_check
+
+    - name: Fail if already prepared
+      ansible.builtin.fail:
+        msg: "hashivault appears to be already prepared. Directory {{ vault_data_dir }} exists."
+      when: data_dir_check.stat.exists
+
+    # ............................................................
+    - name: Base prepare
+      ansible.builtin.include_tasks:
+        file: ../_base/tasks/prepare.yml
+
+    # =======================================================================
+    # DEPLOYMENT
+    # =======================================================================
+
+    - name: Verify required directories exist
+      become: true
+      ansible.builtin.stat:
+        path: "{{ vault_data_dir }}/{{ service_properties.config_dir }}"
+      register: config_dir_check
+      failed_when: not config_dir_check.stat.exists
+      changed_when: false
+
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml
 
@@ -9,7 +63,7 @@
       ansible.builtin.include_tasks: tls.yml
       when: vault_enable_tls | bool
 
-    - name: Ensue network setup
+    - name: Ensure network setup
       ansible.builtin.include_tasks:
         file: "../_base/tasks/networks.yml"
 
@@ -17,6 +71,10 @@
       ansible.builtin.include_tasks: quadlet_rootless.yml
 
     # TODO  build quad_privileged
+
+# =======================================================================
+# CLEANUP
+# =======================================================================
 
 - name: Remove Vault
   when: vault_state == 'absent'

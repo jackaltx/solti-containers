@@ -6,7 +6,7 @@
 
 - name: restart redis
   ansible.builtin.systemd:
-    name: "{{ redis_service_name }}"
+    name: "{{ service_properties.name }}"
     state: restarted
     scope: user
   listen: "restart redis"

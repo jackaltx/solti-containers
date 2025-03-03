@@ -1,8 +1,0 @@
----
-- name: Remove HashiVault (not data)
-  hosts: hashivault_svc
-  vars:
-    vault_delete_data: false
-    vault_state: absent
-  roles:
-    - role: hashivault

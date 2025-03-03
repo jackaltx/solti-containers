@@ -16,10 +16,19 @@ bootstrap.memory_lock: true
 xpack.security.enabled: {{ elasticsearch_enable_security | lower }}
 
 # CORS configuration for Elasticvue
+# http.cors.enabled: true
+# http.cors.allow-origin: "http://localhost:{{ elasticsearch_gui_port }}"
+# http.cors.allow-headers: X-Requested-With,Content-Type,Content-Length,Authorization
+# http.cors.allow-credentials: true
+
+# Per https://www.elastic.co/guide/en/elasticsearch/reference/current/behavioral-analytics-cors.html
+
+http.cors.allow-origin: "*" # Only use unrestricted value for local development
+# Use a specific origin value in production, like `http.cors.allow-origin: "https://<my-website-domain.example>"`
 http.cors.enabled: true
-http.cors.allow-origin: "http://localhost:{{ elasticsearch_gui_port }}"
-http.cors.allow-headers: X-Requested-With,Content-Type,Content-Length,Authorization
 http.cors.allow-credentials: true
+http.cors.allow-methods: OPTIONS, POST
+http.cors.allow-headers: X-Requested-With, X-Auth-Token, Content-Type, Content-Length, Authorization, Access-Control-Allow-Headers, Accept
 
 # Security settings using valid options
 xpack.security.authc.api_key.enabled: true

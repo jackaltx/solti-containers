@@ -2,7 +2,7 @@
 # handlers/main.yml
 - name: restart mattermost
   ansible.builtin.systemd:
-    name: "{{ mattermost_service_name }}"
+    name: "{{ service_properties.name }}"
     state: restarted
     scope: user
   listen: "restart mattermost"

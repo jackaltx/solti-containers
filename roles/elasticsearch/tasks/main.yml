@@ -1,4 +1,57 @@
 ---
+#
+# elasticsearch role - supports prepare, present, and absent states
+# States:
+#   prepare: First-time setup of directories and system configuration
+#   present: Deploy and configure elasticsearch containers
+#   absent: Remove containers (optionally remove data)
+
+- name: Validate state parameter
+  ansible.builtin.fail:
+    msg: "elasticsearch_state must be one of: prepare, present, absent. Current value: {{ elasticsearch_state }}"
+  when: elasticsearch_state not in ['prepare', 'present', 'absent']
+
+- name: Test become capability
+  ansible.builtin.command: whoami
+  register: become_test
+  changed_when: false
+
+# # This task will only run if the previous one succeeded
+# - name: Verify become user is root
+#   ansible.builtin.fail:
+#     msg: "Privilege escalation failed - not running as root"
+#   when: become_test.stdout != "root"
+
+# =======================================================================
+# PREPARATION (one-time setup)
+# =======================================================================
+
+- name: Prepare elasticsearch (one-time setup)
+  when: elasticsearch_state == 'prepare'
+  block:
+    - name: Check if already prepared
+      ansible.builtin.stat:
+        path: "{{ elasticsearch_data_dir }}"
+      register: data_dir_check
+
+    - name: Debug data_dir status
+      ansible.builtin.debug:
+        var: data_dir_check
+
+    - name: Fail if already prepared
+      ansible.builtin.fail:
+        msg: "elasticsearch appears to be already prepared. Directory {{ elasticsearch_data_dir }} exists."
+      when: data_dir_check.stat.exists
+
+    # ............................................................
+    - name: Base prepare
+      ansible.builtin.include_tasks:
+        file: ../_base/tasks/prepare.yml
+
+# =======================================================================
+# DEPLOYMENT
+# =======================================================================
+
 - name: Install Elasticsearch
   when: elasticsearch_state == 'present'
   block:
@@ -13,6 +66,7 @@
       when: >
         (elasticsearch_password | default('')) == 'changeme'
 
+    # ..............................................................
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml
 
@@ -20,7 +74,7 @@
       ansible.builtin.include_tasks: tls.yml
       when: elasticsearch_enable_tls | bool
 
-    - name: Ensue network setup
+    - name: Ensure network setup
       ansible.builtin.include_tasks:
         file: "../_base/tasks/networks.yml"
 
@@ -31,6 +85,10 @@
 
     - name: Configure systemd limits
       include_tasks: configure-systemd-limits.yml
+
+# =======================================================================
+# CLEANUP
+# =======================================================================
 
 - name: Remove Elasticsearch
   when: elasticsearch_state == 'absent'

@@ -1,0 +1,88 @@
+---
+# minio role - supports prepare, present, and absent states
+# States:
+#   prepare: First-time setup of directories and system configuration
+#   present: Deploy and configure minio containers
+#   absent: Remove containers (optionally remove data)
+
+- name: Validate state parameter
+  ansible.builtin.fail:
+    msg: "minio_state must be one of: prepare, present, absent. Current value: {{ minio_state }}"
+  when: minio_state not in ['prepare', 'present', 'absent']
+
+- name: Test become capability
+  ansible.builtin.command: whoami
+  register: become_test
+  changed_when: false
+
+# =======================================================================
+# PREPARATION (one-time setup)
+# =======================================================================
+
+- name: Prepare MinIO (one-time setup)
+  when: minio_state == 'prepare'
+  block:
+    - name: Check if already prepared
+      ansible.builtin.stat:
+        path: "{{ minio_data_dir }}"
+      register: data_dir_check
+
+    - name: Fail if already prepared
+      ansible.builtin.fail:
+        msg: "MinIO appears to be already prepared. Directory {{ minio_data_dir }} exists."
+      when: data_dir_check.stat.exists
+
+    # ............................................................
+    - name: Base prepare
+      ansible.builtin.include_tasks:
+        file: ../_base/tasks/prepare.yml
+
+# =======================================================================
+# DEPLOYMENT
+# =======================================================================
+
+- name: Install MinIO
+  when: minio_state == 'present'
+  block:
+    - name: Verify password is not default
+      ansible.builtin.fail:
+        msg: "minio_root_password must be set and not the default value"
+      when: >
+        minio_root_password == 'changeme'
+
+    - name: Verify required directories exist
+      become: true
+      ansible.builtin.stat:
+        path: "{{ minio_data_dir }}/{{ service_properties.config_dir }}"
+      register: config_dir_check
+      failed_when: not config_dir_check.stat.exists
+      changed_when: false
+
+    - name: Include prerequisites tasks
+      ansible.builtin.include_tasks: prerequisites.yml
+
+    - name: Include TLS tasks
+      ansible.builtin.include_tasks: tls.yml
+      when: minio_enable_tls | bool
+
+    - name: Ensure network setup
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/networks.yml"
+
+    - name: Include container tasks
+      ansible.builtin.include_tasks: quadlet_rootless.yml
+
+# =======================================================================
+# CLEANUP
+# =======================================================================
+
+- name: Remove MinIO
+  when: minio_state == 'absent'
+  block:
+    # ...............................................................................
+    - name: Include cleanup tasks
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/cleanup.yml"
+      vars:
+        service_state: absent
+        service_delete_data: "{{ minio_delete_data }}"

@@ -22,25 +22,11 @@
     msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
 
 # .......................................................................
+# NOTE: this is only for configuration setting files.
 - name: Become root and change setting files
   become: true
   block:
     #
-    # .......................................................................
-    - name: Create Vault directories
-      file:
-        path: "{{ vault_data_dir }}/{{ item }}"
-        state: directory
-        mode: "0750"
-        owner: "{{ dir_info.stat.uid }}"
-        group: "{{ dir_info.stat.gid }}"
-      loop:
-        - "" # Base directory
-        - config
-        - data
-        - logs
-        - tls
-
     # .......................................................................
     - name: Template Vault configuration
       template:

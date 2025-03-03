@@ -30,9 +30,18 @@ elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD') | default('changem
 # Cleanup settings
 elasticsearch_delete_data: false
 
-# This will be overriden in systemd.yml and cleanup.yml if NOT quadlet
-elasticsearch_service_name: "elasticsearch-pod"
-elasticsearch_pod_key: "elasticsearch.pod"
+# =======================================================================
+service_pod:
+  ports:
+    - "127.0.0.1:{{ elasticsearch_port }}:9200"
+    - "127.0.0.1:{{ elasticsearch_gui_port }}:8080"
+  quadlet_options:
+    - |
+      [Service]
+      Restart=always
+    - |
+      [Install]
+      WantedBy=default.target
 
 # =======================================================================
 service_network: "example-net"
@@ -40,6 +49,8 @@ service_dns_servers:
   - "1.1.1.1"
   - "8.8.8.8"
 service_dns_search: "example.com"
+
+service_quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
 
 # =======================================================================
 service_properties:

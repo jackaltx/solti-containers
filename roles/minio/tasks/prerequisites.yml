@@ -1,0 +1,54 @@
+---
+# .......................................................................
+- name: Verify prerequisite variables
+  assert:
+    that:
+      - minio_root_password != "changeme"
+      - minio_data_dir is defined
+      - minio_api_port is defined
+    fail_msg: "Required variables not properly configured"
+
+# .......................................................................
+# Get container user mapping first
+- name: Get directory ownership
+  ansible.builtin.stat:
+    path: "{{ minio_data_dir }}/config"
+  register: dir_info
+
+- name: Debug ownership
+  ansible.builtin.debug:
+    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+
+# .......................................................................
+- name: Become root and change setting files
+  become: true
+  block:
+    # ...................................................
+    # Create required directories with proper permissions
+    # - name: Create MinIO directories
+    #   ansible.builtin.file:
+    #     path: "{{ minio_data_dir }}/{{ item }}"
+    #     state: directory
+    #     mode: "0750"
+    #     owner: "{{ dir_info.stat.uid }}"
+    #     group: "{{ dir_info.stat.gid }}"
+    #   loop:
+    #     - "" # Base directory
+    #     - config
+    #     - data
+    #     - tls
+
+    # ...................................................
+    - name: Configure SELinux for data directories
+      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+      block:
+        - name: Set SELinux context for MinIO directories
+          ansible.builtin.sefcontext:
+            target: "{{ minio_data_dir }}(/.*)?"
+            setype: container_file_t
+            state: present
+
+        - name: Apply SELinux context
+          ansible.builtin.command: restorecon -R -v "{{ minio_data_dir }}"
+          register: restorecon_result
+          changed_when: restorecon_result.rc == 0

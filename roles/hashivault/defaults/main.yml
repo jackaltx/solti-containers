@@ -34,13 +34,6 @@ vault_raft_retry_join: [] # List of raft peer addresses
 # Cleanup settings
 vault_delete_data: false
 
-# Systemd interface  (use Quadlet to interface with systemd or  use systemd directly)
-vault_use_quadlet: true # Toggle between Quadlet and traditional
-
-# This will be overriden in systemd.yml and cleanup.yml if NOT quadlet
-vault_service_name: "vault-pod"
-vault_pod_key: "vault.pod"
-
 # =======================================================================
 service_network: "example-net"
 service_dns_servers:

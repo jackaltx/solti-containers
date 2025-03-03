@@ -1,0 +1,118 @@
+---
+# ..................................................................................
+# TODO this should be part of _base
+- name: Ensure required directories exist
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - .config/systemd/user
+    - .config/containers/systemd
+    - .config/containers/systemd/env
+
+# ..................................................................................
+- name: Create environment file for MinIO secrets
+  ansible.builtin.template:
+    src: minio.env.j2
+    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/minio.env"
+    mode: "0600"
+
+# ..................................................................................
+- name: Create MinIO pod Quadlet
+  containers.podman.podman_pod:
+    name: minio
+    state: quadlet
+    dns: "{{ service_dns_servers }}"
+    dns_search: "{{ service_dns_search }}"
+    network: "{{ service_network }}"
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    ports:
+      - "127.0.0.1:{{ minio_api_port }}:9000"
+      - "127.0.0.1:{{ minio_console_port }}:9001"
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+      - |
+        [Install]
+        WantedBy=default.target
+
+# ..................................................................................
+- name: Create MinIO server container Quadlet
+  containers.podman.podman_container:
+    name: minio-svc
+    pod: minio.pod
+    image: "{{ minio_image }}"
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    volume:
+      - "{{ minio_data_dir }}/data:/data:Z"
+      - "{{ minio_data_dir }}/config:/root/.minio:Z"
+      - "{{ minio_data_dir }}/tls:/root/.minio/certs:Z"
+    command: ["server", "/data", "--console-address", ":9001"]
+    quadlet_options:
+      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/minio.env"
+      - "Label=traefik.enable=true"
+      - "Label=traefik.http.routers.minio.rule=Host(`minio.a0a0.org`)"
+      - "Label=traefik.http.routers.minio.entrypoints=web,websecure"
+      - "Label=traefik.http.services.minio.loadbalancer.server.port=9000"
+      - "Label=traefik.http.routers.minio-console.rule=Host(`minio-console.a0a0.org`)"
+      - "Label=traefik.http.routers.minio-console.entrypoints=web,websecure"
+      - "Label=traefik.http.services.minio-console.loadbalancer.server.port=9001"
+      - |
+        [Unit]
+        Description=MinIO S3 Server Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target
+
+# If we're using a separate console
+# ..................................................................................
+- name: Create MinIO console container Quadlet
+  containers.podman.podman_container:
+    name: minio-console
+    pod: minio.pod
+    image: "{{ minio_console_image }}"
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    volume:
+      - "{{ minio_data_dir }}/tls:/certs:Z,ro"
+    env:
+      MINIO_SERVER_URL: "http://minio-svc:9000"
+      MINIO_SERVER_API_URL: "http://minio-svc:9000"
+    quadlet_options:
+      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/minio.env"
+      - |
+        [Unit]
+        Description=MinIO Console Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target
+  when: minio_enable_console | bool
+
+# .......................................................................................
+- name: Reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+# .......................................................................................
+- name: Enable and start rootless pod with systemd
+  ansible.builtin.systemd:
+    name: "{{ service_properties.name }}"
+    state: started
+    enabled: yes
+    scope: user

@@ -50,8 +50,10 @@
       VAULT_CLUSTER_ADDR: "http://127.0.0.1:8201"
     quadlet_options:
       - "Label=traefik.enable=true"
-      - "Label=traefik.http.routers.hashivault.rule=Host(`hashivault.a0a0.org`,`vault.a0a0.org`)"
-      - "Label=traefik.http.routers.hashivault.entrypoints=web,websecure"
+      - "Label=traefik.http.routers.hashivault0.rule=Host(`hashivault.a0a0.org`)"
+      - "Label=traefik.http.routers.hashivault0.entrypoints=web,websecure"
+      - "Label=traefik.http.routers.hashivault1.rule=Host(`vault.a0a0.org`)"
+      - "Label=traefik.http.routers.hashivault1.entrypoints=web,websecure"
       - "Label=traefik.http.services.hashivault.loadbalancer.server.port=8200"
       - "AddCapability=IPC_LOCK"
       - |
@@ -76,7 +78,7 @@
 # .......................................................................................
 - name: Enable and start services
   systemd:
-    name: "{{ vault_service_name }}"
+    name: "{{ service_properties.name }}"
     state: started
     enabled: yes
     scope: user

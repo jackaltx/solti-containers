@@ -1,18 +1,78 @@
 ---
+#
+# Redis role - supports prepare, present, and absent states
+# States:
+#   prepare: First-time setup of directories and system configuration
+#   present: Deploy and configure Redis containers
+#   absent: Remove containers (optionally remove data)
+
+- name: Validate state parameter
+  ansible.builtin.fail:
+    msg: "redis_state must be one of: prepare, present, absent. Current value: {{ redis_state }}"
+  when: redis_state not in ['prepare', 'present', 'absent']
+
+- name: Test become capability
+  ansible.builtin.command: whoami
+  register: become_test
+  changed_when: false
+
+# # This task will only run if the previous one succeeded
+# - name: Verify become user is root
+#   ansible.builtin.fail:
+#     msg: "Privilege escalation failed - not running as root"
+#   when: become_test.stdout != "root"
+
+# =======================================================================
+# PREPARATION (one-time setup)
+# =======================================================================
+
+- name: Prepare Redis (one-time setup)
+  when: redis_state == 'prepare'
+  block:
+    - name: Check if already prepared
+      ansible.builtin.stat:
+        path: "{{ redis_data_dir }}"
+      register: data_dir_check
+
+    - name: Fail if already prepared
+      ansible.builtin.fail:
+        msg: "Redis appears to be already prepared. Directory {{ redis_data_dir }} exists."
+      when: data_dir_check.stat.exists
+
+    # ............................................................
+    - name: Base prepare
+      ansible.builtin.include_tasks:
+        file: ../_base/tasks/prepare.yml
+
+# =======================================================================
+# DEPLOYMENT
+# =======================================================================
+
 - name: Install Redis
   when: redis_state == 'present'
   block:
     #
-    - name: Verify password is set
-      ansible.builtin.fail:
-        msg: "redis_password must be set and not default value"
-      when: >
-        (redis_password | default('')) == ''
+    # - name: Verify password is set
+    #   ansible.builtin.fail:
+    #     msg: "redis_password must be set and not default value"
+    #   when: >
+    #     (redis_password | default('')) == ''
+
+    - debug:
+        msg: "{{ redis_data_dir }}/{{ service_properties.config_dir }}"
+
+    - name: Verify required directories exist
+      become: true
+      ansible.builtin.stat:
+        path: "{{ redis_data_dir }}/{{ service_properties.config_dir }}"
+      register: config_dir_check
+      failed_when: not config_dir_check.stat.exists
+      changed_when: false
 
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml
 
-    - name: Ensue network setup
+    - name: Ensure network setup
       ansible.builtin.include_tasks:
         file: "../_base/tasks/networks.yml"
 
@@ -20,6 +80,10 @@
       ansible.builtin.include_tasks: quadlet_rootless.yml
 
     # TODO  build quad_privileged
+
+# =======================================================================
+# CLEANUP
+# =======================================================================
 
 - name: Remove Redis
   when: redis_state == 'absent'

@@ -1,0 +1,52 @@
+---
+# Installation state
+minio_state: present
+minio_force_reload: false
+
+# TLS Configuration
+minio_enable_tls: false
+minio_tls_cert_file: "" # Path relative to config dir
+minio_tls_key_file: "" # Path relative to config dir
+
+# Container settings
+minio_image: "docker.io/minio/minio:latest"
+minio_console_image: "docker.io/minio/console:latest"
+
+# Directory settings
+minio_data_dir: "{{ ansible_user_dir }}/minio-data"
+
+# MinIO settings
+minio_api_port: 9000
+minio_console_port: 9001
+minio_root_user: "{{ lookup('env', 'MINIO_ROOT_USER') | default('minioadmin') }}"
+minio_root_password: "{{ lookup('env', 'MINIO_ROOT_PASSWORD') | default('changeme') }}"
+minio_browser: "on"
+minio_volumes: "data"
+minio_enable_console: true
+
+# Cleanup settings
+minio_delete_data: false
+
+# =======================================================================
+service_network: "example-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"
+
+# =======================================================================
+service_properties:
+  root: "minio"
+  name: "minio-pod"
+  pod_key: "minio.pod"
+  quadlets:
+    - "minio-svc.container"
+    - "minio-console.container"
+    - "minio.pod"
+  data_dir: "{{ minio_data_dir }}" # override in playbook
+  config_dir: "config"
+  dirs:
+    - { path: "", mode: "0750" }
+    - { path: "config", mode: "0750" }
+    - { path: "data", mode: "0750" }
+    - { path: "tls", mode: "0750" }

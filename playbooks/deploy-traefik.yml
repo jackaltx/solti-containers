@@ -1,8 +1,0 @@
----
-- name: Deploy Traefik
-  hosts: traefik_svc
-  vars:
-    traefik_force_reload: false
-
-  roles:
-    - role: traefik
