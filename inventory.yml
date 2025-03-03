@@ -246,8 +246,8 @@ all:
 
             # MinIO credentials
             # NOTE: These would be read from HashiVault in production
-            minio_root_user: "minio_admin"
-            minio_root_password: "secure_password_changeme"
+            # minio_root_user: "minio_admin"
+            # minio_root_password: "secure_password_changeme"
 
             # MinIO bucket configuration
             minio_buckets:
@@ -280,8 +280,8 @@ all:
             # Enable versioning on these buckets
             minio_enable_versioning:
               - bucket: "app-data"
-                status: "Enabled"
+                status: "enable"
               - bucket: "backups"
-                status: "Enabled"
+                status: "enable"
               - bucket: "config"
-                status: "Enabled"
+                status: "enable"

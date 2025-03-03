@@ -42,7 +42,7 @@
     - name: Download MinIO Client
       command: >
         podman exec minio-svc 
-        wget -q -O /usr/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc
+        curl -s -o /usr/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc
       register: mc_install
       changed_when: true
 
@@ -62,7 +62,7 @@
     {{ minio_root_user }} {{ minio_root_password }}
   register: mc_config
   changed_when: mc_config.rc == 0
-  no_log: true
+  no_log: false # true
 
 - name: Verify MinIO connection
   command: >
@@ -156,7 +156,7 @@
     mc admin user list {{ minio_mc_alias }}
   register: user_list
   changed_when: false
-  no_log: true
+  # no_log: true
 
 - name: Create users
   command: >
@@ -167,17 +167,17 @@
   # Only create users that don't already exist
   when: item.username not in user_list.stdout
   changed_when: user_add.rc == 0
-  no_log: true
+  # no_log: true
 
 - name: Assign policies to users
   command: >
     podman exec minio-svc
-    mc admin policy set {{ minio_mc_alias }} {{ item.policy }} user={{ item.username }}
+    mc admin policy attach {{ minio_mc_alias }} {{ item.policy }} --user {{ item.username }}
   loop: "{{ minio_users | default([]) }}"
   register: policy_set
   changed_when: policy_set.rc == 0
   failed_when: policy_set.rc != 0
-  no_log: true
+  # no_log: true
 
 # ================================================
 # Create buckets
