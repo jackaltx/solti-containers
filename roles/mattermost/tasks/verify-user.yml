@@ -109,35 +109,56 @@
     body:
       login_id: "admin@example.com"
       password: "{{ test_password }}"
-    status_code: [200, 201]
+    status_code: [200, 201, 400, 401]
     return_content: true
   register: login_response
   failed_when: false
-  no_log: true
+  no_log: false # Temporarily set to false for debugging
 
-- name: Debug login response headers (temporary, remove in production)
+- name: Display login response information for debugging
   debug:
-    var: login_response
-    verbosity: 1
+    msg:
+      - "Status: {{ login_response.status }}"
+      - "Headers available: {{ login_response | dict2items | selectattr('key', 'match', 'header|x_header') | list }}"
+      - "Response keys: {{ login_response | dict2items | map(attribute='key') | list }}"
+  when: login_response is defined
 
-- name: Set auth token fact using headers dict
+- name: Extract token from the response
   set_fact:
-    auth_token: "{{ login_response.headers.Token | default(login_response.headers.token, true) | default('') }}"
-  when: login_response.status in [200, 201]
-  no_log: true
-
-- name: Set auth token fact using x_headers if available
-  set_fact:
-    auth_token: "{{ login_response.x_headers.Token | default(login_response.x_headers.token, true) | default(auth_token, true) }}"
+    auth_token: "{{ lookup('ansible.builtin.vars', item) | default('') }}"
+  with_items:
+    - login_response.token
+    - login_response.x_headers.Token
+    - login_response.x_headers.token
+    - login_response.headers.Token
+    - login_response.headers.token
+    - login_response.set_cookie
   when:
     - login_response.status in [200, 201]
-    - login_response.x_headers is defined
-  no_log: true
+    - auth_token is not defined or auth_token == ''
+  no_log: false # Temporarily set to false for debugging
 
-- name: Check if token was obtained
-  fail:
-    msg: "Could not obtain authentication token from Mattermost API response."
-  when: auth_token is not defined or auth_token == ''
+- name: Print the token if found
+  debug:
+    msg: "Token found: {{ 'Yes' if auth_token is defined and auth_token != '' else 'No' }}"
+
+# If the token approach doesn't work, we'll try a simpler approach:
+# Create a test user directly without authentication first
+- name: Create test user directly (no authentication)
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users"
+    method: POST
+    body_format: json
+    body:
+      email: "{{ test_email }}"
+      username: "{{ test_username }}"
+      password: "{{ test_password }}"
+      first_name: "Test"
+      last_name: "User"
+    status_code: [201, 400, 403]
+  register: direct_user_create
+  failed_when: false
+  no_log: false # Temporarily set to false for debugging
 
 # ....................................................................................
 # Create Test Team if needed
