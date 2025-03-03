@@ -123,19 +123,10 @@
       - "Response keys: {{ login_response | dict2items | map(attribute='key') | list }}"
   when: login_response is defined
 
-- name: Extract token from the response
+- name: Set auth token directly from response
   set_fact:
-    auth_token: "{{ lookup('ansible.builtin.vars', item) | default('') }}"
-  with_items:
-    - login_response.token
-    - login_response.x_headers.Token
-    - login_response.x_headers.token
-    - login_response.headers.Token
-    - login_response.headers.token
-    - login_response.set_cookie
-  when:
-    - login_response.status in [200, 201]
-    - auth_token is not defined or auth_token == ''
+    auth_token: "{{ login_response.token | default('') }}"
+  when: login_response.status in [200, 201]
   no_log: false # Temporarily set to false for debugging
 
 - name: Print the token if found
