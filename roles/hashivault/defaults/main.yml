@@ -1,6 +1,6 @@
 ---
 # Installation state
-vault_state: present
+hashivault_state: present
 vault_force_reload: false
 
 # TLS Configuration

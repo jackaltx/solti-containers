@@ -263,7 +263,7 @@ Key variables for customizing the Vault deployment:
 
 ```yaml
 # Installation state
-vault_state: present               # Use 'absent' to remove
+hashivault_state: present               # Use 'absent' to remove
 vault_force_reload: false          # Force reload configuration
 vault_delete_data: false           # Delete data on removal
 

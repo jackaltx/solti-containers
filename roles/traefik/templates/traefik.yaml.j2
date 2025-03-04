@@ -31,10 +31,12 @@ entryPoints:
   web:
     address: ":{{ traefik_http_port }}"
 {% if traefik_enable_ssl %}
-    # For Traefik v3, we create a middleware and apply it to this entrypoint
+    # Simple redirect for Traefik v3
     http:
-      middlewares:
-        - https-redirect
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
 {% endif %}
 
   websecure:
@@ -46,15 +48,6 @@ entryPoints:
 {% endif %}
 
 {% if traefik_enable_ssl %}
-# Define middleware for HTTP to HTTPS redirect
-http:
-  middlewares:
-    https-redirect:
-      redirectScheme:
-        scheme: https
-        port: "{{ traefik_https_port }}"
-        permanent: true
-
 certificatesResolvers:
   letsencrypt:
     acme:

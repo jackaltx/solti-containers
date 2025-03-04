@@ -51,16 +51,6 @@
 - name: Install Redis
   when: redis_state == 'present'
   block:
-    #
-    # - name: Verify password is set
-    #   ansible.builtin.fail:
-    #     msg: "redis_password must be set and not default value"
-    #   when: >
-    #     (redis_password | default('')) == ''
-
-    - debug:
-        msg: "{{ redis_data_dir }}/{{ service_properties.config_dir }}"
-
     - name: Verify required directories exist
       become: true
       ansible.builtin.stat:
