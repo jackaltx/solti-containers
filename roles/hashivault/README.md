@@ -68,8 +68,8 @@ Quadlet files created:
 
 ```bash
 $ ls -1 ~/.config/containers/systemd/vault*
-/home/lavender/.config/containers/systemd/vault.pod
-/home/lavender/.config/containers/systemd/vault-svc.container
+/home/jackaltx/.config/containers/systemd/vault.pod
+/home/jackaltx/.config/containers/systemd/vault-svc.container
 ```
 
 To check the service status:
@@ -84,7 +84,7 @@ Sample status output:
 
 ```
 ● vault-svc.service - HashiCorp Vault Container
- Loaded: loaded (/home/lavender/.config/containers/systemd/vault-svc.container; generated)
+ Loaded: loaded (/home/jackaltx/.config/containers/systemd/vault-svc.container; generated)
  Drop-In: /usr/lib/systemd/user/service.d
  └─10-timeout-abort.conf
  Active: active (running) since Mon 2025-03-03 15:29:24 CST; 1h 32min ago

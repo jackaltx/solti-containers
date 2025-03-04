@@ -54,10 +54,10 @@
     quadlet_options:
       - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/minio.env"
       - "Label=traefik.enable=true"
-      - "Label=traefik.http.routers.minio.rule=Host(`minio.a0a0.org`)"
+      - "Label=traefik.http.routers.minio.rule=Host(`minio.{{ domain }}`)"
       - "Label=traefik.http.routers.minio.entrypoints=web,websecure"
       - "Label=traefik.http.services.minio.loadbalancer.server.port=9000"
-      - "Label=traefik.http.routers.minio-console.rule=Host(`minio-console.a0a0.org`)"
+      - "Label=traefik.http.routers.minio-console.rule=Host(`minio-console.{{ domain }}`)"
       - "Label=traefik.http.routers.minio-console.entrypoints=web,websecure"
       - "Label=traefik.http.services.minio-console.loadbalancer.server.port=9001"
       - |

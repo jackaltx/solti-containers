@@ -31,6 +31,17 @@ entryPoints:
 
   web:
     address: ":{{ traefik_http_port }}"
+{% if traefik_enable_ssl %}
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+{% if not traefik_privileged %}
+          hostPort: "{{ traefik_https_port }}"
+{% endif %}
+          permanent: true
+{% endif %}
 
   websecure:
     address: ":{{ traefik_https_port }}"

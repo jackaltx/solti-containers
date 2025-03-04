@@ -68,9 +68,9 @@
     quadlet_options:
       - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/elasticsearch.env"
       - "Label=traefik.enable=true"
-      - "Label=traefik.http.routers.elasticsearch0.rule=Host(`elasticsearch.a0a0.org`)"
+      - "Label=traefik.http.routers.elasticsearch0.rule=Host(`elasticsearch.{{ domain }}`)"
       - "Label=traefik.http.routers.elasticsearch0.entrypoints=web,websecure"
-      - "Label=traefik.http.routers.elasticsearch1.rule=Host(`es.a0a0.org`)"
+      - "Label=traefik.http.routers.elasticsearch1.rule=Host(`es.{{ domain }}`)"
       - "Label=traefik.http.routers.elasticsearch1.entrypoints=web,websecure"
       - "Label=traefik.http.services.elasticsearch.loadbalancer.server.port=9200"
       - "Ulimit=memlock=-1:-1"
