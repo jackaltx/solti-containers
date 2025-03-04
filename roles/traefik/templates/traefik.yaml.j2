@@ -22,6 +22,12 @@ providers:
     network: "{{ service_network }}"
     httpClientTimeout: 300
     watch: true
+    defaultRule: "Host(`{{ '{{ normalize .Name}}' }}.{{ domain }}`)"
+{% if traefik_enable_ssl %}
+    # Apply middleware to all Docker provider routers
+    defaultMiddlewares:
+      - redirect-https
+{% endif %}
 
 entryPoints:
   # Traefik api/dashboard port
@@ -30,11 +36,6 @@ entryPoints:
 
   web:
     address: ":{{ traefik_http_port }}"
-{% if traefik_enable_ssl %}
-    http:
-      middlewares:
-        - redirect-https@file
-{% endif %}
 
   websecure:
     address: ":{{ traefik_https_port }}"
@@ -45,14 +46,15 @@ entryPoints:
 {% endif %}
 
 # Global middlewares
-middlewares:
-  redirect-https:
-    redirectScheme:
-      scheme: https
+http:
+  middlewares:
+    redirect-https:
+      redirectScheme:
+        scheme: https
 {% if not traefik_privileged %}
-      port: "{{ traefik_https_port }}"
+        port: "{{ traefik_https_port }}"
 {% endif %}
-      permanent: true
+        permanent: true
 
 {% if traefik_enable_ssl %}
 certificatesResolvers:
