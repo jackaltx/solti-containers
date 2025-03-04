@@ -31,12 +31,9 @@ entryPoints:
   web:
     address: ":{{ traefik_http_port }}"
 {% if traefik_enable_ssl %}
-    # Simple redirect for Traefik v3
     http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
+      middlewares:
+        - redirect-https@file
 {% endif %}
 
   websecure:
@@ -46,6 +43,16 @@ entryPoints:
       tls:
         certResolver: letsencrypt
 {% endif %}
+
+# Global middlewares
+middlewares:
+  redirect-https:
+    redirectScheme:
+      scheme: https
+{% if not traefik_privileged %}
+      port: "{{ traefik_https_port }}"
+{% endif %}
+      permanent: true
 
 {% if traefik_enable_ssl %}
 certificatesResolvers:
