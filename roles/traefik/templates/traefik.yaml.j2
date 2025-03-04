@@ -8,7 +8,7 @@ api:
   insecure: true  # Never expose dashboard without authentication  (testing only)
 
 log:
-  level: DEBUG
+  level: WARN
   #filePath: "/logs/traefik.log"
 
 accessLog:
@@ -24,7 +24,6 @@ providers:
     watch: true
 
 entryPoints:
-
   # Traefik api/dashboard port
   traefik:
     address: ":9000"
@@ -32,15 +31,10 @@ entryPoints:
   web:
     address: ":{{ traefik_http_port }}"
 {% if traefik_enable_ssl %}
+    # For Traefik v3, we create a middleware and apply it to this entrypoint
     http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
-{% if not traefik_privileged %}
-          hostPort: "{{ traefik_https_port }}"
-{% endif %}
-          permanent: true
+      middlewares:
+        - https-redirect
 {% endif %}
 
   websecure:
@@ -52,6 +46,15 @@ entryPoints:
 {% endif %}
 
 {% if traefik_enable_ssl %}
+# Define middleware for HTTP to HTTPS redirect
+http:
+  middlewares:
+    https-redirect:
+      redirectScheme:
+        scheme: https
+        port: "{{ traefik_https_port }}"
+        permanent: true
+
 certificatesResolvers:
   letsencrypt:
     acme:
