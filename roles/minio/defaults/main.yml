@@ -24,6 +24,15 @@ minio_browser: "on"
 minio_volumes: "data"
 minio_enable_console: true
 
+# This handles the application redirects behind the traefik router
+# TODO traefik port needs to come in from inventory
+# SMELL DNS names are hardcoded.  I need to set them up on linode to make this work
+#
+traefik_http_port: 8080
+minio_api_domain: "minio.{{ domain }}"
+minio_console_domain: "minio-console.{{ domain }}"
+minio_browser_redirect_url: "https://{{ minio_console_domain }}:{{ traefik_http_port }}"
+
 # Cleanup settings
 minio_delete_data: false
 

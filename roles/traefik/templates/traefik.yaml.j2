@@ -5,56 +5,47 @@ global:
 
 api:
   dashboard: {{ traefik_dashboard_enabled | lower }}
-  insecure: true  # Never expose dashboard without authentication  (testing only)
+  insecure: true  # SMELL This is not a production instance!
 
+# don't put a filepath here...it prevents podman from accessing to logs.
 log:
   level: WARN
-  #filePath: "/logs/traefik.log"
 
 accessLog:
   filePath: "/logs/access.log"
 
 providers:
   docker:
-    #endpoint: "unix:///run/user/{{ ansible_user_uid }}/podman/podman.sock"
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     network: "{{ service_network }}"
     httpClientTimeout: 300
     watch: true
-    defaultRule: "Host(`{{ '{{ normalize .Name}}' }}.{{ domain }}`)"
-{% if traefik_enable_ssl %}
-    # Apply middleware to all Docker provider routers
-    defaultMiddlewares:
-      - redirect-https
-{% endif %}
+  file:
+    filename: "/etc/traefik/traefik-dynamic.yaml"
+    watch: true
 
 entryPoints:
   # Traefik api/dashboard port
   traefik:
     address: ":9000"
 
-  web:
-    address: ":{{ traefik_http_port }}"
+  # Combined HTTP+HTTPS on same port
+  #web:
+  #  address: ":{{ traefik_http_port }}"
+  #  http:
+  #    tls:
+  #      certResolver: letsencrypt
+  #    middlewares:
+  #      - redirect-to-https@file
 
+
+  # Add this HTTPS entrypoint
   websecure:
-    address: ":{{ traefik_https_port }}"
-{% if traefik_enable_ssl %}
+    address: ":{{ traefik_http_port }}"
     http:
       tls:
         certResolver: letsencrypt
-{% endif %}
-
-# Global middlewares
-http:
-  middlewares:
-    redirect-https:
-      redirectScheme:
-        scheme: https
-{% if not traefik_privileged %}
-        port: "{{ traefik_https_port }}"
-{% endif %}
-        permanent: true
 
 {% if traefik_enable_ssl %}
 certificatesResolvers:

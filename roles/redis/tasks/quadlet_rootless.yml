@@ -63,9 +63,14 @@
       REDIS_HOSTS: "local:redis-svc:6379:0:{{ redis_password }}"
     quadlet_options:
       - "Label=traefik.enable=true"
+
+      # API router (port 8081) - Explicit service binding
       - "Label=traefik.http.routers.redis.rule=Host(`redis-ui.{{ domain }}`)"
-      - "Label=traefik.http.routers.redis.entrypoints=web,websecure"
+      - "Label=traefik.http.routers.redis.entrypoints=websecure"
+      - "Label=traefik.http.routers.redis.service=minio-api"
       - "Label=traefik.http.services.redis.loadbalancer.server.port=8081"
+      - "Label=traefik.http.routers.redis.middlewares=secHeaders@file,redirect-to-https@file"
+
       - |
         [Unit]
         Description=Redis Commander GUI Container

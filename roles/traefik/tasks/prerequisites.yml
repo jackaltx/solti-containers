@@ -34,6 +34,16 @@
       notify: restart traefik
 
     # .....................................................................................
+    - name: Template Traefik dynamic configuration
+      template:
+        src: traefik-dynamic.yaml.j2
+        dest: "{{ traefik_data_dir }}/config/traefik-dynamic.yaml"
+        mode: "0640"
+        owner: "{{ dir_info.stat.uid | default(ansible_user_id) }}"
+        group: "{{ dir_info.stat.gid | default(ansible_user_id) }}"
+      notify: restart traefik
+
+    # .....................................................................................
     - name: Configure SELinux for data directories
       when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
       block:

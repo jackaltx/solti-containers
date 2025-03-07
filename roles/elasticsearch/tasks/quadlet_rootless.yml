@@ -68,11 +68,21 @@
     quadlet_options:
       - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/elasticsearch.env"
       - "Label=traefik.enable=true"
+
+      # API router (port 9200) - Explicit service binding
+      # Primary hostname
       - "Label=traefik.http.routers.elasticsearch0.rule=Host(`elasticsearch.{{ domain }}`)"
-      - "Label=traefik.http.routers.elasticsearch0.entrypoints=web,websecure"
+      - "Label=traefik.http.routers.elasticsearch0.entrypoints=websecure"
+      - "Label=traefik.http.routers.elasticsearch0.service=elasticsearch0"
+      - "Label=traefik.http.services.elasticsearch0.loadbalancer.server.port=9000"
+      - "Label=traefik.http.routers.elasticsearch0.middlewares=secHeaders@file,redirect-to-https@file"
+
+      # Secondary hostname (completely separate router)
       - "Label=traefik.http.routers.elasticsearch1.rule=Host(`es.{{ domain }}`)"
-      - "Label=traefik.http.routers.elasticsearch1.entrypoints=web,websecure"
-      - "Label=traefik.http.services.elasticsearch.loadbalancer.server.port=9200"
+      - "Label=traefik.http.routers.elasticsearch1.entrypoints=websecure"
+      - "Label=traefik.http.routers.elasticsearch1.service=vault-primary" # Use the same service
+      - "Label=traefik.http.routers.elasticsearch1.middlewares=secHeaders@file"
+
       - "Ulimit=memlock=-1:-1"
       - "Ulimit=nofile=65535:65535"
       - |

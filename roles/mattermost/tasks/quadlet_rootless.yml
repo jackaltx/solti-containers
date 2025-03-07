@@ -92,9 +92,14 @@
       - label=disable
     quadlet_options:
       - "Label=traefik.enable=true"
-      - "Label=traefik.http.routers.mattermost.rule=Host(`mattermost.{{ domain }})"
-      - "Label=traefik.http.routers.mattermost.entrypoints=web,websecure"
+
+      # API router (port 8065) - Explicit service binding
+      - "Label=traefik.http.routers.mattermost.rule=Host(`mattermost.{{ domain }}`)"
+      - "Label=traefik.http.routers.mattermost.entrypoints=websecure"
+      - "Label=traefik.http.routers.mattermost.service=mattermost"
       - "Label=traefik.http.services.mattermost.loadbalancer.server.port=8065"
+      - "Label=traefik.http.routers.mattermost.middlewares=secHeaders@file,redirect-to-https@file"
+
       - "User=2000:2000"
       - |
         [Unit]

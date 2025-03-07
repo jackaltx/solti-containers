@@ -1,0 +1,26 @@
+---
+http:
+  middlewares:
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+        port: "{{ traefik_http_port }}"
+
+    # Add this security headers middleware
+    secHeaders:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        customResponseHeaders:
+          server: ""
+          x-powered-by: ""
+    
+    # Add this content type middleware for Traefik v3
+    autodetectContenttype:
+      contentType: {}
