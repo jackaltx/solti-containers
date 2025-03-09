@@ -75,7 +75,7 @@
       - "Label=traefik.http.routers.elasticsearch0.entrypoints=websecure"
       - "Label=traefik.http.routers.elasticsearch0.service=elasticsearch0"
       - "Label=traefik.http.services.elasticsearch0.loadbalancer.server.port=9000"
-      - "Label=traefik.http.routers.elasticsearch0.middlewares=secHeaders@file,redirect-to-https@file"
+      - "Label=traefik.http.routers.elasticsearch0.middlewares=secHeaders@file"
 
       # Secondary hostname (completely separate router)
       - "Label=traefik.http.routers.elasticsearch1.rule=Host(`es.{{ domain }}`)"

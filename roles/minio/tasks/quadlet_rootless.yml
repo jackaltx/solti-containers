@@ -60,14 +60,14 @@
       - "Label=traefik.http.routers.minio-api.entrypoints=websecure"
       - "Label=traefik.http.routers.minio-api.service=minio-api"
       - "Label=traefik.http.services.minio-api.loadbalancer.server.port=9000"
-      - "Label=traefik.http.routers.minio-api.middlewares=secHeaders@file,redirect-to-https@file"
+      - "Label=traefik.http.routers.minio-api.middlewares=secHeaders@file"
 
       # Console router (port 9001) - Explicit service binding
-      - "Label=traefik.http.routers.minio-console.rule=Host(`{{ minio_api_domain }}`)"
+      - "Label=traefik.http.routers.minio-console.rule=Host(`{{ minio_console_domain }}`)"
       - "Label=traefik.http.routers.minio-console.entrypoints=websecure"
       - "Label=traefik.http.routers.minio-console.service=minio-console"
       - "Label=traefik.http.services.minio-console.loadbalancer.server.port=9001"
-      - "Label=traefik.http.routers.minio-console.middlewares=secHeaders@file,redirect-to-https@file"
+      - "Label=traefik.http.routers.minio-console.middlewares=secHeaders@file"
 
       - |
         [Unit]

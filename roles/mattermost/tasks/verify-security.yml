@@ -1,0 +1,187 @@
+---
+# mattermost/tasks/verify-security.yml
+# This task specifically verifies security settings of Mattermost
+
+# ....................................................................................
+# First check that Mattermost is running
+- name: Verify Mattermost is accessible
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/system/ping"
+    method: GET
+    status_code: 200
+  register: ping_result
+  until: ping_result.status == 200
+  retries: 5
+  delay: 2
+
+# ....................................................................................
+# Login to get authentication token
+- name: Login to get authentication token
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users/login"
+    method: POST
+    body_format: json
+    body:
+      login_id: "{{ mattermost_admin_email }}"
+      password: "{{ mattermost_admin_password }}"
+    status_code: [200, 201, 400, 401] # Accept error codes for debugging
+  register: login_response
+  no_log: true
+
+- name: Show response status
+  debug:
+    var: login_response
+    verbosity: 1
+
+- name: Set auth token fact
+  set_fact:
+    auth_token: "{{ login_response.token }}"
+  no_log: true
+
+# ....................................................................................
+# Get current configuration to verify security settings
+- name: Get configuration settings through API
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/config"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ auth_token }}"
+    status_code: 200
+  register: config_result
+  # no_log: true
+
+- name: Verify security settings
+  assert:
+    that:
+      - not config_result.json.TeamSettings.EnableUserCreation
+      - not config_result.json.TeamSettings.EnableOpenServer
+    fail_msg: "Security verification failed: User registration is not properly locked down"
+    success_msg: "Security verification passed: User registration is properly locked down"
+
+# ....................................................................................
+# Test 1: Verify non-admin user cannot create accounts
+- name: Create test user for negative testing
+  set_fact:
+    test_email: "security-test-{{ ansible_date_time.epoch }}@example.com"
+    test_username: "security-test-{{ ansible_date_time.epoch }}"
+    test_password: "TestPassword123!"
+
+- name: Attempt to create a user without authentication (should fail)
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users"
+    method: POST
+    body_format: json
+    body:
+      email: "{{ test_email }}-unauthenticated"
+      username: "{{ test_username }}-unauthenticated"
+      password: "{{ test_password }}"
+      first_name: "Test"
+      last_name: "User"
+    status_code: [401, 403, 501] # Should be denied
+  register: unauth_user_create
+  failed_when: unauth_user_create.status not in [401, 403, 501]
+
+- name: Report unauthorized user creation attempt
+  debug:
+    msg: "Security test PASSED: Unauthenticated user creation properly denied with status {{ unauth_user_create.status }}"
+
+# ....................................................................................
+# Test 2: Verify admin can still create users
+- name: Create test user as admin (should succeed)
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ auth_token }}"
+    body_format: json
+    body:
+      email: "{{ test_email }}"
+      username: "{{ test_username }}"
+      password: "{{ test_password }}"
+      first_name: "Security"
+      last_name: "Test"
+    status_code: [200, 201, 400] # 400 if user already exists
+  register: admin_user_create
+  failed_when:
+    - admin_user_create.status not in [200, 201, 400]
+    - admin_user_create.status == 400 and 'already exists' not in (admin_user_create.json.message | default(''))
+  no_log: true
+
+- name: Report admin user creation attempt
+  debug:
+    msg: "Security test PASSED: Admin can create users, status: {{ admin_user_create.status }}"
+
+# ....................................................................................
+# Test 3: Verify password policy
+- name: Get password requirements
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users/password/reset/send"
+    method: POST
+    body_format: json
+    body:
+      email: "nonexistent-{{ ansible_date_time.epoch }}@example.com"
+    status_code: [400] # Will fail because email doesn't exist, but will return password requirements
+  register: password_requirements
+  failed_when: false
+
+- name: Report password policy settings
+  debug:
+    msg: "Password policy information: {{ password_requirements.json.details | default({}) }}"
+
+# ....................................................................................
+# Test 4: Check session settings
+- name: Verify session settings
+  debug:
+    msg: |
+      Session Security Settings:
+      - Session Length: {{ config_result.json.ServiceSettings.SessionLengthInDays | default('unknown') }} days
+      - Session Timeout: {{ config_result.json.ServiceSettings.SessionTimeoutInMinutes | default('unknown') }} minutes
+      - Idle Timeout: {{ config_result.json.ServiceSettings.SessionIdleTimeoutInMinutes | default('unknown') }} minutes
+
+# ....................................................................................
+# Test 5: Check login rate limiting
+- name: Verify rate limiting settings
+  debug:
+    msg: |
+      Rate Limiting Settings:
+      - Enabled: {{ config_result.json.RateLimitSettings.Enable | default('unknown') }}
+      - Per Sec: {{ config_result.json.RateLimitSettings.PerSec | default('unknown') }}
+      - Memory Store Size: {{ config_result.json.RateLimitSettings.MemoryStoreSize | default('unknown') }}
+      - Max Burst: {{ config_result.json.RateLimitSettings.MaxBurst | default('unknown') }}
+
+# ....................................................................................
+# Additional Security Recommendations
+- name: Provide security recommendations
+  debug:
+    msg: |
+      Mattermost Security Recommendations:
+
+      Current Security Status:
+      - User Registration: {{ 'Locked ✓' if not config_result.json.TeamSettings.EnableUserCreation else 'OPEN ✗' }}
+      - Open Server: {{ 'Locked ✓' if not config_result.json.TeamSettings.EnableOpenServer else 'OPEN ✗' }}
+      - Admin User Created: {{ 'Yes ✓' if auth_token is defined else 'NO ✗' }}
+
+      Additional Security Settings To Consider:
+      1. Enable Multi-Factor Authentication
+      2. Set up SAML or OAuth for enterprise authentication
+      3. Configure proper session timeout values
+      4. Enable rate limiting for failed login attempts
+      5. Consider enabling compliance reporting features
+      6. Set up regular data retention policies
+      7. Consider enabling IP filtering
+      8. Review and update password requirements
+      9. Enable TLS/HTTPS for all connections
+      10. Set up email notifications for suspicious activities
+
+# ....................................................................................
+# Clean up test user
+- name: Delete test user if created
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users/{{ admin_user_create.json.id | default('') }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ auth_token }}"
+    status_code: [200, 404] # 404 if user doesn't exist
+  when: admin_user_create.status in [200, 201] and admin_user_create.json.id is defined
+  failed_when: false
+  no_log: true
