@@ -1,0 +1,49 @@
+---
+# Example playbook showing how to use the mattermost module
+- name: Manage Mattermost Resources
+  hosts: mattermost_svc
+  vars:
+    # SMELL hardcoded and one if only
+    mattermost_port: 8065
+    mattermost_url: "http://localhost:{{ mattermost_port }}"
+
+    admin_username: "{{ lookup('env', 'MM_USER') | default('admin') }}"
+    admin_password: "{{ lookup('env', 'MM_PASSWORD') | default('changemeplease') }}"
+
+  tasks:
+    # First authenticate and get a token
+    - name: Verify security settings
+      mattermost:
+        url: "{{ mattermost_url }}"
+        username: "{{ admin_username }}"
+        password: "{{ admin_password }}"
+        action: verify_security
+      register: security_results
+
+    - name: Display security results
+      debug:
+        var: security_results.security
+
+    # Create a new user (reusing the token from before)
+    - name: Create test user
+      mattermost:
+        url: "{{ mattermost_url }}"
+        token: "{{ security_results.token }}"
+        action: create_user
+        user:
+          email: "test-user@example.com"
+          username: "test-user"
+          password: "SecurePassword123"
+          first_name: "Test"
+          last_name: "User"
+      register: user_result
+
+    # Post notification to a channel
+    - name: Post notification
+      mattermost:
+        url: "{{ mattermost_url }}"
+        token: "{{ security_results.token }}"
+        action: post_message
+        team_name: "main" # Change to your team name
+        channel_name: "town-square" # Change to your channel name
+        message: "Security verification completed: {% if security_results.security.tests_passed %}✅ All tests passed{% else %}❌ Some tests failed{% endif %}"
