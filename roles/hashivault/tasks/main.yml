@@ -8,8 +8,8 @@
 
 - name: Validate state parameter
   ansible.builtin.fail:
-    msg: "vault_state must be one of: prepare, present, absent. Current value: {{ vault_state }}"
-  when: vault_state not in ['prepare', 'present', 'absent']
+    msg: "hashivault_state must be one of: prepare, present, absent. Current value: {{ hashivault_state }}"
+  when: hashivault_state not in ['prepare', 'present', 'absent']
 
 - name: Test become capability
   ansible.builtin.command: whoami
@@ -27,7 +27,7 @@
 # =======================================================================
 
 - name: Prepare hashivault (one-time setup)
-  when: vault_state == 'prepare'
+  when: hashivault_state == 'prepare'
   block:
     - name: Check if already prepared
       ansible.builtin.stat:
@@ -44,10 +44,13 @@
       ansible.builtin.include_tasks:
         file: ../_base/tasks/prepare.yml
 
-    # =======================================================================
-    # DEPLOYMENT
-    # =======================================================================
+# =======================================================================
+# DEPLOYMENT
+# =======================================================================
 
+- name: Install Hashivault
+  when: hashivault_state == 'present'
+  block:
     - name: Verify required directories exist
       become: true
       ansible.builtin.stat:
@@ -76,8 +79,8 @@
 # CLEANUP
 # =======================================================================
 
-- name: Remove Vault
-  when: vault_state == 'absent'
+- name: Remove Hashivault
+  when: hashivault_state == 'absent'
   block:
     # ...............................................................................
     - name: Include cleanup tasks

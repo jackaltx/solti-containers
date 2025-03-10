@@ -155,7 +155,7 @@ elasticsearch_delete_data: false      # Set to true to delete data on removal
 ### HashiVault
 
 ```yaml
-vault_state: present                  # present, prepare, or absent
+hashivault_state: present                  # present, prepare, or absent
 vault_data_dir: "~/vault-data"
 vault_api_port: 8200
 vault_enable_ui: true

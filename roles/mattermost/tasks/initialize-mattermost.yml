@@ -1,0 +1,136 @@
+---
+# mattermost/tasks/initialize-mattermost.yml
+# This task file initializes a Mattermost instance with an admin user and locks down registration
+
+# ....................................................................................
+# Verify Mattermost is running and accessible
+- name: Wait for Mattermost to be ready
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/system/ping"
+    method: GET
+    status_code: 200
+  register: ping_result
+  until: ping_result.status == 200
+  retries: 30
+  delay: 5
+  no_log: false
+
+- name: Show Mattermost status
+  debug:
+    msg: "Mattermost is accessible at {{ mattermost_site_url }}"
+
+# ....................................................................................
+# Check if admin user exists
+- name: Check if users exist
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users"
+    method: GET
+    status_code: [200, 401, 403]
+  register: users_check
+  failed_when: false
+  # no_log: true
+
+# ....................................................................................
+# Create System Admin User (first user is automatically an admin)
+- name: Create admin user
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users"
+    method: POST
+    body_format: json
+    body:
+      email: "{{ mattermost_admin_email }}"
+      username: "{{ mattermost_admin_username }}"
+      password: "{{ mattermost_admin_password }}"
+      first_name: "System"
+      last_name: "Admin"
+    status_code: [200, 201, 400]
+  register: admin_create
+  # Only attempt to create admin if unauthorized/no users exist yet
+  when: users_check.status == 401
+  failed_when:
+    - admin_create.status != 201
+    - admin_create.status != 200
+    - "'already exists' not in (admin_create.json.message | default(''))"
+  changed_when: admin_create.status in [200, 201]
+  # no_log: true
+
+# ....................................................................................
+# Login to get authentication token
+- name: Login to get authentication token
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users/login"
+    method: POST
+    body_format: json
+    body:
+      login_id: "{{ mattermost_admin_email }}"
+      password: "{{ mattermost_admin_password }}"
+    status_code: [200, 201, 400, 401]
+  register: login_response
+  no_log: true
+
+- name: Set auth token fact
+  set_fact:
+    auth_token: "{{ login_response.token }}"
+  no_log: true
+
+- name: Debug token
+  debug:
+    msg: "Token received: {{ 'Yes' if auth_token != '' else 'No' }}"
+
+# ....................................................................................
+# Lock down registration by updating config in database
+- name: Disable user creation and open server
+  set_fact:
+    mattermost_enable_user_creation: false
+    mattermost_enable_open_server: false
+  when: auth_token is defined
+
+# ....................................................................................
+# Update config file with new settings
+- name: Update Mattermost configuration
+  become: true
+  template:
+    src: config.json.j2
+    dest: "{{ mattermost_data_dir }}/config/config.json"
+    mode: "0666"
+    owner: "{{ dir_info.stat.uid | default(ansible_user_id) }}"
+    group: "{{ dir_info.stat.gid | default(ansible_user_id) }}"
+  register: config_update
+  when: auth_token is defined
+
+# ....................................................................................
+# Restart Mattermost to apply changes
+- name: Restart Mattermost container
+  systemd:
+    name: "{{ service_properties.name }}"
+    state: restarted
+    scope: user
+  when: config_update.changed
+
+# ....................................................................................
+# Verify settings were applied
+- name: Wait for Mattermost to come back up
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/system/ping"
+    method: GET
+    status_code: 200
+  register: ping_result
+  until: ping_result.status == 200
+  retries: 30
+  delay: 5
+  when: config_update.changed
+  no_log: false
+
+# ....................................................................................
+# Display completion message
+- name: Display initialization summary
+  debug:
+    msg: |
+      Mattermost has been initialized successfully:
+      - Admin user: {{ mattermost_admin_username }}
+      - User creation disabled: {{ mattermost_enable_user_creation | lower }}
+      - Open server disabled: {{ mattermost_enable_open_server | lower }}
+
+      You can now log in at {{ mattermost_site_url }} with:
+      - Username: {{ mattermost_admin_username }}
+      - Password: (the password you configured)

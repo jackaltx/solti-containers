@@ -49,13 +49,13 @@ Debug solti-containers: mattermost
 
 
 TASK [mattermost : Create Mattermost data directories] ****************************************************************************************
-ok: [firefly] => (item=/home/lavender/mattermost-data)
-ok: [firefly] => (item=/home/lavender/mattermost-data/config)
-ok: [firefly] => (item=/home/lavender/mattermost-data/data)
-ok: [firefly] => (item=/home/lavender/mattermost-data/logs)
-ok: [firefly] => (item=/home/lavender/mattermost-data/plugins)
-ok: [firefly] => (item=/home/lavender/mattermost-data/client/plugins)
-An exception occurred during task execution. To see the full traceback, use -vvv. The error was: PermissionError: [Errno 1] Operation not permitted: b'/home/lavender/mattermost-data/postgres'
+ok: [firefly] => (item=/home/jackaltx/mattermost-data)
+ok: [firefly] => (item=/home/jackaltx/mattermost-data/config)
+ok: [firefly] => (item=/home/jackaltx/mattermost-data/data)
+ok: [firefly] => (item=/home/jackaltx/mattermost-data/logs)
+ok: [firefly] => (item=/home/jackaltx/mattermost-data/plugins)
+ok: [firefly] => (item=/home/jackaltx/mattermost-data/client/plugins)
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: PermissionError: [Errno 1] Operation not permitted: b'/home/jackaltx/mattermost-data/postgres'
 
 
 3. When I remove the ~/mattermost-data  directories. no pod/container was was created.

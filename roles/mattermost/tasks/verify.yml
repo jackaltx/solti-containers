@@ -21,6 +21,7 @@
   debug:
     var: container_status.stdout_lines
 
+# ..................................................................................
 # Check PostgreSQL
 - name: Check PostgreSQL connection
   command: >
@@ -51,6 +52,7 @@
   debug:
     var: table_count.stdout_lines
 
+# ..................................................................................
 # Check Mattermost API
 - name: Wait for Mattermost to be ready
   uri:
@@ -74,6 +76,7 @@
   debug:
     var: status_result
 
+# ..................................................................................
 # Check logs for any errors
 - name: Check Mattermost logs for errors
   command: >
@@ -85,6 +88,7 @@
   debug:
     msg: "{{ mattermost_logs.stdout_lines | select('match', '.*error.*') | list }}"
 
+# ..................................................................................
 # Check config accessibility
 - name: Verify config file permissions
   command: >
@@ -97,6 +101,7 @@
   debug:
     var: config_perms.stdout_lines
 
+# ..................................................................................
 # Memory usage
 - name: Get container resource usage
   command: >

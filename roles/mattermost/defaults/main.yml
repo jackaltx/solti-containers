@@ -23,13 +23,18 @@ mattermost_postgres_password: "{{ lookup('env', 'MM_DB_PASSWORD') | default('cha
 mattermost_db_name: "mattermost"
 mattermost_db_user: "mmuser"
 
+# Create admin user
+mattermost_enable_user_creation: true
+mattermost_enable_open_server: true
+mattermost_admin_email: "admin@{{ domain }}"
+mattermost_admin_username: "{{ lookup('env', 'MM_USER') | default('admin') }}"
+mattermost_admin_password: "{{ lookup('env', 'MM_PASSWORD') | default('changemeplease') }}"
+
 # Application settings
 mattermost_port: 8065
 #mattermost_site_url: "" # Leave empty for automatic
 mattermost_site_url: "http://localhost:{{ mattermost_port }}"
 mattermost_site_name: "Mattermost"
-mattermost_enable_open_server: true
-mattermost_enable_user_creation: true
 mattermost_log_level: "WARN"
 
 # Cleanup settings

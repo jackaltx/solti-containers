@@ -1,0 +1,108 @@
+---
+# Example playbook showing how to use the mattermost module
+- name: Manage Mattermost Resources
+  hosts: mattermost_svc
+  vars:
+    # SMELL hardcoded and one if only
+    mattermost_port: 8065
+    mattermost_url: "http://localhost:{{ mattermost_port }}"
+
+    admin_username: "{{ lookup('env', 'MM_USER') | default('admin') }}"
+    admin_password: "{{ lookup('env', 'MM_PASSWORD') | default('changemeplease') }}"
+
+  tasks:
+    # First authenticate and get a token
+    - name: Verify security settings
+      jackaltx.solti_containers.mattermost:
+        url: "{{ mattermost_url }}"
+        username: "{{ admin_username }}"
+        password: "{{ admin_password }}"
+        action: verify_security
+      register: security_results
+      check_mode: no # ?????????????
+
+    - name: Display security results
+      debug:
+        var: security_results.security
+
+    # Create a new user (reusing the token from before)
+    - name: Create test user
+      jackaltx.solti_containers.mattermost:
+        url: "{{ mattermost_url }}"
+        token: "{{ security_results.token }}"
+        action: create_user
+        user:
+          email: "test-user@example.com"
+          username: "test-user"
+          password: "SecurePassword123"
+          first_name: "Test"
+          last_name: "User"
+      register: user_result
+
+    - name: Display created user ID
+      debug:
+        var: user_result
+
+    - name: Delete the user we just created
+      uri:
+        url: "{{ mattermost_url }}/api/v4/users/{{ user_result.user.id }}"
+        headers:
+          Authorization: "Bearer {{ security_results.token }}"
+        method: DELETE
+        status_code: [200, 404]
+      when: user_result is defined and user_result.user is defined and user_result.user.id is defined
+
+    # ..................................................................................
+    # Post notification to a channel
+    - name: Post notification
+      jackaltx.solti_containers.mattermost:
+        url: "{{ mattermost_url }}"
+        token: "{{ security_results.token }}"
+        action: post_message
+        team_name: "solti" # Change to your team name
+        channel_name: "town-square" # Change to your channel name
+        message: "Security verification completed: {% if security_results.security.tests_passed %}✅ All tests passed{% else %}❌ Some tests failed{% endif %}"
+
+    # ..................................................................................
+    # - name: Look up test user
+    #   uri:
+    #     url: "{{ mattermost_url }}/api/v4/users/username/test-user"
+    #     headers:
+    #       Authorization: "Bearer {{ security_results.token }}"
+    #     method: GET
+    #     status_code: [200, 404] # 404 if not found
+    #   register: user_lookup
+    #   failed_when: false
+
+    # - name: Delete test user if found
+    #   uri:
+    #     url: "{{ mattermost_url }}/api/v4/users/{{ user_lookup.json.id }}"
+    #     headers:
+    #       Authorization: "Bearer {{ security_results.token }}"
+    #     method: DELETE
+    #     status_code: [200, 404]
+    #   when: user_lookup.status == 200
+    #   register: delete_result
+
+    # - debug:
+    #     var: delete_result
+
+    # - name: Display cleanup result
+    #   debug:
+    #     msg: "Test user deleted successfully"
+    #   when: delete_result.status is defined and delete_result.status == 200
+
+    # ..................................................................................
+    - name: List users
+      uri:
+        url: "{{ mattermost_url }}/api/v4/users?active=true"
+        headers:
+          Authorization: "Bearer {{ security_results.token }}"
+        method: GET
+      register: users_result
+
+    - name: Display users
+      debug:
+        msg: "{% for user in users_result.json %}
+          - {{ user.first_name }} {{ user.last_name }} ({{ user.email }})
+          {% endfor %}"

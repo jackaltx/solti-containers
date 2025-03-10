@@ -1,0 +1,260 @@
+---
+# mattermost/tasks/verify_with_test_user.yml
+# This file contains verification tasks for Mattermost, including creating a test user
+
+# ....................................................................................
+- name: Verify Mattermost pod is running
+  command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
+  register: pod_status
+  failed_when: "'mattermost' not in pod_status.stdout"
+  changed_when: false
+
+- name: Show pod status
+  debug:
+    var: pod_status.stdout_lines
+
+# ....................................................................................
+- name: Verify Mattermost containers are running
+  command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=mattermost"
+  register: container_status
+  failed_when: >
+    'mattermost-db' not in container_status.stdout or
+    'mattermost-svc' not in container_status.stdout
+  changed_when: false
+
+- name: Show container status
+  debug:
+    var: container_status.stdout_lines
+
+# ....................................................................................
+# Check PostgreSQL
+- name: Check PostgreSQL connection
+  command: >
+    podman exec 
+    -e PGPASSWORD="{{ mattermost_postgres_password }}"
+    mattermost-db 
+    psql -U {{ mattermost_db_user }} -d {{ mattermost_db_name }} -c "SELECT version();"
+  register: postgres_version
+  changed_when: false
+  no_log: true
+
+- name: Show PostgreSQL version
+  debug:
+    var: postgres_version.stdout_lines
+
+# ....................................................................................
+# Check Mattermost API
+- name: Wait for Mattermost to be ready
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/system/ping"
+    method: GET
+    status_code: 200
+  register: ping_result
+  until: ping_result.status == 200
+  retries: 30
+  delay: 5
+  no_log: false
+
+# ....................................................................................
+# Set test user variables if not defined
+- name: Set default test user variables if not defined
+  set_fact:
+    test_email: "{{ test_email | default('test-' + ansible_date_time.epoch + '@example.com') }}"
+    test_username: "{{ test_username | default('testuser-' + ansible_date_time.epoch) }}"
+    test_password: "{{ test_password | default('Test123!') }}"
+    test_team_name: "{{ test_team_name | default('testteam-' + ansible_date_time.epoch) }}"
+    test_team_display_name: "{{ test_team_display_name | default('Test Team') }}"
+    test_team_description: "{{ test_team_description | default('Team for testing purposes') }}"
+
+# ....................................................................................
+# Create System Admin User (first user is automatically an admin)
+- name: Check if admin user exists
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users"
+    method: GET
+    status_code: [200, 401, 403]
+  register: users_check
+  failed_when: false
+  no_log: true
+
+- name: Create admin user if no users exist
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users"
+    method: POST
+    body_format: json
+    body:
+      email: "admin@example.com"
+      username: "admin"
+      password: "{{ test_password }}"
+      first_name: "System"
+      last_name: "Admin"
+    status_code: [200, 201, 400]
+  register: admin_create
+  # Only attempt to create admin if unauthorized/no users exist yet
+  when: users_check.status == 401
+  failed_when:
+    - admin_create.status != 201
+    - admin_create.status != 200
+    - "'already exists' not in (admin_create.json.message | default(''))"
+  changed_when: admin_create.status in [200, 201]
+  no_log: true
+
+# ....................................................................................
+# Login to get authentication token
+- name: Login to get authentication token
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users/login"
+    method: POST
+    body_format: json
+    body:
+      login_id: "admin@example.com"
+      password: "{{ test_password }}"
+    status_code: [200, 201, 400, 401]
+    return_content: true
+  register: login_response
+  failed_when: false
+  no_log: false # Temporarily set to false for debugging
+
+- name: Display login response information for debugging
+  debug:
+    msg:
+      - "Status: {{ login_response.status }}"
+      - "Headers available: {{ login_response | dict2items | selectattr('key', 'match', 'header|x_header') | list }}"
+      - "Response keys: {{ login_response | dict2items | map(attribute='key') | list }}"
+  when: login_response is defined
+
+- name: Set auth token directly from response
+  set_fact:
+    auth_token: "{{ login_response.token | default('') }}"
+  when: login_response.status in [200, 201]
+  no_log: false # Temporarily set to false for debugging
+
+- name: Print the token if found
+  debug:
+    msg: "Token found: {{ 'Yes' if auth_token is defined and auth_token != '' else 'No' }}"
+
+# If the token approach doesn't work, we'll try a simpler approach:
+# Create a test user directly without authentication first
+- name: Create test user directly (no authentication)
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users"
+    method: POST
+    body_format: json
+    body:
+      email: "{{ test_email }}"
+      username: "{{ test_username }}"
+      password: "{{ test_password }}"
+      first_name: "Test"
+      last_name: "User"
+    status_code: [201, 400, 403]
+  register: direct_user_create
+  failed_when: false
+  no_log: false # Temporarily set to false for debugging
+
+# ....................................................................................
+# Create Test Team if needed
+- name: Create test team
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/teams"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ auth_token }}"
+    body_format: json
+    body:
+      name: "{{ test_team_name }}"
+      display_name: "{{ test_team_display_name }}"
+      description: "{{ test_team_description }}"
+      type: "O" # Open team
+    status_code: [201, 400]
+  register: team_create
+  when: auth_token is defined
+  failed_when:
+    - team_create.status != 201
+    - "'already exists' not in (team_create.json.message | default(''))"
+  changed_when: team_create.status == 201
+  no_log: true
+
+- name: Set team ID fact
+  set_fact:
+    team_id: "{{ team_create.json.id }}"
+  when: team_create.status == 201
+  no_log: true
+
+# ....................................................................................
+# Create Test User
+- name: Create test user
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/users"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ auth_token }}"
+    body_format: json
+    body:
+      email: "{{ test_email }}"
+      username: "{{ test_username }}"
+      password: "{{ test_password }}"
+      first_name: "Test"
+      last_name: "User"
+    status_code: [201, 400]
+  register: user_create
+  when: auth_token is defined
+  failed_when:
+    - user_create.status != 201
+    - "'already exists' not in (user_create.json.message | default(''))"
+  changed_when: user_create.status == 201
+  no_log: true
+
+- name: Set user ID fact
+  set_fact:
+    user_id: "{{ user_create.json.id }}"
+  when: user_create.status == 201
+  no_log: true
+
+# ....................................................................................
+# Add test user to team if both exist
+- name: Add test user to team
+  uri:
+    url: "{{ mattermost_site_url }}/api/v4/teams/{{ team_create.json.id }}/members"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ auth_token }}"
+    body_format: json
+    body:
+      team_id: "{{ team_create.json.id }}"
+      user_id: "{{ user_create.json.id }}"
+    status_code: [201, 400, 403]
+  register: team_add
+  when:
+    - auth_token is defined
+    - team_create.status == 201
+    - user_create.status == 201
+  failed_when:
+    - team_add.status != 201
+    - team_add.status != 400
+    - "'already exists' not in (team_add.json.message | default(''))"
+  changed_when: team_add.status == 201
+  no_log: true
+
+# ....................................................................................
+# Display test user information
+- name: Show test user information
+  debug:
+    msg: |
+      Mattermost test user created:
+      - Username: {{ test_username }}
+      - Email: {{ test_email }}
+      - Password: {{ test_password }}
+      - Team: {{ test_team_display_name }}
+  when: user_create.status == 201
+
+# ....................................................................................
+# Check Mattermost logs for any errors
+- name: Check Mattermost logs for errors
+  command: >
+    podman logs --tail 50 mattermost-svc
+  register: mattermost_logs
+  changed_when: false
+
+- name: Show recent error logs if any
+  debug:
+    msg: "{{ mattermost_logs.stdout_lines | select('match', '.*error.*') | list }}"

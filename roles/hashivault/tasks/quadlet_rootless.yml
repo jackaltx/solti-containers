@@ -50,11 +50,23 @@
       VAULT_CLUSTER_ADDR: "http://127.0.0.1:8201"
     quadlet_options:
       - "Label=traefik.enable=true"
-      - "Label=traefik.http.routers.hashivault0.rule=Host(`hashivault.a0a0.org`)"
-      - "Label=traefik.http.routers.hashivault0.entrypoints=web,websecure"
-      - "Label=traefik.http.routers.hashivault1.rule=Host(`vault.a0a0.org`)"
-      - "Label=traefik.http.routers.hashivault1.entrypoints=web,websecure"
-      - "Label=traefik.http.services.hashivault.loadbalancer.server.port=8200"
+      # Define a single service
+
+      # API router (port 8200) - Explicit service binding
+      # Primary hostname
+      - "Label=traefik.http.routers.vault-primary.rule=Host(`vault.{{ domain }}`)"
+      - "Label=traefik.http.routers.vault-primary.entrypoints=websecure"
+      - "Label=traefik.http.routers.vault-primary.service=vault-primary"
+      - "Label=traefik.http.services.vault-primary.loadbalancer.server.port=8200"
+      - "Label=traefik.http.routers.vault-primary.middlewares=secHeaders@file,redirect-to-https@file"
+
+      # Secondary hostname (completely separate router)
+      - "Label=traefik.http.routers.vault-secondary.rule=Host(`hashivault.{{ domain }}`)"
+      - "Label=traefik.http.routers.vault-secondary.entrypoints=websecure"
+      - "Label=traefik.http.routers.vault-secondary.service=vault-primary" # Use the same service
+      - "Label=traefik.http.routers.vault-secondary.middlewares=secHeaders@file"
+
+      # Other settings
       - "AddCapability=IPC_LOCK"
       - |
         [Unit]
