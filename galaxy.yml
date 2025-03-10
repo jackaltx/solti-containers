@@ -1,6 +1,6 @@
 ---
 namespace: jackaltx
-name: solti.containers
+name: solti_containers
 version: 1.0.0
 readme: README.md
 authors:
