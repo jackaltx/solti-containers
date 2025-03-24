@@ -1,0 +1,56 @@
+# Wazuh Dashboard configuration file
+
+# Server host configuration
+server.host: "0.0.0.0"
+server.port: 443
+server.ssl.enabled: true
+server.ssl.key: "/etc/ssl/wazuh/wazuh-dashboard.key"
+server.ssl.certificate: "/etc/ssl/wazuh/wazuh-dashboard.pem"
+opensearch.ssl.certificateAuthorities: ["/etc/ssl/wazuh/root-ca.pem"]
+
+# Indexer connection
+opensearch.hosts: ["https://wazuh-indexer:9200"]
+opensearch.ssl.verificationMode: certificate
+opensearch.username: "admin"
+opensearch.password: "{{ wazuh_admin_password }}"
+opensearch.requestHeadersWhitelist: ["securitytenant", "Authorization"]
+
+# Wazuh plugin configuration
+wazuh.api.hosts:
+  - url: "https://wazuh-manager"
+    port: 55000
+    username: "{{ wazuh_api_user }}"
+    password: "{{ wazuh_api_password }}"
+    run_as: false
+
+# Dashboard customization
+server.name: "wazuh-dashboard"
+server.defaultRoute: "/app/wazuh"
+opensearch_security.cookie.secure: true
+opensearch_security.cookie.ttl: 3600000
+
+# Logging settings
+logging.dest: stdout
+logging.silent: false
+logging.quiet: false
+logging.verbose: false
+logging.timezone: "UTC"
+
+# CPU and memory usage optimization
+opensearch.requestTimeout: 60000
+opensearch.shardTimeout: 120000
+server.maxPayloadBytes: 10485760
+
+# HTTPS settings
+server.keepaliveTimeout: 120000
+server.socketTimeout: 120000
+
+# Security settings
+csp.strict: true
+csp.warnLegacyBrowsers: true
+
+# UI settings
+uiSettings.overrides:
+  defaultRoute: /app/wazuh
+  "theme:darkMode": true
+  "dateFormat:tz": "local"

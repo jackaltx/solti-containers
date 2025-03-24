@@ -1,0 +1,96 @@
+---
+# This task generates self-signed certificates for Wazuh components
+
+- name: Check if certificates already exist
+  ansible.builtin.stat:
+    path: "{{ wazuh_data_dir }}/certs/root-ca.pem"
+  register: cert_check
+
+- name: Generate certificates
+  when: not cert_check.stat.exists
+  become: true
+  block:
+    # Create temporary directory for certificate generation
+    - name: Create temporary directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: wazuh_certs
+      register: cert_temp_dir
+
+    # Generate CA Key
+    - name: Generate CA private key
+      community.crypto.openssl_privatekey:
+        path: "{{ cert_temp_dir.path }}/root-ca.key"
+        type: RSA
+        size: 4096
+
+    # Generate CA Certificate
+    - name: Generate CA certificate
+      community.crypto.openssl_certificate:
+        path: "{{ cert_temp_dir.path }}/root-ca.pem"
+        privatekey_path: "{{ cert_temp_dir.path }}/root-ca.key"
+        provider: selfsigned
+        selfsigned_not_after: "+{{ wazuh_ca_cert_days }}d"
+        selfsigned_digest: sha256
+        subject:
+          CN: "Wazuh CA"
+          O: "Wazuh Inc."
+          OU: "Wazuh Security"
+          C: "US"
+        basic_constraints:
+          - "CA:TRUE"
+        basic_constraints_critical: true
+
+    # Generate component certificates (for each component)
+    - name: Generate certificates for Wazuh components
+      include_tasks: generate_component_cert.yml
+      loop:
+        - name: "wazuh-manager"
+          cn: "wazuh-manager.{{ service_dns_search }}"
+          san_dns:
+            - "wazuh-manager"
+            - "wazuh-manager.{{ service_dns_search }}"
+            - "localhost"
+          san_ip:
+            - "127.0.0.1"
+        - name: "wazuh-indexer"
+          cn: "wazuh-indexer.{{ service_dns_search }}"
+          san_dns:
+            - "wazuh-indexer"
+            - "wazuh-indexer.{{ service_dns_search }}"
+            - "localhost"
+          san_ip:
+            - "127.0.0.1"
+        - name: "wazuh-dashboard"
+          cn: "wazuh-dashboard.{{ service_dns_search }}"
+          san_dns:
+            - "wazuh-dashboard"
+            - "wazuh-dashboard.{{ service_dns_search }}"
+            - "localhost"
+          san_ip:
+            - "127.0.0.1"
+
+    # Copy certificates to their final location
+    - name: Copy certificates to their final location
+      ansible.builtin.copy:
+        src: "{{ cert_temp_dir.path }}/"
+        dest: "{{ wazuh_data_dir }}/certs/"
+        remote_src: true
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+        mode: "0640"
+
+    # Clean up
+    - name: Remove temporary certificate directory
+      ansible.builtin.file:
+        path: "{{ cert_temp_dir.path }}"
+        state: absent
+
+# Generate component certificate task
+- name: Include generate component cert task
+  ansible.builtin.include_tasks: generate_component_cert.yml
+  with_items:
+    - { name: "wazuh-indexer" }
+    - { name: "wazuh-manager" }
+    - { name: "wazuh-dashboard" }
+  when: false # This is just for reference, not to be executed here

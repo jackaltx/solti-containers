@@ -1,0 +1,71 @@
+---
+# Installation state
+wazuh_state: present
+wazuh_force_reload: false
+
+# Container settings
+wazuh_manager_image: "docker.io/wazuh/wazuh-manager:4.7.2"
+wazuh_indexer_image: "docker.io/wazuh/wazuh-indexer:4.7.2"
+wazuh_dashboard_image: "docker.io/wazuh/wazuh-dashboard:4.7.2"
+
+# Directory settings
+wazuh_data_dir: "{{ ansible_user_dir }}/wazuh-data"
+
+# Certificates
+wazuh_generate_certs: true
+wazuh_ca_cert_days: 3650
+wazuh_cert_days: 3650
+
+# Network configuration
+wazuh_network_name: "{{ service_network }}"
+
+# Ports
+wazuh_api_port: 55000
+wazuh_manager_port: 1514
+wazuh_registration_port: 1515
+wazuh_dashboard_port: 443
+wazuh_indexer_port: 9200
+
+# Resource limits
+wazuh_indexer_memory: "2g"
+wazuh_manager_memory: "1g"
+wazuh_dashboard_memory: "1g"
+
+# Security settings
+wazuh_admin_password: "{{ lookup('env', 'WAZUH_ADMIN_PASSWORD') | default('changeme') }}"
+wazuh_api_user: "wazuh-api"
+wazuh_api_password: "{{ lookup('env', 'WAZUH_API_PASSWORD') | default('changeme') }}"
+
+# Cleanup settings
+wazuh_delete_data: false
+
+# =======================================================================
+service_network: "example-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"
+
+# =======================================================================
+service_properties:
+  root: "wazuh"
+  name: "wazuh-pod"
+  pod_key: "wazuh.pod"
+  quadlets:
+    - "wazuh-manager.container"
+    - "wazuh-indexer.container"
+    - "wazuh-dashboard.container"
+    - "wazuh.pod"
+  data_dir: "{{ wazuh_data_dir }}" # override in playbook
+  config_dir: "config"
+  dirs:
+    - { path: "", mode: "0750" }
+    - { path: "config", mode: "0750" }
+    - { path: "config/manager", mode: "0755" }
+    - { path: "config/indexer", mode: "0755" }
+    - { path: "config/dashboard", mode: "0755" }
+    - { path: "data", mode: "0750" }
+    - { path: "data/manager", mode: "0770" }
+    - { path: "data/indexer", mode: "0770" }
+    - { path: "data/dashboard", mode: "0770" }
+    - { path: "certs", mode: "0750" }

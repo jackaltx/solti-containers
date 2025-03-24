@@ -1,0 +1,38 @@
+---
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+- name: restart wazuh
+  ansible.builtin.systemd:
+    name: "{{ service_properties.name }}"
+    state: restarted
+    scope: user
+  listen: "restart wazuh"
+
+- name: restart wazuh manager
+  ansible.builtin.systemd:
+    name: "container-wazuh-manager"
+    state: restarted
+    scope: user
+  listen: "restart wazuh manager"
+
+- name: restart wazuh indexer
+  ansible.builtin.systemd:
+    name: "container-wazuh-indexer"
+    state: restarted
+    scope: user
+  listen: "restart wazuh indexer"
+
+- name: restart wazuh dashboard
+  ansible.builtin.systemd:
+    name: "container-wazuh-dashboard"
+    state: restarted
+    scope: user
+  listen: "restart wazuh dashboard"
+
+- name: reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user

@@ -1,0 +1,77 @@
+---
+# .......................................................................
+- name: Verify prerequisite variables
+  assert:
+    that:
+      - wazuh_admin_password != "changeme"
+      - wazuh_api_password != "changeme"
+      - wazuh_data_dir is defined
+      - wazuh_api_port is defined
+    fail_msg: "Required variables not properly configured"
+
+# .......................................................................
+# Get container user mapping first
+- name: Get directory ownership
+  ansible.builtin.stat:
+    path: "{{ wazuh_data_dir }}/config"
+  register: dir_info
+
+- name: Debug ownership
+  ansible.builtin.debug:
+    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+
+# .......................................................................
+- name: Become root and apply configuration
+  become: true
+  block:
+    # ...................................................
+    - name: Template manager config
+      ansible.builtin.template:
+        src: ossec.conf.j2
+        dest: "{{ wazuh_data_dir }}/config/manager/ossec.conf"
+        mode: "0640"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart wazuh manager
+
+    - name: Template indexer config
+      ansible.builtin.template:
+        src: elasticsearch.yml.j2
+        dest: "{{ wazuh_data_dir }}/config/indexer/elasticsearch.yml"
+        mode: "0640"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart wazuh indexer
+
+    - name: Template dashboard config
+      ansible.builtin.template:
+        src: opensearch_dashboards.yml.j2
+        dest: "{{ wazuh_data_dir }}/config/dashboard/opensearch_dashboards.yml"
+        mode: "0640"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart wazuh dashboard
+
+    - name: Template manager ruleset
+      ansible.builtin.template:
+        src: local_rules.xml.j2
+        dest: "{{ wazuh_data_dir }}/config/manager/local_rules.xml"
+        mode: "0640"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart wazuh manager
+
+    # ...................................................
+    - name: Configure SELinux for data directories
+      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+      block:
+        - name: Set SELinux context for data directories
+          ansible.builtin.sefcontext:
+            target: "{{ wazuh_data_dir }}(/.*)?"
+            setype: container_file_t
+            state: present
+
+        - name: Apply SELinux context
+          ansible.builtin.command: restorecon -R -v "{{ wazuh_data_dir }}"
+          register: restorecon_result
+          changed_when: restorecon_result.rc == 0

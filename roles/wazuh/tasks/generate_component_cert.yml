@@ -1,0 +1,48 @@
+---
+# This task should be called from certificates.yml with the appropriate parameters
+
+# Generate private key for component
+- name: Generate {{ item.name }} private key
+  community.crypto.openssl_privatekey:
+    path: "{{ cert_temp_dir.path }}/{{ item.name }}.key"
+    type: RSA
+    size: 2048
+
+# Generate CSR (Certificate Signing Request)
+- name: Generate {{ item.name }} CSR
+  community.crypto.openssl_csr:
+    path: "{{ cert_temp_dir.path }}/{{ item.name }}.csr"
+    privatekey_path: "{{ cert_temp_dir.path }}/{{ item.name }}.key"
+    common_name: "{{ item.cn | default(item.name + '.example.com') }}"
+    subject:
+      O: "Wazuh Inc."
+      OU: "Wazuh Security"
+      C: "US"
+    subject_alt_name: >-
+      {{ (['DNS:' + item.name] +
+         ['DNS:' + dns for dns in item.san_dns | default([])] +
+         ['IP:' + ip for ip in item.san_ip | default([])]) | join(',') }}
+
+# Sign the certificate with our CA
+- name: Sign {{ item.name }} certificate with CA
+  community.crypto.openssl_certificate:
+    path: "{{ cert_temp_dir.path }}/{{ item.name }}.pem"
+    csr_path: "{{ cert_temp_dir.path }}/{{ item.name }}.csr"
+    provider: ownca
+    ownca_path: "{{ cert_temp_dir.path }}/root-ca.pem"
+    ownca_privatekey_path: "{{ cert_temp_dir.path }}/root-ca.key"
+    not_after: "+{{ wazuh_cert_days }}d"
+    extended_key_usage:
+      - serverAuth
+      - clientAuth
+
+# Create pkcs12 for Wazuh components that need it
+- name: Create PKCS12 for {{ item.name }}
+  community.crypto.openssl_pkcs12:
+    action: export
+    path: "{{ cert_temp_dir.path }}/{{ item.name }}.p12"
+    friendly_name: "{{ item.name }}"
+    privatekey_path: "{{ cert_temp_dir.path }}/{{ item.name }}.key"
+    certificate_path: "{{ cert_temp_dir.path }}/{{ item.name }}.pem"
+    other_certificates: "{{ cert_temp_dir.path }}/root-ca.pem"
+    state: present

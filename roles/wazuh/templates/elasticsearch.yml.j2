@@ -1,0 +1,62 @@
+# wazuh/templates/elasticsearch.yml.j2
+# Wazuh Indexer configuration file
+
+# Cluster configuration
+cluster.name: wazuh-cluster
+node.name: wazuh-indexer
+
+# Network settings
+network.host: "0.0.0.0"
+http.port: 9200
+transport.tcp.port: 9300
+
+# Paths
+path.data: /var/lib/wazuh-indexer
+path.logs: /var/log/wazuh-indexer
+
+# Discovery settings (for single node)
+discovery.type: single-node
+
+# Memory settings
+bootstrap.memory_lock: true
+
+# Security settings
+plugins.security.ssl.transport.pemcert_filepath: /etc/ssl/wazuh/wazuh-indexer.pem
+plugins.security.ssl.transport.pemkey_filepath: /etc/ssl/wazuh/wazuh-indexer.key
+plugins.security.ssl.transport.pemtrustedcas_filepath: /etc/ssl/wazuh/root-ca.pem
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.http.pemcert_filepath: /etc/ssl/wazuh/wazuh-indexer.pem
+plugins.security.ssl.http.pemkey_filepath: /etc/ssl/wazuh/wazuh-indexer.key
+plugins.security.ssl.http.pemtrustedcas_filepath: /etc/ssl/wazuh/root-ca.pem
+plugins.security.allow_default_init_securityindex: true
+plugins.security.nodes_dn:
+  - CN=wazuh-indexer.{{ service_dns_search }}
+
+plugins.security.authcz.admin_dn:
+  - CN=admin,O=Wazuh Inc.,OU=Wazuh Security,C=US
+
+# Performance settings
+indices.query.bool.max_clause_count: 4096
+thread_pool.write.queue_size: 4000
+thread_pool.search.queue_size: 10000
+
+# Resource limits
+cluster.routing.allocation.disk.threshold_enabled: true
+cluster.routing.allocation.disk.watermark.low: 90%
+cluster.routing.allocation.disk.watermark.high: 95%
+
+# JVM heap dump settings
+indices.breaker.total.use_real_memory: false
+indices.breaker.total.limit: 70%
+indices.breaker.fielddata.limit: 40%
+indices.breaker.request.limit: 30%
+
+# Monitoring
+xpack.monitoring.enabled: false
+
+# Additional optimizations for Wazuh
+action.auto_create_index: .monitoring-*,.watches,.triggered_watches,.watcher-history-*,.security*
+
+# Enable compatibility mode with OpenSearch Dashboards
+compatibility.override_main_response_version: true
+

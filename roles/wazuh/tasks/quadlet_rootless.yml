@@ -1,0 +1,155 @@
+---
+# ..................................................................................
+# TODO this should be part of _base
+- name: Ensure required directories exist
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - .config/systemd/user
+    - .config/containers/systemd
+    - .config/containers/systemd/env
+
+# ..................................................................................
+- name: Create environment file for Wazuh
+  ansible.builtin.template:
+    src: wazuh.env.j2
+    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/wazuh.env"
+    mode: "0600"
+
+# ..................................................................................
+- name: Create Wazuh pod Quadlet
+  containers.podman.podman_pod:
+    name: wazuh
+    state: quadlet
+    dns: "{{ service_dns_servers }}"
+    dns_search: "{{ service_dns_search }}"
+    network: "{{ service_network }}"
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    ports:
+      - "127.0.0.1:{{ wazuh_api_port }}:55000" # Wazuh API
+      - "127.0.0.1:{{ wazuh_manager_port }}:1514" # Wazuh manager
+      - "127.0.0.1:{{ wazuh_registration_port }}:1515" # Agent registration
+      - "127.0.0.1:8080:443" # Wazuh dashboard
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+      - |
+        [Install]
+        WantedBy=default.target
+
+# ..................................................................................
+- name: Create Wazuh indexer container Quadlet
+  containers.podman.podman_container:
+    name: wazuh-indexer
+    pod: wazuh.pod
+    image: "{{ wazuh_indexer_image }}"
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    volume:
+      - "{{ wazuh_data_dir }}/config/indexer:/usr/share/wazuh-indexer/config:Z"
+      - "{{ wazuh_data_dir }}/data/indexer:/var/lib/wazuh-indexer:Z"
+      - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z"
+    env:
+      OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_indexer_memory }} -Xmx{{ wazuh_indexer_memory }}"
+    ulimit:
+      - "nofile=65535:65535"
+      - "memlock=-1:-1"
+    quadlet_options:
+      - |
+        [Unit]
+        Description=Wazuh Indexer Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target
+
+# ..................................................................................
+- name: Create Wazuh manager container Quadlet
+  containers.podman.podman_container:
+    name: wazuh-manager
+    pod: wazuh.pod
+    image: "{{ wazuh_manager_image }}"
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    volume:
+      - "{{ wazuh_data_dir }}/config/manager:/var/ossec/etc:Z"
+      - "{{ wazuh_data_dir }}/data/manager:/var/ossec/data:Z"
+      - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z"
+    env:
+      INDEXER_URL: "https://wazuh-indexer:9200"
+      INDEXER_USERNAME: "admin"
+      INDEXER_PASSWORD: "{{ wazuh_admin_password }}"
+      FILEBEAT_SSL_VERIFICATION: "none"
+    quadlet_options:
+      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/wazuh.env"
+      - |
+        [Unit]
+        Description=Wazuh Manager Container
+        After=wazuh-indexer.service
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target
+
+# ..................................................................................
+- name: Create Wazuh dashboard container Quadlet
+  containers.podman.podman_container:
+    name: wazuh-dashboard
+    pod: wazuh.pod
+    image: "{{ wazuh_dashboard_image }}"
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    volume:
+      - "{{ wazuh_data_dir }}/config/dashboard:/usr/share/wazuh-dashboard/config:Z"
+      - "{{ wazuh_data_dir }}/data/dashboard:/usr/share/wazuh-dashboard/data:Z"
+      - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z"
+    env:
+      OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_dashboard_memory }} -Xmx{{ wazuh_dashboard_memory }}"
+      WAZUH_API_URL: "https://wazuh-manager"
+      API_USERNAME: "{{ wazuh_api_user }}"
+      API_PASSWORD: "{{ wazuh_api_password }}"
+    quadlet_options:
+      - "Label=traefik.enable=true"
+      - "Label=traefik.http.routers.wazuh.rule=Host(`wazuh.{{ domain }}`)"
+      - "Label=traefik.http.routers.wazuh.entrypoints=websecure"
+      - "Label=traefik.http.routers.wazuh.service=wazuh"
+      - "Label=traefik.http.services.wazuh.loadbalancer.server.port=443"
+      - "Label=traefik.http.routers.wazuh.middlewares=secHeaders@file"
+      - |
+        [Unit]
+        Description=Wazuh Dashboard Container
+        After=wazuh-manager.service
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target
+
+# .......................................................................................
+- name: reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+# .......................................................................................
+- name: Enable and start rootless pod with systemd
+  ansible.builtin.systemd:
+    name: "{{ service_properties.name }}"
+    state: started
+    enabled: yes
+    scope: user
