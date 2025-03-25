@@ -28,6 +28,7 @@ SUPPORTED_SERVICES=(
     "mattermost"
     "traefik"
     "minio"
+    "wazuh"
 )
 
 # Supported actions

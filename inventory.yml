@@ -285,3 +285,13 @@ all:
                 status: "enable"
               - bucket: "config"
                 status: "enable"
+
+        # ========================================
+        wazuh_svc:
+          hosts:
+            firefly:
+
+          # .......................................
+          # _svc only vars
+          vars:
+            debug_level: warn
