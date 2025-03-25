@@ -11,6 +11,8 @@
     group: "{{ dir_info.stat.gid }}"
     mode: "0750"
 
+# SMELL: testing certs dir permissions.  three containers with differnt users...what can go wrong?
+
 # Then check for existing certificates with proper permissions
 - name: Check if certificates already exist
   become: true

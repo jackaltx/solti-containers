@@ -10,17 +10,6 @@
     fail_msg: "Required variables not properly configured"
 
 # .......................................................................
-# Get container user mapping first
-- name: Get directory ownership
-  ansible.builtin.stat:
-    path: "{{ wazuh_data_dir }}/config"
-  register: dir_info
-
-- name: Debug ownership
-  ansible.builtin.debug:
-    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
-
-# .......................................................................
 - name: Become root and apply configuration
   become: true
   block:
@@ -53,54 +42,103 @@
             reload: yes
 
     # ...................................................
+    # there are three containers, each may have own uid:gid
+
+    # Manager
+
+    - name: Get manager config directory ownership
+      ansible.builtin.stat:
+        path: "{{ wazuh_data_dir }}/config/manager"
+      register: dir_info
+
     - name: Template manager config
       ansible.builtin.template:
-        src: ossec.conf.j2
+        src: ossec.conf.xml.j2
         dest: "{{ wazuh_data_dir }}/config/manager/ossec.conf"
-        mode: "0640"
+        mode: "0644"
         owner: "{{ dir_info.stat.uid }}"
         group: "{{ dir_info.stat.gid }}"
       notify: restart wazuh manager
-
-    - name: Template indexer config
-      ansible.builtin.template:
-        src: elasticsearch.yml.j2
-        dest: "{{ wazuh_data_dir }}/config/indexer/elasticsearch.yml"
-        mode: "0640"
-        owner: "{{ dir_info.stat.uid }}"
-        group: "{{ dir_info.stat.gid }}"
-      notify: restart wazuh indexer
-
-    - name: Template dashboard config
-      ansible.builtin.template:
-        src: opensearch_dashboards.yml.j2
-        dest: "{{ wazuh_data_dir }}/config/dashboard/opensearch_dashboards.yml"
-        mode: "0640"
-        owner: "{{ dir_info.stat.uid }}"
-        group: "{{ dir_info.stat.gid }}"
-      notify: restart wazuh dashboard
 
     - name: Template manager ruleset
       ansible.builtin.template:
         src: local_rules.xml.j2
         dest: "{{ wazuh_data_dir }}/config/manager/local_rules.xml"
-        mode: "0640"
+        mode: "0644"
         owner: "{{ dir_info.stat.uid }}"
         group: "{{ dir_info.stat.gid }}"
       notify: restart wazuh manager
 
-    # Create data directories with proper permissions
     - name: Ensure data directories exist with proper permissions
       ansible.builtin.file:
-        path: "{{ wazuh_data_dir }}/data/{{ item }}"
+        path: "{{ wazuh_data_dir }}/data/manager"
         state: directory
         owner: "{{ dir_info.stat.uid }}"
         group: "{{ dir_info.stat.gid }}"
-        mode: "0770"
-      loop:
-        - "indexer"
-        - "manager"
-        - "dashboard"
+        mode: "0755"
+
+    # Indexer
+
+    - name: Get manager config directory ownership
+      ansible.builtin.stat:
+        path: "{{ wazuh_data_dir }}/config/indexer"
+      register: dir_info
+
+    - name: Template indexer config
+      ansible.builtin.template:
+        src: elasticsearch.yml.j2
+        dest: "{{ wazuh_data_dir }}/config/indexer/elasticsearch.yml"
+        mode: "0644"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart wazuh indexer
+
+    - name: Ensure data directories exist with proper permissions
+      ansible.builtin.file:
+        path: "{{ wazuh_data_dir }}/data/indexer"
+        state: directory
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+        mode: "0755"
+
+    # Dashboard
+
+    - name: Get manager dashboard directory ownership
+      ansible.builtin.stat:
+        path: "{{ wazuh_data_dir }}/config/dashboard"
+      register: dir_info
+
+    - name: Template dashboard config
+      ansible.builtin.template:
+        src: opensearch_dashboards.yml.j2
+        dest: "{{ wazuh_data_dir }}/config/dashboard/opensearch_dashboards.yml"
+        mode: "0644"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart wazuh dashboard
+
+    - name: Get manager data/dashboard-config directory ownership
+      ansible.builtin.stat:
+        path: "{{ wazuh_data_dir }}/data/dashboard/wazuh"
+      register: dir_info
+
+    - name: Template dashboard wazuh config
+      ansible.builtin.template:
+        src: wazuh_dashboard.yml.j2
+        dest: "{{ wazuh_data_dir }}/data/dashboard/wazuh/config/wazuh.yml"
+        mode: "0644"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart wazuh dashboard
+
+    # Create data directories with proper permissions
+    # - name: Ensure data directories exist with proper permissions
+    #   ansible.builtin.file:
+    #     path: "{{ wazuh_data_dir }}/data/dashboard"
+    #     state: directory
+    #     owner: "{{ dir_info.stat.uid }}"
+    #     group: "{{ dir_info.stat.gid }}"
+    #     mode: "0755"
 
     # ...................................................
     - name: Configure SELinux for data directories

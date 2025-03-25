@@ -3,6 +3,7 @@
 
 # ....................................................................................
 - name: Verify Wazuh pod is running
+  become: true
   command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
   register: pod_status
   failed_when: "'wazuh' not in pod_status.stdout"
@@ -14,6 +15,7 @@
 
 # ....................................................................................
 - name: Verify Wazuh containers are running
+  become: true
   command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=wazuh"
   register: container_status
   failed_when: >
@@ -111,6 +113,7 @@
 # ....................................................................................
 # Check agent enrollment password
 - name: Check agent authorization service
+  become: true
   command: >
     podman exec wazuh-manager
     /var/ossec/bin/agent_control -m

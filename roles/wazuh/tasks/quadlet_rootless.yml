@@ -41,18 +41,18 @@
         WantedBy=default.target
 
 # Fix the data directory permissions before starting the containers
-- name: Ensure Wazuh data directories have proper permissions
-  become: true
-  ansible.builtin.file:
-    path: "{{ wazuh_data_dir }}/data/{{ item }}"
-    state: directory
-    owner: "{{ dir_info.stat.uid }}"
-    group: "{{ dir_info.stat.gid }}"
-    mode: "0777" # More permissive for troubleshooting
-  loop:
-    - "indexer"
-    - "manager"
-    - "dashboard"
+# - name: Ensure Wazuh data directories have proper permissions
+#   become: true
+#   ansible.builtin.file:
+#     path: "{{ wazuh_data_dir }}/data/{{ item }}"
+#     state: directory
+#     owner: "{{ dir_info.stat.uid }}"
+#     group: "{{ dir_info.stat.gid }}"
+#     mode: "0777" # More permissive for troubleshooting
+#   loop:
+#     - "indexer"
+#     - "manager"
+#     - "dashboard"
 
 # ..................................................................................
 - name: Create Wazuh indexer container Quadlet
@@ -63,14 +63,20 @@
     state: quadlet
     quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     volume:
-      - "{{ wazuh_data_dir }}/config/indexer:/usr/share/wazuh-indexer/config:Z"
-      - "{{ wazuh_data_dir }}/data/indexer:/var/lib/wazuh-indexer:Z"
-      - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z"
+      - "{{ wazuh_data_dir }}/config/indexer:/usr/share/wazuh-indexer/config:Z,U"
+      - "{{ wazuh_data_dir }}/data/indexer:/var/lib/wazuh-indexer:Z,U"
+      - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z,U"
     env:
       # Fixed JVM memory settings - make sure initial and max are the same
       OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_indexer_memory }} -Xmx{{ wazuh_indexer_memory }} -Djava.security.manager=allow"
       bootstrap.memory_lock: "true"
       discovery.type: "single-node"
+      NODE_NAME: "wazuh.indexer"
+      CLUSTER_INITIAL_MASTER_NODES: "wazuh.indexer"
+      CLUSTER_NAME: "wazuh-cluster"
+      PATH_DATA: "/var/lib/wazuh-indexer"
+      PATH_LOGS: "/var/log/wazuh-indexer"
+      HTTP_PORT: "9200-9299"
     ulimit:
       - "nofile=65535:65535"
       - "memlock=-1:-1"
@@ -78,7 +84,7 @@
       - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/wazuh.env"
       # These security options are critical for the indexer to work
       - "SecurityLabelDisable=true"
-      - "User=1000:1000" # Set to match the container's user ID
+      - "User=1000:1000"
       - |
         [Unit]
         Description=Wazuh Indexer Container
@@ -101,9 +107,9 @@
     state: quadlet
     quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     volume:
-      - "{{ wazuh_data_dir }}/config/manager:/var/ossec/etc:Z"
-      - "{{ wazuh_data_dir }}/data/manager:/var/ossec/data:Z"
-      - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z"
+      - "{{ wazuh_data_dir }}/config/manager:/var/ossec/etc:Z,U"
+      - "{{ wazuh_data_dir }}/data/manager:/var/ossec/data:Z,U"
+      - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z,U"
     env:
       INDEXER_URL: "https://wazuh-indexer:9200"
       INDEXER_USERNAME: "admin"
@@ -111,7 +117,7 @@
       FILEBEAT_SSL_VERIFICATION: "none"
     quadlet_options:
       - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/wazuh.env"
-      # Add security options for manager too
+      - "User=1000:1000"
       - "SecurityLabelDisable=true"
       - |
         [Unit]
@@ -135,9 +141,10 @@
     state: quadlet
     quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     volume:
-      - "{{ wazuh_data_dir }}/config/dashboard:/usr/share/wazuh-dashboard/config:Z"
-      - "{{ wazuh_data_dir }}/data/dashboard:/usr/share/wazuh-dashboard/data:Z"
-      - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z"
+      - "{{ wazuh_data_dir }}/config/dashboard:/usr/share/wazuh-dashboard/config:Z,U"
+      - "{{ wazuh_data_dir }}/data/dashboard:/usr/share/wazuh-dashboard/data:Z,U"
+      - "{{ wazuh_data_dir }}/data/dashboard-custom:/usr/share/wazuh-dashboard/plugins/wazuh/public/assets/custom:Z,U"
+      - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z,U"
     env:
       # Fixed Java memory settings
       OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_dashboard_memory }} -Xmx{{ wazuh_dashboard_memory }} -Djava.security.manager=allow"
@@ -145,6 +152,7 @@
       API_USERNAME: "{{ wazuh_api_user }}"
       API_PASSWORD: "{{ wazuh_api_password }}"
     quadlet_options:
+      - "User=1000:1000"
       - "SecurityLabelDisable=true"
       - "Label=traefik.enable=true"
       - "Label=traefik.http.routers.wazuh.rule=Host(`wazuh.{{ domain }}`)"

@@ -39,11 +39,12 @@
         file: ../_base/tasks/prepare.yml
 
 # =======================================================================
-# DEPLOYMENT
+# DEPLOYMENT  (PRIVILEGED!!)
 # =======================================================================
 
 - name: Install Wazuh
   when: wazuh_state == 'present'
+  become: true
   block:
     - name: Verify password is not default
       ansible.builtin.fail:
@@ -74,7 +75,7 @@
         file: "../_base/tasks/networks.yml"
 
     - name: Include container tasks
-      ansible.builtin.include_tasks: quadlet_rootless.yml
+      ansible.builtin.include_tasks: quadlet_privileged.yml
 
     - name: Wait for services to start
       ansible.builtin.pause:
@@ -90,6 +91,7 @@
 
 - name: Remove Wazuh
   when: wazuh_state == 'absent'
+  become: true
   block:
     # ...............................................................................
     - name: Include cleanup tasks
@@ -97,4 +99,4 @@
         file: "../_base/tasks/cleanup.yml"
       vars:
         service_state: absent
-        service_delete_data: "{{ wazuh_delete_data }}"
+        service_delete_data: true # "{{ wazuh_delete_data }}"

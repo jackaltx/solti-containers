@@ -4,12 +4,12 @@ wazuh_state: present
 wazuh_force_reload: false
 
 # Container settings
-wazuh_manager_image: "docker.io/wazuh/wazuh-manager:4.7.2"
-wazuh_indexer_image: "docker.io/wazuh/wazuh-indexer:4.7.2"
-wazuh_dashboard_image: "docker.io/wazuh/wazuh-dashboard:4.7.2"
+wazuh_manager_image: "docker.io/wazuh/wazuh-manager:4.11.1"
+wazuh_indexer_image: "docker.io/wazuh/wazuh-indexer:4.11.1"
+wazuh_dashboard_image: "docker.io/wazuh/wazuh-dashboard:4.11.1"
 
 # Directory settings
-wazuh_data_dir: "{{ ansible_user_dir }}/wazuh-data"
+wazuh_data_dir: "/opt/wazuh-data"
 
 # Certificates
 wazuh_generate_certs: true
@@ -23,7 +23,7 @@ wazuh_network_name: "{{ service_network }}"
 wazuh_api_port: 55000
 wazuh_manager_port: 1514
 wazuh_registration_port: 1515
-wazuh_dashboard_port: 443
+wazuh_dashboard_port: 9080
 wazuh_indexer_port: 9200
 
 # Resource limits - REDUCED MEMORY USAGE
@@ -33,7 +33,7 @@ wazuh_dashboard_memory: "512m"
 
 # Security settings
 wazuh_admin_password: "{{ lookup('env', 'WAZUH_ADMIN_PASSWORD') | default('changeme') }}"
-wazuh_api_user: "wazuh-api"
+wazuh_api_user: "wazuh-wui"
 wazuh_api_password: "{{ lookup('env', 'WAZUH_API_PASSWORD') | default('changeme') }}"
 
 # Cleanup settings
@@ -66,6 +66,7 @@ service_properties:
     - { path: "config/dashboard", mode: "0755" }
     - { path: "data", mode: "0750" }
     - { path: "data/manager", mode: "0770" }
-    - { path: "data/indexer", mode: "0770" }
-    - { path: "data/dashboard", mode: "0770" }
-    - { path: "certs", mode: "0750" }
+    - { path: "data/dashboard", mode: "0775" }
+    - { path: "data/dashboard/wazuh/config", mode: "0775" }
+    - { path: "data/dashboard-custom", mode: "0775" }
+    - { path: "certs", mode: "0775" }
