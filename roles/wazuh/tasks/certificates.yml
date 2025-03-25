@@ -1,5 +1,5 @@
 ---
-# This task generates self-signed certificates for Wazuh components
+# This task generates self-signed certificates for Wazuh components using more basic/compatible options
 
 - name: Check if certificates already exist
   ansible.builtin.stat:
@@ -24,31 +24,27 @@
         type: RSA
         size: 4096
 
-    # Generate CA Certificate using newer parameters
+    # Generate CA Certificate using minimal parameters
     - name: Generate CA certificate
-      community.crypto.x509_certificate:
-        path: "{{ cert_temp_dir.path }}/root-ca.pem"
-        privatekey_path: "{{ cert_temp_dir.path }}/root-ca.key"
-        provider: selfsigned
-        selfsigned_not_after: "+{{ wazuh_ca_cert_days }}d"
-        selfsigned_digest: sha256
-        # Subject is now passed as attributes
-        attributes:
-          commonName: "Wazuh CA"
-          organizationName: "Wazuh Inc."
-          organizationalUnitName: "Wazuh Security"
-          countryName: "US"
-        # Basic constraints are set differently
-        selfsigned_version: 3
-        # Add CA extension
-        attributes_extension:
-          - key: basicConstraints
-            value: "CA:TRUE"
-            critical: true
+      ansible.builtin.command: >
+        openssl req -x509 -new -nodes
+        -key {{ cert_temp_dir.path }}/root-ca.key
+        -sha256 -days {{ wazuh_ca_cert_days }}
+        -out {{ cert_temp_dir.path }}/root-ca.pem
+        -subj "/CN=Wazuh CA/O=Wazuh Inc./OU=Wazuh Security/C=US"
+        -extensions v3_ca
+        -config <(echo "[req]"; 
+                 echo "distinguished_name=req";
+                 echo "[v3_ca]";
+                 echo "basicConstraints=critical,CA:TRUE";
+                 echo "keyUsage=keyCertSign,cRLSign")
+      args:
+        executable: /bin/bash
+      changed_when: true
 
-    # Generate component certificates (for each component)
+    # Generate component certificates using a loop
     - name: Generate certificates for Wazuh components
-      include_tasks: generate_component_cert.yml
+      include_tasks: generate_component_cert_simple.yml
       loop:
         - name: "wazuh-manager"
           cn: "wazuh-manager.{{ service_dns_search }}"
@@ -90,12 +86,3 @@
       ansible.builtin.file:
         path: "{{ cert_temp_dir.path }}"
         state: absent
-
-# Generate component certificate task
-- name: Include generate component cert task
-  ansible.builtin.include_tasks: generate_component_cert.yml
-  with_items:
-    - { name: "wazuh-indexer" }
-    - { name: "wazuh-manager" }
-    - { name: "wazuh-dashboard" }
-  when: false # This is just for reference, not to be executed here

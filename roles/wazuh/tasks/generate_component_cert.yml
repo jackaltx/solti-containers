@@ -1,5 +1,5 @@
 ---
-# This task should be called from certificates.yml with the appropriate parameters
+# This task uses openssl commands directly rather than the module since we're having compatibility issues
 
 # Generate private key for component
 - name: Generate {{ item.name }} private key
@@ -8,43 +8,61 @@
     type: RSA
     size: 2048
 
-# Generate CSR (Certificate Signing Request) with updated parameters
-- name: Generate {{ item.name }} CSR
-  community.crypto.openssl_csr:
-    path: "{{ cert_temp_dir.path }}/{{ item.name }}.csr"
-    privatekey_path: "{{ cert_temp_dir.path }}/{{ item.name }}.key"
-    # Updated to use attributes
-    attributes:
-      commonName: "{{ item.cn | default(item.name + '.example.com') }}"
-      organizationName: "Wazuh Inc."
-      organizationalUnitName: "Wazuh Security"
-      countryName: "US"
-    subject_alt_name: >-
-      {{ (['DNS:' + item.name] +
-         ['DNS:' + dns for dns in item.san_dns | default([])] +
-         ['IP:' + ip for ip in item.san_ip | default([])]) | join(',') }}
+# Create a config file for the certificate
+- name: Create openssl config for {{ item.name }}
+  ansible.builtin.copy:
+    dest: "{{ cert_temp_dir.path }}/{{ item.name }}.cnf"
+    content: |
+      [req]
+      distinguished_name=req
+      [v3_req]
+      basicConstraints=CA:FALSE
+      keyUsage=digitalSignature,keyEncipherment
+      extendedKeyUsage=serverAuth,clientAuth
+      subjectAltName=@alt_names
+      [alt_names]
+      DNS.1={{ item.name }}
+      {% for i in range(item.san_dns | default([]) | length) %}
+      DNS.{{ i + 2 }}={{ item.san_dns[i] }}
+      {% endfor %}
+      {% for i in range(item.san_ip | default([]) | length) %}
+      IP.{{ i + 1 }}={{ item.san_ip[i] }}
+      {% endfor %}
+    mode: "0600"
 
-# Sign the certificate with our CA - Updated to use x509_certificate with correct parameters
-- name: Sign {{ item.name }} certificate with CA
-  community.crypto.x509_certificate:
-    path: "{{ cert_temp_dir.path }}/{{ item.name }}.pem"
-    csr_path: "{{ cert_temp_dir.path }}/{{ item.name }}.csr"
-    provider: ownca
-    ownca_path: "{{ cert_temp_dir.path }}/root-ca.pem"
-    ownca_privatekey_path: "{{ cert_temp_dir.path }}/root-ca.key"
-    ownca_not_after: "+{{ wazuh_cert_days }}d"
-    # Add extended key usage as attributes extension
-    attributes_extension:
-      - key: extendedKeyUsage
-        value: "serverAuth, clientAuth"
+# Generate CSR
+- name: Generate CSR for {{ item.name }}
+  ansible.builtin.command: >
+    openssl req -new 
+    -key {{ cert_temp_dir.path }}/{{ item.name }}.key
+    -out {{ cert_temp_dir.path }}/{{ item.name }}.csr
+    -subj "/CN={{ item.cn | default(item.name + '.example.com') }}/O=Wazuh Inc./OU=Wazuh Security/C=US"
+    -config {{ cert_temp_dir.path }}/{{ item.name }}.cnf
+  changed_when: true
 
-# Create pkcs12 for Wazuh components that need it
+# Sign certificate with the CA
+- name: Sign certificate for {{ item.name }}
+  ansible.builtin.command: >
+    openssl x509 -req
+    -in {{ cert_temp_dir.path }}/{{ item.name }}.csr
+    -CA {{ cert_temp_dir.path }}/root-ca.pem
+    -CAkey {{ cert_temp_dir.path }}/root-ca.key
+    -CAcreateserial
+    -out {{ cert_temp_dir.path }}/{{ item.name }}.pem
+    -days {{ wazuh_cert_days }}
+    -sha256
+    -extensions v3_req
+    -extfile {{ cert_temp_dir.path }}/{{ item.name }}.cnf
+  changed_when: true
+
+# Create PKCS12 format for compatibility
 - name: Create PKCS12 for {{ item.name }}
-  community.crypto.openssl_pkcs12:
-    action: export
-    path: "{{ cert_temp_dir.path }}/{{ item.name }}.p12"
-    friendly_name: "{{ item.name }}"
-    privatekey_path: "{{ cert_temp_dir.path }}/{{ item.name }}.key"
-    certificate_path: "{{ cert_temp_dir.path }}/{{ item.name }}.pem"
-    other_certificates: "{{ cert_temp_dir.path }}/root-ca.pem"
-    state: present
+  ansible.builtin.command: >
+    openssl pkcs12 -export
+    -out {{ cert_temp_dir.path }}/{{ item.name }}.p12
+    -inkey {{ cert_temp_dir.path }}/{{ item.name }}.key
+    -in {{ cert_temp_dir.path }}/{{ item.name }}.pem
+    -certfile {{ cert_temp_dir.path }}/root-ca.pem
+    -password pass:
+    -name {{ item.name }}
+  changed_when: true
