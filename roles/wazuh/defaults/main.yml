@@ -26,10 +26,10 @@ wazuh_registration_port: 1515
 wazuh_dashboard_port: 443
 wazuh_indexer_port: 9200
 
-# Resource limits
-wazuh_indexer_memory: "2g"
-wazuh_manager_memory: "1g"
-wazuh_dashboard_memory: "1g"
+# Resource limits - REDUCED MEMORY USAGE
+wazuh_indexer_memory: "512m"
+wazuh_manager_memory: "512m"
+wazuh_dashboard_memory: "512m"
 
 # Security settings
 wazuh_admin_password: "{{ lookup('env', 'WAZUH_ADMIN_PASSWORD') | default('changeme') }}"
