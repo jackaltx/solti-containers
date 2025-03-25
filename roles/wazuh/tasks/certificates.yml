@@ -24,7 +24,7 @@
         type: RSA
         size: 4096
 
-    # Generate CA Certificate - Updated to use x509_certificate
+    # Generate CA Certificate using newer parameters
     - name: Generate CA certificate
       community.crypto.x509_certificate:
         path: "{{ cert_temp_dir.path }}/root-ca.pem"
@@ -32,14 +32,19 @@
         provider: selfsigned
         selfsigned_not_after: "+{{ wazuh_ca_cert_days }}d"
         selfsigned_digest: sha256
-        subject:
-          CN: "Wazuh CA"
-          O: "Wazuh Inc."
-          OU: "Wazuh Security"
-          C: "US"
-        basic_constraints:
-          - "CA:TRUE"
-        basic_constraints_critical: true
+        # Subject is now passed as attributes
+        attributes:
+          commonName: "Wazuh CA"
+          organizationName: "Wazuh Inc."
+          organizationalUnitName: "Wazuh Security"
+          countryName: "US"
+        # Basic constraints are set differently
+        selfsigned_version: 3
+        # Add CA extension
+        attributes_extension:
+          - key: basicConstraints
+            value: "CA:TRUE"
+            critical: true
 
     # Generate component certificates (for each component)
     - name: Generate certificates for Wazuh components

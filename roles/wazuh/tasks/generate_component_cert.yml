@@ -8,22 +8,23 @@
     type: RSA
     size: 2048
 
-# Generate CSR (Certificate Signing Request)
+# Generate CSR (Certificate Signing Request) with updated parameters
 - name: Generate {{ item.name }} CSR
   community.crypto.openssl_csr:
     path: "{{ cert_temp_dir.path }}/{{ item.name }}.csr"
     privatekey_path: "{{ cert_temp_dir.path }}/{{ item.name }}.key"
-    common_name: "{{ item.cn | default(item.name + '.example.com') }}"
-    subject:
-      O: "Wazuh Inc."
-      OU: "Wazuh Security"
-      C: "US"
+    # Updated to use attributes
+    attributes:
+      commonName: "{{ item.cn | default(item.name + '.example.com') }}"
+      organizationName: "Wazuh Inc."
+      organizationalUnitName: "Wazuh Security"
+      countryName: "US"
     subject_alt_name: >-
       {{ (['DNS:' + item.name] +
          ['DNS:' + dns for dns in item.san_dns | default([])] +
          ['IP:' + ip for ip in item.san_ip | default([])]) | join(',') }}
 
-# Sign the certificate with our CA - Updated to use x509_certificate
+# Sign the certificate with our CA - Updated to use x509_certificate with correct parameters
 - name: Sign {{ item.name }} certificate with CA
   community.crypto.x509_certificate:
     path: "{{ cert_temp_dir.path }}/{{ item.name }}.pem"
@@ -31,10 +32,11 @@
     provider: ownca
     ownca_path: "{{ cert_temp_dir.path }}/root-ca.pem"
     ownca_privatekey_path: "{{ cert_temp_dir.path }}/root-ca.key"
-    not_after: "+{{ wazuh_cert_days }}d"
-    extended_key_usage:
-      - serverAuth
-      - clientAuth
+    ownca_not_after: "+{{ wazuh_cert_days }}d"
+    # Add extended key usage as attributes extension
+    attributes_extension:
+      - key: extendedKeyUsage
+        value: "serverAuth, clientAuth"
 
 # Create pkcs12 for Wazuh components that need it
 - name: Create PKCS12 for {{ item.name }}
