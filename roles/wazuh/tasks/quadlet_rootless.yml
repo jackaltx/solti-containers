@@ -48,7 +48,7 @@
     state: directory
     owner: "{{ dir_info.stat.uid }}"
     group: "{{ dir_info.stat.gid }}"
-    mode: "0770"
+    mode: "0777" # More permissive for troubleshooting
   loop:
     - "indexer"
     - "manager"
@@ -68,13 +68,17 @@
       - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z"
     env:
       # Fixed JVM memory settings - make sure initial and max are the same
-      OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_indexer_memory }} -Xmx{{ wazuh_indexer_memory }}"
+      OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_indexer_memory }} -Xmx{{ wazuh_indexer_memory }} -Djava.security.manager=allow"
       bootstrap.memory_lock: "true"
+      discovery.type: "single-node"
     ulimit:
       - "nofile=65535:65535"
       - "memlock=-1:-1"
     quadlet_options:
       - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/wazuh.env"
+      # These security options are critical for the indexer to work
+      - "SecurityLabelDisable=true"
+      - "User=1000:1000" # Set to match the container's user ID
       - |
         [Unit]
         Description=Wazuh Indexer Container
@@ -107,6 +111,8 @@
       FILEBEAT_SSL_VERIFICATION: "none"
     quadlet_options:
       - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/wazuh.env"
+      # Add security options for manager too
+      - "SecurityLabelDisable=true"
       - |
         [Unit]
         Description=Wazuh Manager Container
@@ -134,11 +140,12 @@
       - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z"
     env:
       # Fixed Java memory settings
-      OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_dashboard_memory }} -Xmx{{ wazuh_dashboard_memory }}"
+      OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_dashboard_memory }} -Xmx{{ wazuh_dashboard_memory }} -Djava.security.manager=allow"
       WAZUH_API_URL: "https://wazuh-manager"
       API_USERNAME: "{{ wazuh_api_user }}"
       API_PASSWORD: "{{ wazuh_api_password }}"
     quadlet_options:
+      - "SecurityLabelDisable=true"
       - "Label=traefik.enable=true"
       - "Label=traefik.http.routers.wazuh.rule=Host(`wazuh.{{ domain }}`)"
       - "Label=traefik.http.routers.wazuh.entrypoints=websecure"
