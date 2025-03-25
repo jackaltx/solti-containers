@@ -24,9 +24,9 @@
         type: RSA
         size: 4096
 
-    # Generate CA Certificate
+    # Generate CA Certificate - Updated to use x509_certificate
     - name: Generate CA certificate
-      community.crypto.openssl_certificate:
+      community.crypto.x509_certificate:
         path: "{{ cert_temp_dir.path }}/root-ca.pem"
         privatekey_path: "{{ cert_temp_dir.path }}/root-ca.key"
         provider: selfsigned
