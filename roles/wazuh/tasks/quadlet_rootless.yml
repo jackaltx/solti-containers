@@ -40,6 +40,20 @@
         [Install]
         WantedBy=default.target
 
+# Fix the data directory permissions before starting the containers
+- name: Ensure Wazuh data directories have proper permissions
+  become: true
+  ansible.builtin.file:
+    path: "{{ wazuh_data_dir }}/data/{{ item }}"
+    state: directory
+    owner: "{{ dir_info.stat.uid }}"
+    group: "{{ dir_info.stat.gid }}"
+    mode: "0770"
+  loop:
+    - "indexer"
+    - "manager"
+    - "dashboard"
+
 # ..................................................................................
 - name: Create Wazuh indexer container Quadlet
   containers.podman.podman_container:
@@ -53,11 +67,14 @@
       - "{{ wazuh_data_dir }}/data/indexer:/var/lib/wazuh-indexer:Z"
       - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z"
     env:
+      # Fixed JVM memory settings - make sure initial and max are the same
       OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_indexer_memory }} -Xmx{{ wazuh_indexer_memory }}"
+      bootstrap.memory_lock: "true"
     ulimit:
       - "nofile=65535:65535"
       - "memlock=-1:-1"
     quadlet_options:
+      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/wazuh.env"
       - |
         [Unit]
         Description=Wazuh Indexer Container
@@ -116,6 +133,7 @@
       - "{{ wazuh_data_dir }}/data/dashboard:/usr/share/wazuh-dashboard/data:Z"
       - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z"
     env:
+      # Fixed Java memory settings
       OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_dashboard_memory }} -Xmx{{ wazuh_dashboard_memory }}"
       WAZUH_API_URL: "https://wazuh-manager"
       API_USERNAME: "{{ wazuh_api_user }}"

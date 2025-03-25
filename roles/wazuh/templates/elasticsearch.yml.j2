@@ -10,7 +10,7 @@ network.host: "0.0.0.0"
 http.port: 9200
 transport.tcp.port: 9300
 
-# Paths
+# Paths with proper ownership
 path.data: /var/lib/wazuh-indexer
 path.logs: /var/log/wazuh-indexer
 
@@ -60,3 +60,7 @@ action.auto_create_index: .monitoring-*,.watches,.triggered_watches,.watcher-his
 # Enable compatibility mode with OpenSearch Dashboards
 compatibility.override_main_response_version: true
 
+# Node roles
+node.master: true
+node.data: true
+node.ingest: true
