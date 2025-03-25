@@ -1,7 +1,19 @@
 ---
-# This task generates self-signed certificates for Wazuh components using more basic/compatible options
+# This task generates self-signed certificates for Wazuh components with better permission handling
 
+# First check if certs directory exists and create it if needed
+- name: Ensure certificate directory exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ wazuh_data_dir }}/certs"
+    state: directory
+    owner: "{{ dir_info.stat.uid }}"
+    group: "{{ dir_info.stat.gid }}"
+    mode: "0750"
+
+# Then check for existing certificates with proper permissions
 - name: Check if certificates already exist
+  become: true
   ansible.builtin.stat:
     path: "{{ wazuh_data_dir }}/certs/root-ca.pem"
   register: cert_check
@@ -24,22 +36,35 @@
         type: RSA
         size: 4096
 
-    # Generate CA Certificate using minimal parameters
+    # Create CA config file
+    - name: Create CA config file
+      ansible.builtin.copy:
+        dest: "{{ cert_temp_dir.path }}/ca.cnf"
+        content: |
+          [ req ]
+          distinguished_name = req_distinguished_name
+          x509_extensions = v3_ca
+          prompt = no
+
+          [ req_distinguished_name ]
+          CN = Wazuh CA
+          O = Wazuh Inc.
+          OU = Wazuh Security
+          C = US
+
+          [ v3_ca ]
+          basicConstraints = critical, CA:true
+          keyUsage = keyCertSign, cRLSign
+        mode: "0600"
+
+    # Generate CA Certificate using config file
     - name: Generate CA certificate
       ansible.builtin.command: >
         openssl req -x509 -new -nodes
         -key {{ cert_temp_dir.path }}/root-ca.key
         -sha256 -days {{ wazuh_ca_cert_days }}
         -out {{ cert_temp_dir.path }}/root-ca.pem
-        -subj "/CN=Wazuh CA/O=Wazuh Inc./OU=Wazuh Security/C=US"
-        -extensions v3_ca
-        -config <(echo "[req]"; 
-                 echo "distinguished_name=req";
-                 echo "[v3_ca]";
-                 echo "basicConstraints=critical,CA:TRUE";
-                 echo "keyUsage=keyCertSign,cRLSign")
-      args:
-        executable: /bin/bash
+        -config {{ cert_temp_dir.path }}/ca.cnf
       changed_when: true
 
     # Generate component certificates using a loop
@@ -71,7 +96,7 @@
           san_ip:
             - "127.0.0.1"
 
-    # Copy certificates to their final location
+    # Copy certificates to their final location with proper permissions
     - name: Copy certificates to their final location
       ansible.builtin.copy:
         src: "{{ cert_temp_dir.path }}/"
