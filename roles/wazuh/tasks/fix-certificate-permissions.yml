@@ -1,0 +1,34 @@
+# Add this task to your prerequisites.yml or as a separate task file
+
+- name: Fix certificate permissions and contexts
+  become: true
+  block:
+    # Ensure directory has proper permissions
+    - name: Ensure certificate directory has correct permissions
+      file:
+        path: "{{ wazuh_data_dir }}/certs"
+        state: directory
+        owner: 1000 # user in indexer container
+        group: 1000
+        mode: "0750"
+
+    # Fix individual certificate files
+    - name: Ensure certificate files have correct permissions
+      file:
+        path: "{{ wazuh_data_dir }}/certs/{{ item.file }}"
+        owner: lavender
+        group: lavender
+        mode: "{{ item.mode }}"
+      loop:
+        - { file: "wazuh-indexer.pem", mode: "0644" }
+        - { file: "wazuh-indexer.key", mode: "0600" }
+        - { file: "root-ca.pem", mode: "0644" }
+
+    # Apply consistent SELinux context (critical for container access)
+    - name: Apply consistent SELinux context to certificate files
+      command: chcon -t container_file_t "{{ wazuh_data_dir }}/certs/{{ item }}"
+      loop:
+        - wazuh-indexer.pem
+        - wazuh-indexer.key
+        - root-ca.pem
+      when: ansible_selinux.status == "enabled"

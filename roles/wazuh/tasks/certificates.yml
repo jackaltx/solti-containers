@@ -113,3 +113,7 @@
       ansible.builtin.file:
         path: "{{ cert_temp_dir.path }}"
         state: absent
+
+    # SMELL TODO cert issues
+    - name: Fix certifcate permissions
+      ansible.builtin.include_tasks: fix-certificate-permissions.yml

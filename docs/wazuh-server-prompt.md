@@ -59,7 +59,7 @@ wazuh_network_subnet: "172.18.1.0/24"
 wazuh_api_port: 55000
 wazuh_manager_port: 1514
 wazuh_registration_port: 1515
-wazuh_dashboard_port: 443
+wazuh_dashboard_port: 8082
 
 # Volume locations
 wazuh_data_dir: "/opt/wazuh/data"

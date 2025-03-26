@@ -28,10 +28,9 @@
     network: "{{ service_network }}"
     quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     ports:
-      - "127.0.0.1:{{ wazuh_api_port }}:55000" # Wazuh API
-      - "127.0.0.1:{{ wazuh_manager_port }}:1514" # Wazuh manager
-      - "127.0.0.1:{{ wazuh_registration_port }}:1515" # Agent registration
-      - "127.0.0.1:9080:443" # Wazuh dashboard
+      - "127.0.0.1:{{ wazuh_api_port }}:{{ wazuh_api_port }}" # Wazuh API
+      - "127.0.0.1:{{ wazuh_registration_port }}:{{ wazuh_registration_port }}" # Agent registration
+      - "127.0.0.1:{{ wazuh_dashboard_port }}:{{ wazuh_dashboard_port }}" # Wazuh dashboard
     quadlet_options:
       - |
         [Service]
@@ -76,7 +75,7 @@
       CLUSTER_NAME: "wazuh-cluster"
       PATH_DATA: "/var/lib/wazuh-indexer"
       PATH_LOGS: "/var/log/wazuh-indexer"
-      HTTP_PORT: "9200-9299"
+      HTTP_PORT: "9201-9299"
     ulimit:
       - "nofile=65535:65535"
       - "memlock=-1:-1"

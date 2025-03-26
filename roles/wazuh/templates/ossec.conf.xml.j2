@@ -27,7 +27,7 @@
 
   <remote>
     <connection>secure</connection>
-    <port>1514</port>
+    <port>"{{ wazuh_manager_port }}"</port>
     <protocol>tcp</protocol>
     <queue_size>131072</queue_size>
   </remote>
@@ -342,7 +342,7 @@
   <!-- Database configuration -->
   <database>
     <hostname>wazuh-indexer</hostname>
-    <port>9200</port>
+    <port>{{ wazuh_indexer_port }}</port>
     <user>admin</user>
     <password>{{ wazuh_admin_password }}</password>
     <use_ssl>yes</use_ssl>

@@ -117,15 +117,10 @@
         group: "{{ dir_info.stat.gid }}"
       notify: restart wazuh dashboard
 
-    - name: Get manager data/dashboard-config directory ownership
-      ansible.builtin.stat:
-        path: "{{ wazuh_data_dir }}/data/dashboard/wazuh"
-      register: dir_info
-
     - name: Template dashboard wazuh config
       ansible.builtin.template:
         src: wazuh_dashboard.yml.j2
-        dest: "{{ wazuh_data_dir }}/data/dashboard/wazuh/config/wazuh.yml"
+        dest: "{{ wazuh_data_dir }}/config/dashboard/wazuh.yml"
         mode: "0644"
         owner: "{{ dir_info.stat.uid }}"
         group: "{{ dir_info.stat.gid }}"

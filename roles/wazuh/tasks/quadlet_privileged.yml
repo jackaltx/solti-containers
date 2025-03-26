@@ -2,7 +2,7 @@
 # .............................................................................
 - name: Ensure required directories exist
   ansible.builtin.file:
-    path: "/etc/containers/systemd"
+    path: "/etc/containers/systemd/env"
     state: directory
     mode: "0750"
 
@@ -23,10 +23,10 @@
     network: "{{ service_network }}"
     quadlet_dir: "/etc/containers/systemd"
     ports:
-      - "0.0.0.0:{{ wazuh_api_port }}:55000" # Now binding to all interfaces
-      - "0.0.0.0:{{ wazuh_manager_port }}:1514"
-      - "0.0.0.0:{{ wazuh_registration_port }}:1515"
-      - "0.0.0.0:{{ wazuh_dashboard_port }}:443" # Wazuh dashboard
+      - "0.0.0.0:{{ wazuh_api_port }}:{{ wazuh_api_port }}" # SMELL!!!!
+      - "0.0.0.0:{{ wazuh_manager_port }}:{{ wazuh_manager_port }}"
+      - "0.0.0.0:{{ wazuh_registration_port }}:{{ wazuh_registration_port }}"
+      - "0.0.0.0:{{ wazuh_dashboard_port }}:{{ wazuh_dashboard_port }}" # Wazuh dashboard
     quadlet_options:
       - |
         [Service]
@@ -47,15 +47,33 @@
     env: "{{ item.env }}"
     quadlet_options: "{{ item.options }}"
   loop:
+    # .............
     - name: "wazuh-indexer"
       image: "{{ wazuh_indexer_image }}"
       volumes:
-        - "{{ wazuh_data_dir }}/config/indexer:/usr/share/wazuh-indexer/config:Z"
-        - "{{ wazuh_data_dir }}/data/indexer:/var/lib/wazuh-indexer:Z"
-        - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z,ro"
+        #
+        #  The configuration file must be exactly places and use U to set correct uid/gid
+        #
+        # - "{{ wazuh_data_dir }}/config/indexer:/usr/share/wazuh-indexer/config:Z,U"
+        - "{{ wazuh_data_dir }}/config/indexer/elasticsearch.yml:/usr/share/wazuh-indexer/opensearch.yml:Z,U"
+        - "{{ wazuh_data_dir }}/data/indexer:/var/lib/wazuh-indexer:Z,U"
+        #
+        #  Certs are not being processed now... monkey patch worked, dir patch no
+        #
+        # - "{{ wazuh_data_dir }}/certs:/usr/share/wazuh-indexer/certs:z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/wazuh-indexer.pem:/usr/share/wazuh-indexer/certs/wazuh-indexer.pem:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/wazuh-indexer.key:/usr/share/wazuh-indexer/certs/wazuh-indexer.key:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/root-ca.pem:/usr/share/wazuh-indexer/certs/root-ca.pem:Z,U,ro"
+        #
+        # Logs directory (test only??)
+        #
+        - "{{ wazuh_data_dir }}/logs/indexer:/var/log/wazuh-indexer:Z,U"
       env:
-        OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_indexer_memory }} -Xmx{{ wazuh_indexer_memory }}"
+        OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_indexer_memory }} -Xmx{{ wazuh_indexer_memory }}  -Djava.security.manager=allow"
       options:
+        # Add ulimit settings
+        - "Ulimit=memlock=-1:-1"
+        - "Ulimit=nofile=65535:65535"
         - |
           [Unit]
           Description=Wazuh Indexer Container
@@ -69,14 +87,27 @@
           [Install]
           WantedBy=multi-user.target
 
+    # .............
     - name: "wazuh-manager"
       image: "{{ wazuh_manager_image }}"
       volumes:
-        - "{{ wazuh_data_dir }}/config/manager:/var/ossec/etc:Z"
-        - "{{ wazuh_data_dir }}/data/manager:/var/ossec/data:Z"
-        - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z,ro"
+        - "{{ wazuh_data_dir }}/data/manager:/var/ossec/data:Z,U"
+        - "{{ wazuh_data_dir }}/filebeat/etc:/etc/filebeat:Z,U"
+        - "{{ wazuh_data_dir }}/filebeat/var:/var/lib/filebeat:Z,U"
+        #
+        - "{{ wazuh_data_dir }}/config/manager:/var/ossec/configuration:Z,U"
+        - "{{ wazuh_data_dir }}/config/manager/ossec.conf:/var/ossec/etc/ossec.conf:Z,U"
+        #
+        - "{{ wazuh_data_dir }}/certs/wazuh-manager.pem:/etc/ssl/filebeat.pem:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/wazuh-manager.key:/etc/ssl/filebeat.key:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/root-ca.pem:/etc/ssl/root-ca.pem:Z,U,ro"
+        #
+        # Logs directory (test only??)
+        #
+        # - "{{ wazuh_data_dir }}/logs/manager:/var/ossec/logs:Z,U"
+        #
       env:
-        INDEXER_URL: "https://wazuh-indexer:9200"
+        INDEXER_URL: "https://wazuh-indexer:{{ wazuh_indexer_port }}"
         INDEXER_USERNAME: "admin"
         INDEXER_PASSWORD: "{{ wazuh_admin_password }}"
         FILEBEAT_SSL_VERIFICATION_MODE: "full"
@@ -94,19 +125,31 @@
           [Install]
           WantedBy=multi-user.target
 
+    # .............
     - name: "wazuh-dashboard"
       image: "{{ wazuh_dashboard_image }}"
       volumes:
-        - "{{ wazuh_data_dir }}/config/dashboard:/usr/share/wazuh-dashboard/config:Z"
-        - "{{ wazuh_data_dir }}/data/dashboard:/usr/share/wazuh-dashboard/data:Z"
-        - "{{ wazuh_data_dir }}/data/dashboard/wazuh/config/wazuh.yml:/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml:Z"
-        - "{{ wazuh_data_dir }}/certs:/etc/ssl/wazuh:Z,ro"
+        # - "{{ wazuh_data_dir }}/data/dashboard:/usr/share/wazuh-dashboard/data:Z,U"
+        #
+        #  Do a file patch ONLY for config and certs
+        #
+        - "{{ wazuh_data_dir }}/config/dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:Z,U"
+        - "{{ wazuh_data_dir }}/config/dashboard/wazuh.yml:/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml:Z,U"
+        #
+        - "{{ wazuh_data_dir }}/certs/wazuh-dashboard.pem:/usr/share/wazuh-dashboard/certs/wazuh-dashboard.pem:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/wazuh-dashboard.key:/usr/share/wazuh-dashboard/certs/wazuh-dashboard.key:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/root-ca.pem:/usr/share/wazuh-dashboard/certs/root-ca.pem:Z,U,ro"
+        #
       env:
         OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_dashboard_memory }} -Xmx{{ wazuh_dashboard_memory }}"
         INDEXER_USERNAME: "admin"
         INDEXER_PASSWORD: "{{ wazuh_admin_password }}"
         API_USERNAME: "{{ wazuh_api_user }}"
         API_PASSWORD: "{{ wazuh_api_password }}"
+        # Add these for better connectivity
+        WAZUH_API_URL: "https://wazuh-manager"
+        ELASTICSEARCH_URL: "https://wazuh-indexer:{{ wazuh_indexer_port }}"
+        NODE_TLS_REJECT_UNAUTHORIZED: "0" # For testing - remove in production
       options:
         - "SecurityLabelDisable=true"
         - |
