@@ -111,7 +111,7 @@
         #
         # Logs directory (test only??)
         #
-        # - "{{ wazuh_data_dir }}/logs/manager:/var/ossec/logs:Z,U"
+        - "{{ wazuh_data_dir }}/logs/manager:/var/ossec/logs:Z,U"
         #
       env:
         INDEXER_URL: "https://wazuh-indexer:{{ wazuh_indexer_port }}"
