@@ -38,6 +38,12 @@
       ansible.builtin.include_tasks:
         file: ../_base/tasks/prepare.yml
 
+    # Moving Certificates to prepare for now
+
+    - name: Include certificate tasks
+      ansible.builtin.include_tasks: certificates.yml
+      when: wazuh_generate_certs | bool
+
 # =======================================================================
 # DEPLOYMENT  (PRIVILEGED!!)
 # =======================================================================
@@ -70,9 +76,9 @@
       ansible.builtin.include_tasks:
         file: "../_base/tasks/networks.yml"
 
-    - name: Include certificate tasks
-      ansible.builtin.include_tasks: certificates.yml
-      when: wazuh_generate_certs | bool
+    # - name: Include certificate tasks
+    #   ansible.builtin.include_tasks: certificates.yml
+    #   when: wazuh_generate_certs | bool
 
     # ...................................................
     - name: Configure SELinux for data directories

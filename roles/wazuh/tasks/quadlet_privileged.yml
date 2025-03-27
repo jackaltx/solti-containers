@@ -23,11 +23,18 @@
     network: "{{ service_network }}"
     quadlet_dir: "/etc/containers/systemd"
     ports:
-      - "0.0.0.0:{{ wazuh_api_port }}:{{ wazuh_api_port }}" # SMELL!!!!
-      - "0.0.0.0:{{ wazuh_manager_port }}:{{ wazuh_manager_port }}"
-      - "0.0.0.0:{{ wazuh_registration_port }}:{{ wazuh_registration_port }}"
-      - "0.0.0.0:{{ wazuh_dashboard_port }}:{{ wazuh_dashboard_port }}" # Wazuh dashboard
+      - "0.0.0.0:{{ wazuh_api_port }}:{{ wazuh_api_port }}" # SMELL!!!!  55000
+      - "0.0.0.0:{{ wazuh_manager_port }}:{{ wazuh_manager_port }}" # Wazuh manager 1514
+      - "0.0.0.0:{{ wazuh_registration_port }}:{{ wazuh_registration_port }}" # Wazuh manager 1515
+      - "127.0.0.1:{{ wazuh_dashboard_port }}:{{ wazuh_dashboard_port }}" # Wazuh dashboard 8082
+      - "127.0.0.1:{{ wazuh_indexer_port}}:{{ wazuh_indexer_port }}" # Wazuh indexer 9201 ???
     quadlet_options:
+      # - "Label=traefik.enable=true"
+      # - "Label=traefik.http.routers.wazuh.rule=Host(`wazuh.{{ domain }}`)"
+      # - "Label=traefik.http.routers.wazuh.entrypoints=websecure"
+      # - "Label=traefik.http.routers.wazuh.service=wazuh"
+      # - "Label=traefik.http.services.wazuh.loadbalancer.server.port={{ wazuh_dashboard_port }}"
+      # - "Label=traefik.http.routers.wazuh.middlewares=secHeaders@file"
       - |
         [Service]
         Restart=always
@@ -36,7 +43,7 @@
         WantedBy=multi-user.target  # Changed from default.target
 
 # .............................................................................
-- name: Create Wazuh containers
+- name: Create Wazuh containers with volumes for certificates
   containers.podman.podman_container:
     name: "{{ item.name }}"
     pod: wazuh.pod
@@ -61,9 +68,9 @@
         #  Certs are not being processed now... monkey patch worked, dir patch no
         #
         # - "{{ wazuh_data_dir }}/certs:/usr/share/wazuh-indexer/certs:z,U,ro"
-        - "{{ wazuh_data_dir }}/certs/wazuh-indexer.pem:/usr/share/wazuh-indexer/certs/wazuh-indexer.pem:Z,U,ro"
-        - "{{ wazuh_data_dir }}/certs/wazuh-indexer.key:/usr/share/wazuh-indexer/certs/wazuh-indexer.key:Z,U,ro"
-        - "{{ wazuh_data_dir }}/certs/root-ca.pem:/usr/share/wazuh-indexer/certs/root-ca.pem:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/indexer/wazuh-indexer.pem:/usr/share/wazuh-indexer/certs/wazuh-indexer.pem:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/indexer/wazuh-indexer.key:/usr/share/wazuh-indexer/certs/wazuh-indexer.key:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/indexer/root-ca.pem:/usr/share/wazuh-indexer/certs/root-ca.pem:Z,U,ro"
         #
         # Logs directory (test only??)
         #
@@ -98,9 +105,9 @@
         - "{{ wazuh_data_dir }}/config/manager:/var/ossec/configuration:Z,U"
         - "{{ wazuh_data_dir }}/config/manager/ossec.conf:/var/ossec/etc/ossec.conf:Z,U"
         #
-        - "{{ wazuh_data_dir }}/certs/wazuh-manager.pem:/etc/ssl/filebeat.pem:Z,U,ro"
-        - "{{ wazuh_data_dir }}/certs/wazuh-manager.key:/etc/ssl/filebeat.key:Z,U,ro"
-        - "{{ wazuh_data_dir }}/certs/root-ca.pem:/etc/ssl/root-ca.pem:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/manager/wazuh-manager.pem:/etc/ssl/filebeat.pem:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/manager/wazuh-manager.key:/etc/ssl/filebeat.key:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/manager/root-ca.pem:/etc/ssl/root-ca.pem:Z,U,ro"
         #
         # Logs directory (test only??)
         #
@@ -136,9 +143,9 @@
         - "{{ wazuh_data_dir }}/config/dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:Z,U"
         - "{{ wazuh_data_dir }}/config/dashboard/wazuh.yml:/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml:Z,U"
         #
-        - "{{ wazuh_data_dir }}/certs/wazuh-dashboard.pem:/usr/share/wazuh-dashboard/certs/wazuh-dashboard.pem:Z,U,ro"
-        - "{{ wazuh_data_dir }}/certs/wazuh-dashboard.key:/usr/share/wazuh-dashboard/certs/wazuh-dashboard.key:Z,U,ro"
-        - "{{ wazuh_data_dir }}/certs/root-ca.pem:/usr/share/wazuh-dashboard/certs/root-ca.pem:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/dashboard/wazuh-dashboard.pem:/usr/share/wazuh-dashboard/certs/wazuh-dashboard.pem:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/dashboard/wazuh-dashboard.key:/usr/share/wazuh-dashboard/certs/wazuh-dashboard.key:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/dashboard/root-ca.pem:/usr/share/wazuh-dashboard/certs/root-ca.pem:Z,U,ro"
         #
       env:
         OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_dashboard_memory }} -Xmx{{ wazuh_dashboard_memory }}"
@@ -171,7 +178,7 @@
     daemon_reload: yes
 
 # .......................................................................................
-- name: Enable and start pod with systemd
+- name: "Enable and start pod with systemd: {{ service_properties.name }}"
   ansible.builtin.systemd:
     name: "{{ service_properties.name }}"
     state: started

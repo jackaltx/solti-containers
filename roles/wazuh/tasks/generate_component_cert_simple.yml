@@ -1,17 +1,28 @@
 ---
 # This task uses openssl commands directly rather than the module since we're having compatibility issues
 
+# Separate out in "named" folders
+
+- name: Ensure certificate directory exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ cert_temp_dir.path }}/{{ item.subdir }}"
+    state: directory
+    owner: "{{ dir_info.stat.uid }}"
+    group: "{{ dir_info.stat.gid }}"
+    mode: "0750"
+
 # Generate private key for component
 - name: Generate {{ item.name }} private key
   community.crypto.openssl_privatekey:
-    path: "{{ cert_temp_dir.path }}/{{ item.name }}.key"
+    path: "{{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}.key"
     type: RSA
     size: 2048
 
 # Create a config file for the certificate
 - name: Create openssl config for {{ item.name }}
   ansible.builtin.copy:
-    dest: "{{ cert_temp_dir.path }}/{{ item.name }}.cnf"
+    dest: "{{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}.cnf"
     content: |
       [req]
       distinguished_name=req
@@ -34,35 +45,45 @@
 - name: Generate CSR for {{ item.name }}
   ansible.builtin.command: >
     openssl req -new 
-    -key {{ cert_temp_dir.path }}/{{ item.name }}.key
-    -out {{ cert_temp_dir.path }}/{{ item.name }}.csr
+    -key {{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}.key
+    -out {{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}.csr
     -subj "/CN={{ item.cn | default(item.name + '.example.com') }}/O=Wazuh Inc./OU=Wazuh Security/C=US"
-    -config {{ cert_temp_dir.path }}/{{ item.name }}.cnf
+    -config {{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}.cnf
   changed_when: true
 
 # Sign certificate with the CA
 - name: Sign certificate for {{ item.name }}
   ansible.builtin.command: >
     openssl x509 -req
-    -in {{ cert_temp_dir.path }}/{{ item.name }}.csr
+    -in {{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}.csr
     -CA {{ cert_temp_dir.path }}/root-ca.pem
     -CAkey {{ cert_temp_dir.path }}/root-ca.key
     -CAcreateserial
-    -out {{ cert_temp_dir.path }}/{{ item.name }}.pem
+    -out {{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}.pem
     -days {{ wazuh_cert_days }}
     -sha256
     -extensions v3_req
-    -extfile {{ cert_temp_dir.path }}/{{ item.name }}.cnf
+    -extfile {{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}.cnf
   changed_when: true
 
 # Create PKCS12 format for compatibility
 - name: Create PKCS12 for {{ item.name }}
   ansible.builtin.command: >
     openssl pkcs12 -export
-    -out {{ cert_temp_dir.path }}/{{ item.name }}.p12
-    -inkey {{ cert_temp_dir.path }}/{{ item.name }}.key
-    -in {{ cert_temp_dir.path }}/{{ item.name }}.pem
+    -out {{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}.p12
+    -inkey {{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}.key
+    -in {{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}.pem
     -certfile {{ cert_temp_dir.path }}/root-ca.pem
     -password pass:
     -name {{ item.name }}
   changed_when: true
+
+# .........................................................
+- name: Copy root-ca.pem certificates to cert location
+  ansible.builtin.copy:
+    src: "{{ cert_temp_dir.path }}/root-ca.pem"
+    dest: "{{ cert_temp_dir.path }}/{{ item.subdir }}/root-ca.pem"
+    remote_src: true
+    owner: "{{ dir_info.stat.uid }}"
+    group: "{{ dir_info.stat.gid }}"
+    mode: "0600"

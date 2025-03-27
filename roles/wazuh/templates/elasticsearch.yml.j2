@@ -39,6 +39,11 @@ plugins.security.nodes_dn:
 plugins.security.authcz.admin_dn:
   - CN=admin,O=Wazuh Inc.,OU=Wazuh Security,C=US
 
+# Add audit log configuration
+plugins.security.audit.type: internal_opensearch
+plugins.security.audit.config.disabled_rest_categories: NONE
+plugins.security.audit.config.disabled_transport_categories: NONE
+
 # Performance settings
 indices.query.bool.max_clause_count: 4096
 thread_pool.write.queue_size: 4000

@@ -2,6 +2,13 @@
 # This task generates self-signed certificates for Wazuh components with better permission handling
 
 # First check if certs directory exists and create it if needed
+# SMELL....this is just to get by
+
+- name: Get manager dashboard directory ownership
+  ansible.builtin.stat:
+    path: "{{ wazuh_data_dir }}"
+  register: dir_info
+
 - name: Ensure certificate directory exists
   become: true
   ansible.builtin.file:
@@ -74,6 +81,7 @@
       include_tasks: generate_component_cert_simple.yml
       loop:
         - name: "wazuh-manager"
+          subdir: "manager"
           cn: "wazuh-manager.{{ service_dns_search }}"
           san_dns:
             - "wazuh-manager"
@@ -82,6 +90,7 @@
           san_ip:
             - "127.0.0.1"
         - name: "wazuh-indexer"
+          subdir: "indexer"
           cn: "wazuh-indexer.{{ service_dns_search }}"
           san_dns:
             - "wazuh-indexer"
@@ -90,6 +99,7 @@
           san_ip:
             - "127.0.0.1"
         - name: "wazuh-dashboard"
+          subdir: "dashboard"
           cn: "wazuh-dashboard.{{ service_dns_search }}"
           san_dns:
             - "wazuh-dashboard"
@@ -114,6 +124,6 @@
         path: "{{ cert_temp_dir.path }}"
         state: absent
 
-    # SMELL TODO cert issues
-    - name: Fix certifcate permissions
-      ansible.builtin.include_tasks: fix-certificate-permissions.yml
+    # # SMELL TODO cert issues
+    # - name: Fix certifcate permissions
+    #   ansible.builtin.include_tasks: fix-certificate-permissions.yml

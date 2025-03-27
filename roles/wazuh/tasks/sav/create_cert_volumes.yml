@@ -1,0 +1,39 @@
+---
+# Create dedicated volumes for certificates to fix SELinux issues
+- name: Create Podman volumes for certificates
+  become: true
+  command: podman volume create {{ item }}
+  loop:
+    - wazuh-indexer-certs
+    - wazuh-manager-certs
+    - wazuh-dashboard-certs
+  register: volume_creation
+  changed_when: volume_creation.rc == 0
+  failed_when: volume_creation.rc != 0 and "volume already exists" not in volume_creation.stderr
+
+- name: Copy certificates to volumes with proper permissions
+  become: true
+  block:
+    - name: Create temporary container for copying certificates to indexer volume
+      command: >
+        podman run --rm -v wazuh-indexer-certs:/certs:Z -v {{ wazuh_data_dir }}/certs:/source:ro
+        alpine:latest sh -c "cp -a /source/wazuh-indexer.* /source/root-ca.pem /certs/ && 
+                            chmod 600 /certs/*.key && chmod 644 /certs/*.pem"
+      register: copy_indexer_certs
+      changed_when: copy_indexer_certs.rc == 0
+
+    - name: Create temporary container for copying certificates to manager volume
+      command: >
+        podman run --rm -v wazuh-manager-certs:/certs:Z -v {{ wazuh_data_dir }}/certs:/source:ro
+        alpine:latest sh -c "cp -a /source/wazuh-manager.* /source/root-ca.pem /certs/ && 
+                            chmod 600 /certs/*.key && chmod 644 /certs/*.pem"
+      register: copy_manager_certs
+      changed_when: copy_manager_certs.rc == 0
+
+    - name: Create temporary container for copying certificates to dashboard volume
+      command: >
+        podman run --rm -v wazuh-dashboard-certs:/certs:Z -v {{ wazuh_data_dir }}/certs:/source:ro
+        alpine:latest sh -c "cp -a /source/wazuh-dashboard.* /source/root-ca.pem /certs/ && 
+                            chmod 600 /certs/*.key && chmod 644 /certs/*.pem"
+      register: copy_dashboard_certs
+      changed_when: copy_dashboard_certs.rc == 0

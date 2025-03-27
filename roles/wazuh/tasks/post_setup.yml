@@ -127,7 +127,7 @@
 # Configure Dashboards
 - name: Wait for Dashboard to be ready
   ansible.builtin.uri:
-    url: "https://127.0.0.1:8080/status"
+    url: "https://127.0.0.1:{{ wazuh_dashboard_port }}/status"
     method: GET
     validate_certs: false
     status_code: 200
