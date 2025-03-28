@@ -20,15 +20,16 @@
     <connection>secure</connection>
     <port>1514</port>
     <protocol>tcp</protocol>
+    <queue_size>131072</queue_size>
   </remote>
 
-  <!-- Policy monitoring -->
+  <!-- Basic rootcheck -->
   <rootcheck>
     <disabled>no</disabled>
     <frequency>43200</frequency>
   </rootcheck>
 
-  <!-- System inventory -->
+  <!-- Simplified syscollector -->
   <wodle name="syscollector">
     <disabled>no</disabled>
     <interval>1h</interval>
@@ -38,42 +39,23 @@
     <network>yes</network>
   </wodle>
 
-  <!-- File integrity monitoring -->
+  <!-- Basic syscheck -->
   <syscheck>
     <disabled>no</disabled>
     <frequency>43200</frequency>
     <scan_on_start>yes</scan_on_start>
-    <directories check_all="yes">/etc,/usr/bin,/usr/sbin</directories>
+    <directories>/etc,/usr/bin,/usr/sbin</directories>
     <skip_nfs>yes</skip_nfs>
   </syscheck>
 
-  <!-- Log analysis -->
-  <localfile>
-    <log_format>syslog</log_format>
-    <location>/var/log/messages</location>
-  </localfile>
-
+  <!-- Local files to monitor -->
   <localfile>
     <log_format>syslog</log_format>
     <location>/var/log/auth.log</location>
   </localfile>
 
-  <!-- Database configuration -->
-  <database>
-    <hostname>wazuh-indexer</hostname>
-    <port>9201</port>
-    <user>admin</user>
-    <password>{{ wazuh_admin_password }}</password>
-    <use_ssl>yes</use_ssl>
-    <ssl_certificate_verification>no</ssl_certificate_verification>
-  </database>
-
-  <!-- Cluster configuration -->
-  <cluster>
-    <name>wazuh</name>
-    <node_name>single-node</node_name>
-    <node_type>master</node_type>
-    <key>random_key_for_testing</key>
-    <disabled>yes</disabled>
-  </cluster>
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/ossec/logs/active-responses.log</location>
+  </localfile>
 </ossec_config>

@@ -27,6 +27,7 @@
     path: "{{ wazuh_data_dir }}/certs/root-ca.pem"
   register: cert_check
 
+# .......................................................................
 - name: Generate certificates
   when: not cert_check.stat.exists
   become: true

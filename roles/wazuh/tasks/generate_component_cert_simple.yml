@@ -19,6 +19,15 @@
     type: RSA
     size: 2048
 
+# Convert the private key to PKCS#8 format (critical for OpenSearch)
+- name: Convert {{ item.name }} private key to PKCS#8
+  ansible.builtin.command: >
+    openssl pkcs8 -inform PEM -outform PEM 
+    -in {{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}.key
+    -topk8 -nocrypt -v1 PBE-SHA1-3DES 
+    -out {{ cert_temp_dir.path }}/{{ item.subdir }}/{{ item.name }}-key.pem
+  changed_when: true
+
 # Create a config file for the certificate
 - name: Create openssl config for {{ item.name }}
   ansible.builtin.copy:

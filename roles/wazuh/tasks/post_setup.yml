@@ -1,7 +1,40 @@
 ---
-# Post-installation configuration for Wazuh
+# In your post_setup.yml
+- name: Wait for Wazuh Indexer to be ready (using default admin password)
+  ansible.builtin.uri:
+    url: "https://127.0.0.1:{{ wazuh_indexer_port }}/_cluster/health"
+    method: GET
+    user: admin
+    password: admin # Use default password initially
+    force_basic_auth: true
+    validate_certs: false
+    status_code: 200
+  register: indexer_health
+  until: indexer_health.status == 200
+  retries: 30
+  delay: 10
+  no_log: true
 
-- name: Wait for Wazuh Indexer to be ready
+- name: Apply security configuration with explicit Java path
+  ansible.builtin.command: >
+    podman exec -e JAVA_HOME=/usr/share/wazuh-indexer/jdk wazuh-indexer
+    /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh
+    -cd /usr/share/wazuh-indexer/plugins/opensearch-security/securityconfig/
+    -icl -nhnv
+    -cacert /usr/share/wazuh-indexer/certs/root-ca.pem
+    -cert /usr/share/wazuh-indexer/certs/wazuh-indexer.pem
+    -key /usr/share/wazuh-indexer/certs/wazuh-indexer.key
+    -t internal_users.yml,roles.yml,roles_mapping.yml
+    -p 9201
+  changed_when: true
+
+# Brief pause to allow security changes to take effect
+- name: Wait for security changes to apply
+  ansible.builtin.pause:
+    seconds: 5
+
+# Now use the custom admin password for further operations
+- name: Verify Wazuh Indexer with new password
   ansible.builtin.uri:
     url: "https://127.0.0.1:{{ wazuh_indexer_port }}/_cluster/health"
     method: GET
@@ -10,10 +43,10 @@
     force_basic_auth: true
     validate_certs: false
     status_code: 200
-  register: indexer_health
-  until: indexer_health.status == 200
-  retries: 30
-  delay: 10
+  register: indexer_health_new
+  until: indexer_health_new.status == 200
+  retries: 10
+  delay: 5
   no_log: true
 
 - name: Display indexer health

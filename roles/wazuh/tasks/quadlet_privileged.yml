@@ -52,6 +52,7 @@
     quadlet_dir: "/etc/containers/systemd"
     volume: "{{ item.volumes }}"
     env: "{{ item.env }}"
+    env_file: "/etc/containers/systemd/env/wazuh.env"
     quadlet_options: "{{ item.options }}"
   loop:
     # .............
@@ -59,22 +60,31 @@
       image: "{{ wazuh_indexer_image }}"
       volumes:
         #
-        #  The configuration file must be exactly places and use U to set correct uid/gid
+        #  The configuration file must be exactly placed and use the Z,U to set correct uid/gid and SELINUX context
         #
-        # - "{{ wazuh_data_dir }}/config/indexer:/usr/share/wazuh-indexer/config:Z,U"
         - "{{ wazuh_data_dir }}/config/indexer/elasticsearch.yml:/usr/share/wazuh-indexer/opensearch.yml:Z,U"
-        - "{{ wazuh_data_dir }}/data/indexer:/var/lib/wazuh-indexer:Z,U"
         #
-        #  Certs are not being processed now... monkey patch worked, dir patch no
+        #  This is how to seed the users/roles
         #
-        # - "{{ wazuh_data_dir }}/certs:/usr/share/wazuh-indexer/certs:z,U,ro"
+        # - "{{ wazuh_data_dir }}/config/indexer/internal_users.yml:/usr/share/wazuh-indexer/opensearch-security/internal_users.yml:Z,U"
+        # - "{{ wazuh_data_dir }}/config/indexer/roles.yml:/usr/share/wazuh-indexer/opensearch-security/roles.yml:Z,U"
+        # - "{{ wazuh_data_dir }}/config/indexer/roles_mapping.yml:/usr/share/wazuh-indexer/opensearch-security/roles_mapping.yml:Z,U"
+        # - "{{ wazuh_data_dir }}/config/indexer/internal_users.yml:/usr/share/wazuh-indexer/plugins/opensearch-security/securityconfig/internal_users.yml:Z,U"
+        # - "{{ wazuh_data_dir }}/config/indexer/roles.yml:/usr/share/wazuh-indexer/plugins/opensearch-security/securityconfig/roles.yml:Z,U"
+        # - "{{ wazuh_data_dir }}/config/indexer/roles_mapping.yml:/usr/share/wazuh-indexer/plugins/opensearch-security/securityconfig/roles_mapping.yml:Z,U"
+        - "{{ wazuh_data_dir }}/config/indexer/securityconfig:/usr/share/wazuh-indexer/plugins/opensearch-security/securityconfig:Z,U"
+        #
+        #  Map  in the certificate files.  SMELL  not sure about admin
+        #
         - "{{ wazuh_data_dir }}/certs/indexer/wazuh-indexer.pem:/usr/share/wazuh-indexer/certs/wazuh-indexer.pem:Z,U,ro"
-        - "{{ wazuh_data_dir }}/certs/indexer/wazuh-indexer.key:/usr/share/wazuh-indexer/certs/wazuh-indexer.key:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/indexer/wazuh-indexer-key.pem:/usr/share/wazuh-indexer/certs/wazuh-indexer-key.pem:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/indexer/wazuh-indexer.pem:/usr/share/wazuh-indexer/certs/admin.pem:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/indexer/wazuh-indexer-key.pem:/usr/share/wazuh-indexer/certs/admin-key.pem:Z,U,ro"
         - "{{ wazuh_data_dir }}/certs/indexer/root-ca.pem:/usr/share/wazuh-indexer/certs/root-ca.pem:Z,U,ro"
         #
-        # Logs directory (test only??)
-        #
+        - "{{ wazuh_data_dir }}/data/indexer:/var/lib/wazuh-indexer:Z,U"
         - "{{ wazuh_data_dir }}/logs/indexer:/var/log/wazuh-indexer:Z,U"
+        #
       env:
         OPENSEARCH_JAVA_OPTS: "-Xms{{ wazuh_indexer_memory }} -Xmx{{ wazuh_indexer_memory }}  -Djava.security.manager=allow"
       options:
@@ -98,18 +108,25 @@
     - name: "wazuh-manager"
       image: "{{ wazuh_manager_image }}"
       volumes:
-        - "{{ wazuh_data_dir }}/data/manager:/var/ossec/data:Z,U"
-        - "{{ wazuh_data_dir }}/filebeat/etc:/etc/filebeat:Z,U"
-        - "{{ wazuh_data_dir }}/filebeat/var:/var/lib/filebeat:Z,U"
         #
-        - "{{ wazuh_data_dir }}/config/manager:/var/ossec/configuration:Z,U"
-        - "{{ wazuh_data_dir }}/config/manager/ossec.conf:/var/ossec/etc/ossec.conf:Z,U"
+        - "{{ wazuh_data_dir }}/config/manager/ossec.conf:/wazuh-config-mount/etc/ossec.conf:Z,U"
         #
         - "{{ wazuh_data_dir }}/certs/manager/wazuh-manager.pem:/etc/ssl/filebeat.pem:Z,U,ro"
-        - "{{ wazuh_data_dir }}/certs/manager/wazuh-manager.key:/etc/ssl/filebeat.key:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/manager/wazuh-manager-key.pem:/etc/ssl/filebeat.key:Z,U,ro"
         - "{{ wazuh_data_dir }}/certs/manager/root-ca.pem:/etc/ssl/root-ca.pem:Z,U,ro"
         #
-        # Logs directory (test only??)
+        #  Map directories
+        #
+        - "{{ wazuh_data_dir }}/data/manager/ossec_api:/var/ossec/api/configuration:Z,U"
+        - "{{ wazuh_data_dir }}/data/manager/ossec_etc:/var/ossec/etc:Z,U"
+        - "{{ wazuh_data_dir }}/data/manager/ossec_queue:/var/ossec/queue:Z,U"
+        - "{{ wazuh_data_dir }}/data/manager/ossec_multigroups:/var/ossec/var/multigroups:Z,U"
+        - "{{ wazuh_data_dir }}/data/manager/ossec_integrations:/var/ossec/integrations:Z,U"
+        - "{{ wazuh_data_dir }}/data/manager/ossec_active_response:/var/ossec/active-response/bin:Z,U"
+        - "{{ wazuh_data_dir }}/data/manager/ossec_agentless:/var/ossec/agentless:Z,U"
+        - "{{ wazuh_data_dir }}/data/manager/ossec_wodles:/var/ossec/wodles:Z,U"
+        - "{{ wazuh_data_dir }}/data/manager/filebeat_etc:/etc/filebeat:Z,U"
+        - "{{ wazuh_data_dir }}/data/manager/filebeat_var:/var/lib/filebeat:Z,U"
         #
         - "{{ wazuh_data_dir }}/logs/manager:/var/ossec/logs:Z,U"
         #
@@ -144,7 +161,7 @@
         - "{{ wazuh_data_dir }}/config/dashboard/wazuh.yml:/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml:Z,U"
         #
         - "{{ wazuh_data_dir }}/certs/dashboard/wazuh-dashboard.pem:/usr/share/wazuh-dashboard/certs/wazuh-dashboard.pem:Z,U,ro"
-        - "{{ wazuh_data_dir }}/certs/dashboard/wazuh-dashboard.key:/usr/share/wazuh-dashboard/certs/wazuh-dashboard.key:Z,U,ro"
+        - "{{ wazuh_data_dir }}/certs/dashboard/wazuh-dashboard-key.pem:/usr/share/wazuh-dashboard/certs/wazuh-dashboard-key.pem:Z,U,ro"
         - "{{ wazuh_data_dir }}/certs/dashboard/root-ca.pem:/usr/share/wazuh-dashboard/certs/root-ca.pem:Z,U,ro"
         #
       env:
@@ -154,7 +171,7 @@
         API_USERNAME: "{{ wazuh_api_user }}"
         API_PASSWORD: "{{ wazuh_api_password }}"
         # Add these for better connectivity
-        WAZUH_API_URL: "https://wazuh-manager"
+        WAZUH_API_URL: "https://wazuh-manager:{{ wazuh_manager_port }}"
         ELASTICSEARCH_URL: "https://wazuh-indexer:{{ wazuh_indexer_port }}"
         NODE_TLS_REJECT_UNAUTHORIZED: "0" # For testing - remove in production
       options:

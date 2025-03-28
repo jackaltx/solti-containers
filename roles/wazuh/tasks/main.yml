@@ -72,28 +72,12 @@
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml
 
+    - name: Include create user/role tasks
+      ansible.builtin.include_tasks: generate-users.yml
+
     - name: Ensure network setup
       ansible.builtin.include_tasks:
         file: "../_base/tasks/networks.yml"
-
-    # - name: Include certificate tasks
-    #   ansible.builtin.include_tasks: certificates.yml
-    #   when: wazuh_generate_certs | bool
-
-    # ...................................................
-    - name: Configure SELinux for data directories
-      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
-      block:
-        - name: Set SELinux context for data directories
-          ansible.builtin.sefcontext:
-            target: "{{ wazuh_data_dir }}(/.*)?"
-            setype: container_file_t
-            state: present
-
-        - name: Apply SELinux context
-          ansible.builtin.command: restorecon -R -v "{{ wazuh_data_dir }}"
-          register: restorecon_result
-          changed_when: restorecon_result.rc == 0
 
     - name: Include container tasks
       ansible.builtin.include_tasks: quadlet_privileged.yml

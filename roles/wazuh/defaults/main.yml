@@ -36,6 +36,27 @@ wazuh_admin_password: "{{ lookup('env', 'WAZUH_ADMIN_PASSWORD') | default('chang
 wazuh_api_user: "wazuh-wui"
 wazuh_api_password: "{{ lookup('env', 'WAZUH_API_PASSWORD') | default('changeme') }}"
 
+# Default user definitions ( override in inventory or _vars )
+wazuh_users:
+  - name: admin
+    password: "{{ wazuh_admin_password }}"
+    reserved: true
+    backend_roles:
+      - "admin"
+    description: "Admin user for Wazuh/OpenSearch"
+
+  - name: wazuh-wui
+    password: "{{ wazuh_api_password }}"
+    reserved: false
+    backend_roles:
+      - "admin"
+    description: "User for Wazuh Manager communication"
+
+  - name: kibanaserver
+    password: "{{ wazuh_admin_password }}" # Could also use a dedicated var if needed
+    reserved: true
+    description: "User for Wazuh Dashboard service"
+
 # Cleanup settings
 wazuh_delete_data: false
 
@@ -60,16 +81,30 @@ service_properties:
   config_dir: "config"
   dirs:
     - { path: "", mode: "0750" }
+    #
     - { path: "config", mode: "0750" }
     - { path: "config/manager", mode: "0755" }
     - { path: "config/indexer", mode: "0755" }
     - { path: "config/dashboard", mode: "0755" }
+    #
     - { path: "data", mode: "0750" }
     - { path: "data/manager", mode: "0770" }
+    #
+    - { path: "data/manager/ossec_api", mode: "0755" }
+    - { path: "data/manager/ossec_etc", mode: "0755" }
+    - { path: "data/manager/ossec_queue", mode: "0755" }
+    - { path: "data/manager/ossec_multigroups", mode: "0755" }
+    - { path: "data/manager/ossec_integrations", mode: "0755" }
+    - { path: "data/manager/ossec_active_response", mode: "0755" }
+    - { path: "data/manager/ossec_agentless", mode: "0755" }
+    - { path: "data/manager/ossec_wodles", mode: "0755" }
+    - { path: "data/manager/filebeat_etc", mode: "0775" }
+    - { path: "data/manager/filebeat_var", mode: "0775" }
+    #
     - { path: "data/dashboard", mode: "0775" }
     - { path: "data/dashboard-custom", mode: "0775" }
+    #
     - { path: "certs", mode: "0775" }
+    #
     - { path: "logs/indexer", mode: "0775" }
     - { path: "logs/manager", mode: "0775" }
-    - { path: "filebeat/etc", mode: "0775" }
-    - { path: "filebeat/var", mode: "0775" }

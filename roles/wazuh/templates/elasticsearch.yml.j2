@@ -37,7 +37,7 @@ plugins.security.nodes_dn:
   - CN=wazuh-indexer.{{ service_dns_search }}
 
 plugins.security.authcz.admin_dn:
-  - CN=admin,O=Wazuh Inc.,OU=Wazuh Security,C=US
+  - "C=US,OU=Wazuh Security,O=Wazuh Inc.,CN=wazuh-indexer.{{ service_dns_search }}"
 
 # Add audit log configuration
 plugins.security.audit.type: internal_opensearch
