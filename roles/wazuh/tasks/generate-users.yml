@@ -22,7 +22,7 @@
 - name: Ensure certificate directory exists
   become: true
   ansible.builtin.file:
-    path: "{{ wazuh_data_dir }}/certs/securityconfig"
+    path: "{{ wazuh_data_dir }}/config/indexer/securityconfig"
     state: directory
     owner: "{{ dir_info.stat.uid }}"
     group: "{{ dir_info.stat.gid }}"

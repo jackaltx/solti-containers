@@ -10,12 +10,12 @@ _meta:
 {{ user.name }}:
   hash: "{{ user.hash }}"
   reserved: {{ user.reserved | default(false) | bool | lower }}
-  {% if user.backend_roles is defined and user.backend_roles | length > 0 %}
+{% if user.backend_roles is defined and user.backend_roles | length > 0 %}
   backend_roles:
-  {% for role in user.backend_roles %}
+{% for role in user.backend_roles %}
   - "{{ role }}"
-  {% endfor %}
-  {% endif %}
+{% endfor %}
+{% endif %}
   description: "{{ user.description | default('User created by Ansible') }}"
 
 {% endfor %}

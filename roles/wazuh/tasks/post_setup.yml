@@ -15,24 +15,65 @@
   delay: 10
   no_log: true
 
-- name: Apply security configuration with explicit Java path
-  ansible.builtin.command: >
-    podman exec -e JAVA_HOME=/usr/share/wazuh-indexer/jdk wazuh-indexer
-    /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh
-    -cd /usr/share/wazuh-indexer/plugins/opensearch-security/securityconfig/
-    -icl -nhnv
-    -cacert /usr/share/wazuh-indexer/certs/root-ca.pem
-    -cert /usr/share/wazuh-indexer/certs/wazuh-indexer.pem
-    -key /usr/share/wazuh-indexer/certs/wazuh-indexer.key
-    -t internal_users.yml,roles.yml,roles_mapping.yml
-    -p 9201
-  changed_when: true
+# ........................................................................
+- name: Update admin password via API
+  ansible.builtin.uri:
+    url: "https://localhost:{{ wazuh_indexer_port }}/_plugins/_security/api/internalusers/admin"
+    method: PUT
+    user: admin
+    password: admin # Default password
+    force_basic_auth: true
+    validate_certs: false
+    body_format: json
+    body:
+      password: "{{ wazuh_admin_password }}"
+      backend_roles: ["admin"]
+    status_code: 200
+  register: admin_update
+  changed_when: admin_update.status == 200
+  # no_log: true
 
+# ........................................................................
+- name: Update wazuh-wui user via API
+  ansible.builtin.uri:
+    url: "https://localhost:{{ wazuh_indexer_port }}/_plugins/_security/api/internalusers/wazuh-wui"
+    method: PUT
+    user: admin
+    password: "{{ wazuh_admin_password }}" # Now using updated password
+    force_basic_auth: true
+    validate_certs: false
+    body_format: json
+    body:
+      password: "{{ wazuh_api_password }}"
+      backend_roles: ["admin"]
+    status_code: [200, 201, 404] # 404 is acceptable if user doesn't exist yet
+  register: wazuh_wui_update
+  # no_log: true
+
+- name: Create wazuh-wui user if it doesn't exist
+  ansible.builtin.uri:
+    url: "https://localhost:{{ wazuh_indexer_port }}/_plugins/_security/api/internalusers/wazuh-wui"
+    method: POST
+    user: admin
+    password: "{{ wazuh_admin_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    body_format: json
+    body:
+      password: "{{ wazuh_api_password }}"
+      backend_roles: ["admin"]
+    status_code: [201, 409] # 409 is conflict (already exists)
+  when: wazuh_wui_update.status == 404
+  register: wazuh_wui_create
+  # no_log: true
+
+# ........................................................................
 # Brief pause to allow security changes to take effect
 - name: Wait for security changes to apply
   ansible.builtin.pause:
     seconds: 5
 
+# ........................................................................
 # Now use the custom admin password for further operations
 - name: Verify Wazuh Indexer with new password
   ansible.builtin.uri:
