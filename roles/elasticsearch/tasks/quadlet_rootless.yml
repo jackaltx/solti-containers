@@ -74,13 +74,14 @@
       - "Label=traefik.http.routers.elasticsearch0.rule=Host(`elasticsearch.{{ domain }}`)"
       - "Label=traefik.http.routers.elasticsearch0.entrypoints=websecure"
       - "Label=traefik.http.routers.elasticsearch0.service=elasticsearch0"
-      - "Label=traefik.http.services.elasticsearch0.loadbalancer.server.port=9000"
+      - "Label=traefik.http.services.elasticsearch0.loadbalancer.server.port=9200"
       - "Label=traefik.http.routers.elasticsearch0.middlewares=secHeaders@file"
 
       # Secondary hostname (completely separate router)
       - "Label=traefik.http.routers.elasticsearch1.rule=Host(`es.{{ domain }}`)"
       - "Label=traefik.http.routers.elasticsearch1.entrypoints=websecure"
       - "Label=traefik.http.routers.elasticsearch1.service=vault-primary" # Use the same service
+      - "Label=traefik.http.services.elasticsearch1.loadbalancer.server.port=9200"
       - "Label=traefik.http.routers.elasticsearch1.middlewares=secHeaders@file"
 
       - "Ulimit=memlock=-1:-1"
