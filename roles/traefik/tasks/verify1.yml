@@ -50,29 +50,34 @@
   debug:
     msg: "{{ route_list | default(['No routes found']) }}"
 
-- name: Test one route
+- name: Test all routes
   uri:
-    url: "https://{{ test_domain }}:{{ traefik_http_port }}"
+    url: "https://{{ item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }}:{{ traefik_http_port }}"
     method: GET
     status_code: [200, 301, 302, 401, 404, 502, 503]
     timeout: 5
     validate_certs: false
-  vars:
-    test_domain: "{{ active_routes[0].rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }}"
-  register: test_result
-  when: active_routes is defined and active_routes | length > 0
+  register: test_results
+  loop: "{{ active_routes | default([]) }}"
+  when: item.rule.startswith('Host(')
   ignore_errors: true
 
-- name: Show connectivity test
+- name: Build test results
+  set_fact:
+    test_summary: "{{ test_summary | default([]) + [domain + ' ➜ ' + status_icon + ' ' + (item.status | string)] }}"
+  vars:
+    domain: "{{ item.item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }}"
+    status_icon: "{{ '✅' if item.status in [200, 301, 302] else '🔒' if item.status == 401 else '⚠️' if item.status in [404, 502, 503] else '❌' }}"
+  loop: "{{ test_results.results | default([]) }}"
+  when: item.item is defined and item.status is defined
+
+- name: Show connectivity tests
   debug:
     msg:
       - ""
-      - "🔗 CONNECTIVITY TEST"
+      - "🔗 CONNECTIVITY TESTS"
       - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-      - "URL: {{ test_result.url | default('N/A') }}"
-      - "Status: {{ test_result.status | default('FAILED') }} {{ '✅' if test_result.status < 500 else '❌' }}"
-      - "TLS: {{ '✅ HTTPS' if test_result.url is defined and test_result.url.startswith('https') else '❌ HTTP' }}"
-  when: test_result is defined
+      - "{{ test_summary | default(['No tests performed']) | join('\n') }}"
 
 - name: Check certificates
   stat:
