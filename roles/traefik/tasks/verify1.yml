@@ -40,11 +40,15 @@
       - "Services: {{ docker_services | length if docker_services is defined else 0 }}"
       - ""
 
-- name: Show routes (clean format)
-  debug:
-    msg: "{{ item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }} ➜ {{ item.service }}"
+- name: Build route list
+  set_fact:
+    route_list: "{{ route_list | default([]) + [item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') + ' ➜ ' + item.service] }}"
   loop: "{{ active_routes | default([]) }}"
   when: item.rule.startswith('Host(')
+
+- name: Show routes
+  debug:
+    msg: "{{ route_list | default(['No routes found']) }}"
 
 - name: Test one route
   uri:
