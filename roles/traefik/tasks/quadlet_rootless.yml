@@ -49,9 +49,9 @@
     network: "{{ service_network }}"
     quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
     ports:
-      - "0.0.0.0:{{ traefik_http_port }}:8080"
-      - "0.0.0.0:{{ traefik_https_port }}:8443"
-      - "127.0.0.1:{{ traefik_dashboard_port }}:9000" # traefik entry
+      - "0.0.0.0:{{ traefik_http_port }}:8080" # Maps to internal 8000
+      - "0.0.0.0:{{ traefik_https_port }}:8443" # Maps to internal 8443
+      - "127.0.0.1:{{ traefik_dashboard_port }}:9000" # Maps to internal 9000
     quadlet_options:
       - |
         [Service]

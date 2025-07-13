@@ -1,0 +1,15 @@
+---
+# Quick connectivity tests for development
+- name: Test Traefik API accessibility
+  uri:
+    url: "http://localhost:{{ traefik_dashboard_port }}/api/version"
+    method: GET
+    status_code: 200
+  register: api_test
+
+- name: Display test results
+  debug:
+    msg:
+      - "✅ Traefik API responding"
+      - "Dashboard: http://localhost:{{ traefik_dashboard_port }}"
+      - "Version: {{ api_test.json.Version if api_test.json is defined else 'Unknown' }}"

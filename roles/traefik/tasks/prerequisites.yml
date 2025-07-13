@@ -23,6 +23,17 @@
         msg: "LINODE_TOKEN environment variable must be set"
       when: lookup('env', 'LINODE_TOKEN') == ''
 
+    - name: Display setup reminder
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "TRAEFIK DEVELOPMENT SETUP REMINDER:"
+          - "1. Dashboard will be at: http://localhost:{{ traefik_dashboard_port }}"
+          - "2. Domain configured: {{ domain }}"
+          - "3. DNS provider: Linode (token: {{ 'SET' if lookup('env', 'LINODE_TOKEN') else 'NOT SET' }})"
+          - "4. Ensure *.{{ domain }} points to this machine"
+          - "=========================================="
+
     # .....................................................................................
     - name: Template Traefik configuration
       template:

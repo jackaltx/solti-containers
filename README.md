@@ -1,135 +1,162 @@
-# Solti Ansible Project
+# Ansible Collection - jackaltx.solti_containers
 
-A comprehensive Ansible project for deploying and managing containerized services using Podman and Quadlets with systemd integration.
-
-## Overview
-
-The Solti project provides an infrastructure-as-code solution for deploying various services in containers. It uses a modular approach with a common `_base` role that handles the shared functionality across all services.
-
-Key features:
-
-- Rootless Podman container deployment
-- Systemd integration using Quadlets
-- Cross-platform support (RHEL/CentOS and Debian-based systems)
-- Shell script wrappers for simplified management
-- SELinux support for RHEL systems
-
-## Supported Services
-
-- **Elasticsearch**: Search and analytics engine
-- **HashiVault**: Secrets management
-- **Mattermost**: Team collaboration platform
-- **Redis**: In-memory data store
-- **Traefik**: Modern HTTP reverse proxy
-- **MinIO**: S3-compatible object storage
+A comprehensive Ansible collection for deploying and managing containerized services using Podman and Quadlets with systemd integration.
 
 ## Quick Start
 
-### Prerequisites
-
-- Podman 4.x or later installed
-- Systemd
-- User with sudo access
-
-### Service Management Scripts
-
-The project includes two helper scripts to simplify service management without directly using Ansible playbooks:
-
-#### 1. `manage-svc.sh`
-
-This script manages the lifecycle of services through simple commands.
-
 ```bash
-# Usage
-./manage-svc.sh <service> <action>
-
-# Actions: prepare, deploy, remove
-```
-
-Examples:
-
-```bash
-# Prepare the system for Elasticsearch deployment
+# Prepare system for a service
 ./manage-svc.sh elasticsearch prepare
 
-# Deploy HashiVault
-./manage-svc.sh hashivault deploy
+# Deploy a service
+./manage-svc.sh elasticsearch deploy
 
-# Remove Redis (preserves data)
-./manage-svc.sh redis remove
-```
-
-#### 2. `svc-exec.sh`
-
-This script executes specific tasks for a service, such as verification or configuration tasks.
-
-```bash
-# Usage
-./svc-exec.sh [-K] <service> [entry]
-
-# -K: Use sudo (needed for some operations)
-# Default entry: verify
-```
-
-Examples:
-
-```bash
-# Verify Elasticsearch installation
+# Verify deployment
 ./svc-exec.sh elasticsearch verify
 
-# Configure MinIO with sudo privileges
-./svc-exec.sh -K minio configure
+# Remove service (preserves data)
+./manage-svc.sh elasticsearch remove
+```
 
-# Verify Mattermost is running
-./svc-exec.sh mattermost
+## Overview
+
+The SOLTI containers project provides infrastructure-as-code solutions for deploying various services in containers. It uses a modular approach with a common `_base` role that handles shared functionality across all services.
+
+### Why This Project Exists
+
+Modern development and testing requires lightweight, ephemeral services that can be quickly deployed, tested, and removed. Virtual machines are too heavy for rapid iteration cycles. This collection addresses the need for:
+
+- **Consistent deployment patterns** across different services
+- **Lightweight testing environments** using containers instead of VMs
+- **Easy service lifecycle management** (prepare → deploy → verify → remove)
+- **Standardized configuration** with security best practices
+- **Rapid iteration** for development and testing workflows
+
+## Service Philosophy
+
+Each service serves specific testing and development needs:
+
+- **Mattermost**: Private notification collector with mobile/desktop integration
+- **HashiVault**: Comprehensive secrets management for development workflows  
+- **Redis**: Fast key-value store for test result collection
+- **Elasticsearch**: Search and analytics for log analysis and testing
+- **Traefik**: Modern reverse proxy for container networking
+- **MinIO**: S3-compatible storage for development and testing
+
+## Key Features
+
+- **Rootless Podman deployment** - Enhanced security without privileged containers
+- **Systemd integration using Quadlets** - Modern container service management
+- **Cross-platform support** - RHEL/CentOS and Debian-based systems
+- **Shell script wrappers** - Simplified management without complex Ansible commands
+- **SELinux support** - Proper security contexts on RHEL systems
+- **Consistent patterns** - All services follow the same deployment methodology
+
+## Supported Services
+
+| Service | Purpose | Default Port | Status |
+|---------|---------|--------------|--------|
+| **Elasticsearch** | Search and analytics engine | 9200 | ✅ Production Ready |
+| **HashiVault** | Secrets management | 8200 | ✅ Production Ready |
+| **Mattermost** | Team collaboration platform | 8065 | ✅ Production Ready |
+| **Redis** | In-memory data store | 6379 | ✅ Production Ready |
+| **Traefik** | HTTP reverse proxy | 8080/8443 | ✅ Production Ready |
+| **MinIO** | S3-compatible object storage | 9000/9001 | ✅ Production Ready |
+| **Wazuh** | Security monitoring | 443/55000 | 🚧 In Development |
+
+## Prerequisites
+
+- Podman 4.x or later
+- Systemd with user services enabled
+- User with sudo access (for system preparation)
+- SELinux (handled automatically on RHEL/CentOS)
+
+## Management Scripts
+
+### Service Lifecycle Management (`manage-svc.sh`)
+
+```bash
+# Prepare system for service deployment
+./manage-svc.sh <service> prepare
+
+# Deploy and start service
+./manage-svc.sh <service> deploy
+
+# Remove service (preserves data by default)
+./manage-svc.sh <service> remove
+```
+
+### Service Operations (`svc-exec.sh`)
+
+```bash
+# Verify service is running correctly
+./svc-exec.sh <service> verify
+
+# Execute service-specific tasks
+./svc-exec.sh <service> configure
+./svc-exec.sh <service> backup
+
+# Use sudo for privileged operations
+./svc-exec.sh -K <service> <task>
+```
+
+## Example Workflows
+
+### Setting Up a Development Environment
+
+```bash
+# Set up multiple services for development
+./manage-svc.sh redis prepare
+./manage-svc.sh redis deploy
+
+./manage-svc.sh elasticsearch prepare  
+./manage-svc.sh elasticsearch deploy
+
+./manage-svc.sh mattermost prepare
+./manage-svc.sh mattermost deploy
+
+# Verify all services
+./svc-exec.sh redis verify
+./svc-exec.sh elasticsearch verify
+./svc-exec.sh mattermost verify
+```
+
+### Testing and Cleanup
+
+```bash
+# Run tests against services
+./svc-exec.sh elasticsearch verify
+./svc-exec.sh redis verify
+
+# Clean shutdown (preserves data)
+./manage-svc.sh elasticsearch remove
+./manage-svc.sh redis remove
+./manage-svc.sh mattermost remove
 ```
 
 ## Architecture
 
-### The `_base` Role
+### The `_base` Role Pattern
 
-The `_base` role contains shared functionality used by all service-specific roles. It handles:
+All service roles extend a common `_base` role that provides:
 
-1. **Directory creation and permissions**
-2. **SELinux context configuration**
-3. **Network setup**
-4. **Container deployment via Quadlets**
-5. **Systemd integration**
-6. **Cleanup processes**
+1. **Directory management** - Consistent data and config directories
+2. **SELinux configuration** - Proper security contexts
+3. **Network setup** - Container networking configuration  
+4. **Systemd integration** - Service management via Quadlets
+5. **Cleanup processes** - Consistent removal procedures
 
-Each service role extends this foundation with service-specific configurations and tasks.
+### Deployment States
 
-### Role Structure
+Each service supports three primary states:
 
-Each service role follows the same structure:
+- **prepare**: One-time system setup (directories, permissions, SELinux)
+- **present**: Deploy and run the service
+- **absent**: Remove service (optionally delete data)
 
-```
-roles/
-├── _base/                # Common functionality
-│   ├── defaults/
-│   ├── tasks/
-│   └── templates/
-├── elasticsearch/        # Service-specific role
-│   ├── defaults/
-│   ├── handlers/
-│   ├── tasks/
-│   └── templates/
-├── hashivault/
-└── ...
-```
-
-### Deployment Flow
-
-1. **Prepare**: Set up directories, SELinux contexts, and system configuration
-2. **Deploy**: Create containers, configure systemd, and start services
-3. **Verify**: Check if services are running correctly
-4. **Remove**: Stop and remove containers, optionally delete data
-
-## Configuration Variables
+## Configuration
 
 ### Common Variables
-
-These variables are used across all services:
 
 ```yaml
 service_network: "ct-net"             # Container network name
@@ -139,139 +166,90 @@ service_dns_servers:                  # DNS servers for containers
 service_dns_search: "example.com"     # DNS search domain
 ```
 
-### Elasticsearch
+### Service-Specific Configuration
 
-```yaml
-elasticsearch_state: present          # present, prepare, or absent
-elasticsearch_data_dir: "~/elasticsearch-data"
-elasticsearch_password: "your_secure_password"
-elasticsearch_port: 9200
-elasticsearch_gui_port: 8088
-elasticsearch_memory: "1g"            # JVM heap size
-elasticsearch_enable_security: true
-elasticsearch_delete_data: false      # Set to true to delete data on removal
-```
+Each service has extensive configuration options. See individual service documentation:
 
-### HashiVault
+- [Elasticsearch README](roles/elasticsearch/README.md)
+- [HashiVault README](roles/hashivault/README.md)
+- [Mattermost README](roles/mattermost/README.md)
+- [Redis README](roles/redis/README.md)
+- [Traefik README](roles/traefik/README.md)
 
-```yaml
-hashivault_state: present                  # present, prepare, or absent
-vault_data_dir: "~/vault-data"
-vault_api_port: 8200
-vault_enable_ui: true
-vault_delete_data: false
-vault_storage_type: "file"            # file, raft, consul
-```
+## Security Best Practices
 
-### Mattermost
+1. **Rootless containers** - All services run without root privileges
+2. **Localhost binding** - Services bind to 127.0.0.1 by default
+3. **Strong passwords** - Configurable via environment variables
+4. **TLS support** - Available for most services
+5. **SELinux integration** - Proper contexts on RHEL systems
+6. **Data isolation** - Service data stored in user directories
 
-```yaml
-mattermost_state: present             # present, prepare, or absent
-mattermost_data_dir: "~/mattermost-data"
-mattermost_postgres_password: "your_secure_password"
-mattermost_port: 8065
-mattermost_db_name: "mattermost"
-mattermost_db_user: "mmuser"
-mattermost_site_name: "Mattermost"
-mattermost_delete_data: false
-```
+## Development and Testing
 
-### Redis
+### Adding New Services
 
-```yaml
-redis_state: present                  # present, prepare, or absent
-redis_data_dir: "~/redis-data"
-redis_port: 6379
-redis_gui_port: 8081
-redis_password: "your_secure_password"
-redis_maxmemory: "256mb"
-redis_maxmemory_policy: "allkeys-lru"
-redis_delete_data: false
-```
+Follow the established pattern documented in [Solti-Container-Pattern.md](docs/Solti-Container-Pattern.md):
 
-### Traefik
+1. Create role following the standard structure
+2. Implement the four core tasks (prerequisites, containers, systemd, cleanup)
+3. Add Quadlet templates for systemd integration
+4. Include verification tasks
+5. Update management scripts
 
-```yaml
-traefik_state: present                # present, prepare, or absent
-traefik_data_dir: "~/traefik-data"
-traefik_http_port: 8080               # 80 if privileged
-traefik_https_port: 8443              # 443 if privileged
-traefik_dashboard_port: 9999
-traefik_dashboard_enabled: true
-traefik_enable_ssl: true
-traefik_acme_email: "your@email.com"
-traefik_delete_data: false
-```
+### Testing Framework
 
-### MinIO
-
-```yaml
-minio_state: present                  # present, prepare, or absent
-minio_data_dir: "~/minio-data"
-minio_api_port: 9000
-minio_console_port: 9001
-minio_root_user: "minioadmin"
-minio_root_password: "your_secure_password"
-minio_delete_data: false
-```
-
-## Service States
-
-Each service can be in one of these states:
-
-- **prepare**: One-time setup of directories and system configuration
-- **present**: Deploy and run the service
-- **absent**: Remove the service (optionally delete data)
-
-## Example Inventory File
-
-The `inventory.yml` file defines hosts and service-specific variables:
-
-```yaml
-all:
-  vars:
-    domain: example.org
-    ansible_user: youruser
-    
-  children:
-    mylab:
-      hosts:
-        server1:
-          ansible_host: "localhost"
-          ansible_connection: local
-      
-      children:
-        elasticsearch_svc:
-          hosts:
-            server1:
-          vars:
-            elasticsearch_data_dir: "{{ ansible_env.HOME }}/elasticsearch-data"
-            elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD') }}"
-```
-
-## Security Considerations
-
-1. Passwords are set through variables or environment variables
-2. TLS is supported for most services
-3. SELinux contexts are properly configured on RHEL/CentOS systems
-4. Services bind to localhost by default (except Traefik)
-5. Data directories are created with appropriate permissions
+- **Molecule testing** - See [molecule-strategy.md](molecule-strategy.md)
+- **Verification tasks** - Each service includes health checks
+- **Cross-platform testing** - RHEL and Debian family support
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Permission denied errors**:
-   - Check SELinux contexts with `ls -lZ`
-   - Run `restorecon -Rv` on data directories
+1. **SELinux contexts** - Run `sudo restorecon -Rv <data_directory>`
+2. **Container networking** - Check `podman network inspect ct-net`
+3. **Service status** - Use `systemctl --user status <service>-pod`
+4. **Port conflicts** - Verify ports aren't already in use
 
-2. **Container won't start**:
-   - Check logs with `podman logs container-name`
-   - Verify systemd integration with `systemctl --user status pod-name`
+### Debug Information
 
-3. **Network issues**:
-   - Check container network with `podman network inspect ct-net`
-   - Verify DNS configuration in containers
+```bash
+# Check container status
+podman ps --all
+
+# View service logs
+podman logs <container-name>
+
+# Check systemd status
+systemctl --user status <service>-pod
+
+# Verify network
+podman network inspect ct-net
+```
+
+## Future Development
+
+### Planned Services
+
+- **Jepson** - Fuzzing framework
+- **Trivy** - Vulnerability scanner
+- **Additional monitoring tools**
+
+### Roadmap
+
+- Enhanced testing framework with Molecule
+- Improved documentation and examples
+- Additional platform support
+- Performance optimization
+
+## Contributing
+
+1. Follow the established service pattern
+2. Include comprehensive documentation
+3. Add verification tasks for all services
+4. Test on both RHEL and Debian platforms
+5. Update management scripts as needed
 
 ## License
 
@@ -279,4 +257,4 @@ MIT
 
 ## Author Information
 
-Created by Jackaltx and Claude
+Created by Jackaltx with significant assistance from Claude AI for pattern development and documentation.

@@ -1,0 +1,110 @@
+---
+# Installation state
+wazuh_state: present
+wazuh_force_reload: false
+
+# Container settings
+wazuh_manager_image: "docker.io/wazuh/wazuh-manager:4.11.1"
+wazuh_indexer_image: "docker.io/wazuh/wazuh-indexer:4.11.1"
+wazuh_dashboard_image: "docker.io/wazuh/wazuh-dashboard:4.11.1"
+
+# Directory settings
+wazuh_data_dir: "/opt/wazuh-data"
+
+# Certificates
+wazuh_generate_certs: true
+wazuh_ca_cert_days: 3650
+wazuh_cert_days: 3650
+
+# Network configuration
+wazuh_network_name: "{{ service_network }}"
+
+# Ports  SMELL both inside an out....until I need to move them.
+wazuh_api_port: 55000
+wazuh_manager_port: 1514
+wazuh_registration_port: 1515
+wazuh_dashboard_port: 8082
+wazuh_indexer_port: 9201
+
+# Resource limits - REDUCED MEMORY USAGE
+wazuh_indexer_memory: "1g"
+wazuh_manager_memory: "512m"
+wazuh_dashboard_memory: "512m"
+
+# Security settings
+wazuh_admin_password: "{{ lookup('env', 'WAZUH_ADMIN_PASSWORD') | default('changeme') }}"
+wazuh_api_user: "wazuh-wui"
+wazuh_api_password: "{{ lookup('env', 'WAZUH_API_PASSWORD') | default('changeme') }}"
+
+# Default user definitions ( override in inventory or _vars )
+wazuh_users:
+  - name: admin
+    password: "{{ wazuh_admin_password }}"
+    reserved: true
+    backend_roles:
+      - "admin"
+    description: "Admin user for Wazuh/OpenSearch"
+
+  - name: wazuh-wui
+    password: "{{ wazuh_api_password }}"
+    reserved: false
+    backend_roles:
+      - "admin"
+    description: "User for Wazuh Manager communication"
+
+  - name: kibanaserver
+    password: "{{ wazuh_admin_password }}" # Could also use a dedicated var if needed
+    reserved: true
+    description: "User for Wazuh Dashboard service"
+
+# Cleanup settings
+wazuh_delete_data: false
+
+# =======================================================================
+service_network: "example-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"
+
+# =======================================================================
+service_properties:
+  root: "wazuh"
+  name: "wazuh-pod"
+  pod_key: "wazuh.pod"
+  quadlets:
+    - "wazuh-manager.container"
+    - "wazuh-indexer.container"
+    - "wazuh-dashboard.container"
+    - "wazuh.pod"
+  data_dir: "{{ wazuh_data_dir }}" # override in playbook
+  config_dir: "config"
+  dirs:
+    - { path: "", mode: "0750" }
+    #
+    - { path: "config", mode: "0750" }
+    - { path: "config/manager", mode: "0755" }
+    - { path: "config/indexer", mode: "0755" }
+    - { path: "config/dashboard", mode: "0755" }
+    #
+    - { path: "data", mode: "0750" }
+    - { path: "data/manager", mode: "0770" }
+    #
+    - { path: "data/manager/ossec_api", mode: "0755" }
+    - { path: "data/manager/ossec_etc", mode: "0755" }
+    - { path: "data/manager/ossec_queue", mode: "0755" }
+    - { path: "data/manager/ossec_multigroups", mode: "0755" }
+    - { path: "data/manager/ossec_integrations", mode: "0755" }
+    - { path: "data/manager/ossec_active_response", mode: "0755" }
+    - { path: "data/manager/ossec_agentless", mode: "0755" }
+    - { path: "data/manager/ossec_wodles", mode: "0755" }
+    - { path: "data/manager/filebeat_etc", mode: "0775" }
+    - { path: "data/manager/filebeat_var", mode: "0775" }
+    #
+    - { path: "data/dashboard", mode: "0775" }
+    - { path: "data/dashboard-custom", mode: "0775" }
+    #
+    - { path: "certs", mode: "0775" }
+    #
+    - { path: "logs/indexer", mode: "0775" }
+    - { path: "logs/manager", mode: "0775" }

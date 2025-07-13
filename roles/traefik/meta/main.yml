@@ -1,0 +1,12 @@
+galaxy_info:
+  role_name: traefik
+  description: Development reverse proxy with automatic SSL (NOT for production)
+  license: MIT
+
+  galaxy_tags:
+    - traefik
+    - development
+    - ssl
+    - reverse-proxy
+    - containers
+    - testing

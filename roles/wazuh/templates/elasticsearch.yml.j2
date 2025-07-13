@@ -1,0 +1,75 @@
+# wazuh/templates/elasticsearch.yml.j2
+# Wazuh Indexer configuration file
+
+# Cluster configuration
+cluster.name: wazuh-cluster
+node.name: wazuh-indexer
+
+# Network settings  SMELL  hardcoded port
+network.host: "0.0.0.0"
+http.port: 9201
+transport.tcp.port: 9300
+
+# Paths with proper ownership
+path.data: /var/lib/wazuh-indexer
+path.logs: /var/log/wazuh-indexer
+
+# Discovery settings (for single node)
+discovery.type: single-node
+
+# Memory settings
+bootstrap.memory_lock: true
+
+# Security settings
+
+plugins.security.ssl.transport.pemcert_filepath: /usr/share/wazuh-indexer/certs/wazuh-indexer.pem
+plugins.security.ssl.transport.pemkey_filepath: /usr/share/wazuh-indexer/certs/wazuh-indexer.key
+plugins.security.ssl.transport.pemtrustedcas_filepath: /usr/share/wazuh-indexer/certs/root-ca.pem
+
+plugins.security.ssl.http.pemcert_filepath: /usr/share/wazuh-indexer/certs/wazuh-indexer.pem
+plugins.security.ssl.http.pemkey_filepath: /usr/share/wazuh-indexer/certs/wazuh-indexer.key
+plugins.security.ssl.http.pemtrustedcas_filepath: /usr/share/wazuh-indexer/certs/root-ca.pem
+
+plugins.security.ssl.http.enabled: true
+plugins.security.allow_default_init_securityindex: true
+
+plugins.security.nodes_dn:
+  - CN=wazuh-indexer.{{ service_dns_search }}
+
+plugins.security.authcz.admin_dn:
+  - "C=US,OU=Wazuh Security,O=Wazuh Inc.,CN=wazuh-indexer.{{ service_dns_search }}"
+
+# Add audit log configuration
+plugins.security.audit.type: internal_opensearch
+plugins.security.audit.config.disabled_rest_categories: NONE
+plugins.security.audit.config.disabled_transport_categories: NONE
+
+# Performance settings
+indices.query.bool.max_clause_count: 4096
+thread_pool.write.queue_size: 4000
+thread_pool.search.queue_size: 10000
+
+# Resource limits
+cluster.routing.allocation.disk.threshold_enabled: true
+cluster.routing.allocation.disk.watermark.low: 90%
+cluster.routing.allocation.disk.watermark.high: 95%
+
+# JVM heap dump settings
+indices.breaker.total.use_real_memory: false
+indices.breaker.total.limit: 70%
+indices.breaker.fielddata.limit: 40%
+indices.breaker.request.limit: 30%
+
+# Monitoring
+# xpack.monitoring.enabled: false
+
+# Additional optimizations for Wazuh
+action.auto_create_index: .monitoring-*,.watches,.triggered_watches,.watcher-history-*,.security*
+
+# Enable compatibility mode with OpenSearch Dashboards
+compatibility.override_main_response_version: true
+
+# Node roles
+node.master: true
+node.data: true
+node.ingest: true

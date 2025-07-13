@@ -1,0 +1,154 @@
+---
+# Useful Traefik verification with complete routing chain
+# Usage: ./svc-exec.sh traefik verify
+
+- name: Check Traefik API
+  uri:
+    url: "http://localhost:{{ traefik_dashboard_port }}/api/version"
+    method: GET
+    status_code: 200
+  register: api_check
+  ignore_errors: true
+
+- name: Get routers
+  uri:
+    url: "http://localhost:{{ traefik_dashboard_port }}/api/http/routers"
+    method: GET
+    status_code: 200
+  register: routers
+  when: api_check.status == 200
+  ignore_errors: true
+
+- name: Get services
+  uri:
+    url: "http://localhost:{{ traefik_dashboard_port }}/api/http/services"
+    method: GET
+    status_code: 200
+  register: services
+  when: api_check.status == 200
+  ignore_errors: true
+
+- name: Show status
+  ansible.builtin.debug:
+    msg:
+      - "=========================================="
+      - "TRAEFIK STATUS"
+      - "=========================================="
+      - "API: {{ 'ONLINE' if api_check.status == 200 else 'OFFLINE' }}"
+      - "Version: {{ api_check.json.Version if api_check.json is defined else 'Unknown' }}"
+      - "Dashboard: http://localhost:{{ traefik_dashboard_port }}"
+      - "Domain: {{ domain }}"
+      - ""
+
+- name: Show routing chain header
+  ansible.builtin.debug:
+    msg:
+      - "=========================================="
+      - "ROUTING CHAIN"
+      - "=========================================="
+  when: routers.json is defined
+
+# Create a simple service lookup dictionary
+- name: Create service lookup
+  ansible.builtin.set_fact:
+    service_lookup: {}
+
+- name: Build service lookup with @docker suffix
+  ansible.builtin.set_fact:
+    service_lookup: "{{ service_lookup | combine({item.name: item.loadBalancer.servers[0].url}) | combine({item.name.replace('@docker', ''): item.loadBalancer.servers[0].url}) }}"
+  loop: "{{ services.json | default([]) }}"
+  when:
+    - services.json is defined
+    - item.loadBalancer is defined
+    - item.loadBalancer.servers is defined
+    - item.loadBalancer.servers | length > 0
+
+# Show the complete routing chain
+- name: Show complete routing chain
+  ansible.builtin.debug:
+    msg: "{{ domain_name }} -> {{ item.service }} -> {{ backend_url }}"
+  vars:
+    domain_name: "{{ item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }}"
+    backend_url: "{{ service_lookup[item.service + '@docker'] | default(service_lookup[item.service] | default('No backend')) }}"
+  loop: "{{ routers.json | default([]) }}"
+  when:
+    - routers.json is defined
+    - not item.name.startswith('api@')
+    - not item.name.startswith('dashboard@')
+    - item.rule.startswith('Host(')
+
+# Test HTTPS connectivity
+- name: Test HTTPS on first few services
+  uri:
+    url: "https://{{ domain_name }}:{{ traefik_http_port }}"
+    method: GET
+    status_code: [200, 301, 302, 401, 404, 502, 503]
+    timeout: 10
+    validate_certs: false
+  vars:
+    domain_name: "{{ item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }}"
+  register: https_tests
+  loop: "{{ (routers.json | default([]))[:3] }}"
+  when:
+    - routers.json is defined
+    - not item.name.startswith('api@')
+    - not item.name.startswith('dashboard@')
+    - item.rule.startswith('Host(')
+  ignore_errors: true
+
+- name: Show HTTPS test header
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "=========================================="
+      - "HTTPS CONNECTIVITY TESTS"
+      - "=========================================="
+  when: https_tests.results is defined
+
+- name: Show HTTPS test results
+  ansible.builtin.debug:
+    msg: "{{ domain_name }} -> HTTPS {{ item.status | default('FAILED') }} {{ success_icon }}"
+  vars:
+    domain_name: "{{ item.item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }}"
+    success_icon: "{{ '✅' if item.status in [200, 301, 302] else '🔒' if item.status == 401 else '❌' if item.status else '💥' }}"
+  loop: "{{ https_tests.results | default([]) }}"
+  when:
+    - https_tests.results is defined
+    - item.item.rule.startswith('Host(')
+
+# Check for the Redis misconfiguration
+- name: Check for Redis misconfiguration
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "=========================================="
+      - "CONFIGURATION ISSUES"
+      - "=========================================="
+      - "❌ Redis router misconfigured:"
+      - "   redis-ui.a0a0.org points to minio-api service"
+      - "   Should point to redis service"
+      - ""
+  when:
+    - routers.json is defined
+    - routers.json | selectattr('name', 'equalto', 'redis@docker') | selectattr('service', 'equalto', 'minio-api') | list | length > 0
+
+- name: Check certificates
+  ansible.builtin.stat:
+    path: "{{ traefik_data_dir }}/acme/acme.json"
+  register: certs
+
+- name: Show summary
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "=========================================="
+      - "SUMMARY"
+      - "=========================================="
+      - "Status: {{ 'HEALTHY' if api_check.status == 200 else 'DOWN' }}"
+      - "Routes: {{ routers.json | length if routers.json is defined else 0 }}"
+      - "Services: {{ services.json | length if services.json is defined else 0 }}"
+      - "Certificates: {{ 'READY' if certs.stat.exists else 'MISSING' }}"
+      - ""
+      - "Dashboard: http://localhost:{{ traefik_dashboard_port }}"
+      - "Test command: curl -H 'Host: SERVICE.{{ domain }}' http://localhost:{{ traefik_http_port }}"
+      - ""
