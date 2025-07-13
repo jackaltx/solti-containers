@@ -54,7 +54,7 @@
   uri:
     url: "https://{{ item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }}:{{ traefik_http_port }}"
     method: GET
-    status_code: [200, 301, 302, 401, 404, 502, 503]
+    status_code: [200, 301, 302, 401, 403, 404, 502, 503]
     timeout: 5
     validate_certs: false
   register: test_results
@@ -67,7 +67,7 @@
     test_summary: "{{ test_summary | default([]) + [domain + ' ➜ ' + status_icon + ' ' + (item.status | string)] }}"
   vars:
     domain: "{{ item.item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }}"
-    status_icon: "{{ '✅' if item.status in [200, 301, 302] else '🔒' if item.status == 401 else '⚠️' if item.status in [404, 502, 503] else '❌' }}"
+    status_icon: "{{ '✅' if item.status in [200, 301, 302] else '🔒' if item.status in [401, 403] else '⚠️' if item.status in [404, 502, 503] else '❌' }}"
   loop: "{{ test_results.results | default([]) }}"
   when: item.item is defined and item.status is defined
 
