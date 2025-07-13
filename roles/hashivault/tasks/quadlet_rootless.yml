@@ -64,7 +64,7 @@
       - "Label=traefik.http.routers.vault-secondary.rule=Host(`hashivault.{{ domain }}`)"
       - "Label=traefik.http.routers.vault-secondary.entrypoints=websecure"
       - "Label=traefik.http.routers.vault-secondary.service=vault-primary" # Use the same service
-      - "Label=traefik.http.routers.vault-secondary.middlewares=secHeaders@file"
+      - "Label=traefik.http.routers.vault-secondary.middlewares=secHeaders@file,redirect-to-https@file"
 
       # Other settings
       - "AddCapability=IPC_LOCK"
