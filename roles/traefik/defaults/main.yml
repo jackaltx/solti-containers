@@ -1,7 +1,23 @@
 ---
+# ===============================================
+# DEVELOPMENT TRAEFIK CONFIGURATION
+# ===============================================
+# This role provides SSL termination for development
+# environments. NOT for production use.
+#
+# Requires:
+# - Real domain with DNS provider (Linode/Cloudflare)
+# - API token for DNS challenges
+# - Wildcard DNS pointing to dev machine
+# ===============================================
+
 # Installation state
 traefik_state: present
 traefik_force_reload: false
+
+# Development settings (insecure dashboard)
+traefik_dashboard_enabled: true # For development debugging
+traefik_dashboard_port: 9999 # Accessible at localhost:9999
 
 # Directory settings
 traefik_data_dir: "{{ ansible_user_dir }}/traefik-data"
@@ -13,8 +29,6 @@ traefik_image: "docker.io/library/traefik:v3"
 traefik_privileged: false
 traefik_http_port: "{{ '80' if traefik_privileged else '8080' }}"
 traefik_https_port: "{{ '443' if traefik_privileged else '8443' }}"
-traefik_dashboard_port: 9999
-traefik_dashboard_enabled: true
 
 # Let's Encrypt settings
 traefik_enable_ssl: true
