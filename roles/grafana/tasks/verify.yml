@@ -1,0 +1,103 @@
+---
+# ....................................................................................
+- name: Verify Grafana pod is running
+  command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
+  register: pod_status
+  failed_when: "'grafana' not in pod_status.stdout"
+  changed_when: false
+
+- name: Show pod status
+  debug:
+    var: pod_status.stdout_lines
+
+# ....................................................................................
+- name: Verify Grafana container is running
+  command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=grafana"
+  register: container_status
+  failed_when: "'grafana-svc' not in container_status.stdout"
+  changed_when: false
+
+- name: Show container status
+  debug:
+    var: container_status.stdout_lines
+
+# ....................................................................................
+- name: Wait for Grafana to be ready
+  uri:
+    url: "http://localhost:{{ grafana_port }}/api/health"
+    method: GET
+    status_code: 200
+  register: health_check
+  until: health_check.status == 200
+  retries: 30
+  delay: 5
+  changed_when: false
+
+- name: Show health check result
+  debug:
+    var: health_check.json
+
+# ....................................................................................
+- name: Test Grafana login
+  uri:
+    url: "http://localhost:{{ grafana_port }}/login"
+    method: GET
+    status_code: 200
+  register: login_test
+  changed_when: false
+
+- name: Show login test
+  debug:
+    msg: "Grafana login page accessible: {{ login_test.status == 200 }}"
+
+# ....................................................................................
+- name: Get Grafana version and status
+  uri:
+    url: "http://localhost:{{ grafana_port }}/api/admin/stats"
+    method: GET
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: 200
+  register: grafana_stats
+  changed_when: false
+  no_log: true
+
+- name: Show Grafana statistics
+  debug:
+    msg: |
+      Grafana Statistics:
+      - Users: {{ grafana_stats.json.users | default('unknown') }}
+      - Dashboards: {{ grafana_stats.json.dashboards | default('unknown') }}
+      - Data Sources: {{ grafana_stats.json.datasources | default('unknown') }}
+      - Organizations: {{ grafana_stats.json.orgs | default('unknown') }}
+
+# ....................................................................................
+- name: Check available data sources
+  uri:
+    url: "http://localhost:{{ grafana_port }}/api/datasources"
+    method: GET
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: 200
+  register: datasources
+  changed_when: false
+  no_log: true
+
+- name: Show configured data sources
+  debug:
+    msg: "Data sources: {{ datasources.json | map(attribute='name') | list }}"
+  when: datasources.json | length > 0
+
+# ....................................................................................
+- name: Get container resource usage
+  command: >
+    podman stats --no-stream --format "table {% raw %}{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}{% endraw %}"
+    grafana-svc
+  register: resource_usage
+  changed_when: false
+
+- name: Show resource usage
+  debug:
+    var: resource_usage.stdout_lines

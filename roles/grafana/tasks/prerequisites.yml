@@ -1,0 +1,81 @@
+---
+# .......................................................................
+- name: Verify prerequisite variables
+  assert:
+    that:
+      - grafana_admin_password != "changeme"
+      - grafana_data_dir is defined
+      - grafana_port is defined
+      - grafana_datasource is defined
+    fail_msg: "Required variables not properly configured"
+
+# .......................................................................
+# Get container user mapping first
+- name: Get directory ownership
+  ansible.builtin.stat:
+    path: "{{ grafana_data_dir }}/config"
+  register: dir_info
+
+- name: Debug ownership
+  ansible.builtin.debug:
+    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+
+# .......................................................................
+- name: Become root and configure settings
+  become: true
+  block:
+    # ...................................................
+    - name: Template Grafana configuration
+      template:
+        src: grafana.ini.j2
+        dest: "{{ grafana_data_dir }}/config/grafana.ini"
+        mode: "0640"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart grafana
+
+    # ...................................................
+    # This is an interesting idea.
+    # Claude: Lets create a task list to place datasources and dashboards
+    # from this type of structure
+    #
+    # grafana_provision:
+    #   datasource:
+    #     - "http://monitor11.a0a0.org:8086"
+    #     - "http://jokester.a0a0.org:3100"
+    #   dashboard:
+    #     - fleur_http   #  refs to a json file
+    #     - fleur_mailsvc
+    #     - linux_details
+    #
+    # - name: Create default datasource provisioning
+    #   ansible.builtin.copy:
+    #     dest: "{{ grafana_data_dir }}/provisioning/datasources/default.yaml"
+    #     content: |
+    #       apiVersion: 1
+
+    #       datasources:
+    #         - name: Prometheus
+    #           type: prometheus
+    #           access: proxy
+    #           url: http://localhost:9090
+    #           isDefault: true
+    #           editable: true
+    #     mode: "0640"
+    #     owner: "{{ dir_info.stat.uid }}"
+    #     group: "{{ dir_info.stat.gid }}"
+
+    # ...................................................
+    - name: Configure SELinux for data directories
+      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+      block:
+        - name: Set SELinux context for Grafana directories
+          ansible.builtin.sefcontext:
+            target: "{{ grafana_data_dir }}(/.*)?"
+            setype: container_file_t
+            state: present
+
+        - name: Apply SELinux context
+          ansible.builtin.command: restorecon -R -v "{{ grafana_data_dir }}"
+          register: restorecon_result
+          changed_when: restorecon_result.rc == 0

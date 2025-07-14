@@ -1,0 +1,73 @@
+---
+# Installation state
+grafana_state: present
+grafana_force_reload: false
+
+# Container settings
+grafana_image: "docker.io/grafana/grafana:latest"
+
+# Directory settings
+grafana_data_dir: "{{ ansible_user_dir }}/grafana-data"
+
+# Grafana settings
+grafana_port: 3000
+grafana_domain: "grafana.{{ domain }}"
+
+# Security settings
+grafana_admin_user: "admin"
+grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') | default('changeme') }}"
+grafana_secret_key: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
+
+# Database settings (using SQLite by default for simplicity)
+# Note: path inside container
+grafana_database_type: "sqlite3"
+grafana_database_path: "/var/lib/grafana/grafana.db"
+
+# Security and auth settings
+grafana_allow_sign_up: false
+grafana_allow_org_create: false
+grafana_auto_assign_org: true
+grafana_auto_assign_org_role: "Viewer"
+
+# SMTP settings (optional)
+# Claude: good idea...allow me to set values in the inventory
+grafana_smtp_enabled: false
+grafana_smtp_host: "localhost:587"
+grafana_smtp_user: ""
+grafana_smtp_password: ""
+grafana_smtp_from_address: "admin@grafana.localhost"
+
+# Analytics and reporting
+grafana_analytics_reporting_enabled: false
+grafana_check_for_updates: false
+
+# Cleanup settings
+grafana_delete_data: false
+
+# =======================================================================
+service_network: "example-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"
+
+# =======================================================================
+service_properties:
+  root: "grafana"
+  name: "grafana-pod"
+  pod_key: "grafana.pod"
+  quadlets:
+    - "grafana-svc.container"
+    - "grafana.pod"
+  data_dir: "{{ grafana_data_dir }}"
+  config_dir: "config"
+  dirs:
+    - { path: "", mode: "0750" }
+    - { path: "config", mode: "0750" }
+    - { path: "data", mode: "0750" }
+    - { path: "logs", mode: "0750" }
+    - { path: "plugins", mode: "0750" }
+    - { path: "provisioning", mode: "0750" }
+    - { path: "provisioning/dashboards", mode: "0750" }
+    - { path: "provisioning/datasources", mode: "0750" }
+    - { path: "provisioning/notifiers", mode: "0750" }

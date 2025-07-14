@@ -1,0 +1,30 @@
+---
+galaxy_info:
+  role_name: grafana
+  namespace: jackaltx
+  author: jackaltx
+  description: Deploy Grafana visualization platform using Podman containers
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+
+  galaxy_tags:
+    - grafana
+    - monitoring
+    - visualization
+    - dashboards
+    - metrics
+    - podman
+    - containers
+
+dependencies: []
