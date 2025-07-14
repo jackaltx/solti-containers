@@ -1,56 +1,56 @@
-# Traefik Development Proxy Role
-
-## ⚠️ **Development Use Only**
-
-This Traefik role is designed for **development and testing environments** to provide SSL termination for containerized services. It is **NOT intended for production use**.
+# Traefik Development SSL Proxy Role
 
 ## 🎯 **Purpose**
 
-Provides a reverse proxy with automatic SSL certificates so you can:
+This Traefik role provides **centralized SSL termination** for development environments, making it easy to test applications with real HTTPS certificates during development.
 
-- Access your development services with HTTPS
-- Test SSL-enabled applications locally
-- Simulate production-like routing without complex setup
-- Get valid SSL certificates for development domains
+**Why use this instead of individual SSL per app?**
+
+- ✅ **Centralized certificate management** - Let's Encrypt handles all SSL
+- ✅ **Automatic renewals** - No manual certificate updates
+- ✅ **Real SSL testing** - Test with actual HTTPS instead of self-signed
+- ✅ **Simple service integration** - Just add labels to containers
+- ✅ **Production-like routing** - Simulate real deployment scenarios
+
+## ⚠️ **Development Focus**
+
+While this provides real SSL certificates, it's optimized for **development ease**:
+
+- Dashboard is publicly accessible (insecure mode)
+- No rate limiting or advanced security features
+- Single-container deployment (not HA)
+- Simplified configuration for quick setup
 
 ## 🏗️ **How It Works**
 
-1. **Traefik** runs as a container and discovers other containers via Podman labels
-2. **Let's Encrypt** provides real SSL certificates via DNS challenge
-3. **DNS Provider** (Linode/Cloudflare) handles the ACME challenge
-4. **Services** get automatic HTTPS routing based on container labels
+```
+Internet → Your Domain → Traefik → Your Apps
+                          ↓
+                    Let's Encrypt
+                    (Real SSL Certs)
+```
+
+1. **Container Discovery**: Traefik discovers your services via Podman labels
+2. **Automatic SSL**: Let's Encrypt provides real certificates via DNS challenge
+3. **Routing**: Traffic gets automatically routed to the right service with HTTPS
 
 ## 🌐 **DNS Setup Required**
 
-### **Prerequisites**
-
 You need a **real domain** with DNS hosted at a supported provider:
 
-- **Linode** (default in this role)
-- **Cloudflare**
-- Other providers (requires config changes)
+### **Linode DNS (Default)**
 
-### **Example Setup**
+```bash
+# Set your API token
+export LINODE_TOKEN="your_linode_api_token"
 
-If you own `mydomain.com`:
+# Point wildcard DNS to your dev machine
+*.yourdomain.com → 192.168.1.100
+```
 
-1. **Point wildcard DNS** to your development machine:
+### **Other Providers**
 
-   ```
-   *.mydomain.com → 192.168.1.100  (your dev machine IP)
-   ```
-
-2. **Set environment variable**:
-
-   ```bash
-   export LINODE_TOKEN="your_linode_api_token"
-   ```
-
-3. **Update inventory**:
-
-   ```yaml
-   domain: mydomain.com
-   ```
+Traefik supports 100+ DNS providers. Update `traefik.yaml.j2` to change provider.
 
 ## 🚀 **Quick Start**
 
@@ -66,46 +66,58 @@ If you own `mydomain.com`:
 ./manage-svc.sh traefik deploy
 ```
 
-### **3. Test Dashboard**
+### **3. Verify Setup**
 
 ```bash
-# Access Traefik dashboard
-open http://localhost:9999
+# Quick connectivity test
+./svc-exec.sh traefik test
+
+# Full verification with routing details
+./svc-exec.sh traefik verify
+
+# Diagnostic mode (detailed API inspection)
+./svc-exec.sh traefik verify1
 ```
 
-## 🔍 **Testing & Verification**
+## 🔍 **Verification Commands**
 
-### **Dashboard Access**
+### **`./svc-exec.sh traefik test`**
 
-- **URL**: `http://localhost:9999`
-- **What to check**:
-  - HTTP Routers showing your services
-  - Services showing healthy backends
-  - TLS certificates being issued
+Quick health check - just verifies API is responding:
 
-### **Test Service Routing**
-
-```bash
-# Test if your services are routed correctly
-curl -H "Host: myservice.mydomain.com" http://localhost:8080 -v
-
-# Should redirect to HTTPS:
-curl -H "Host: myservice.mydomain.com" https://localhost:8080 -v
+```
+✅ Traefik API responding
+Dashboard: http://localhost:9999
+Version: 3.3.3
 ```
 
-### **Check Certificate Status**
+### **`./svc-exec.sh traefik verify`**
 
-```bash
-# View ACME certificates
-ls -la ~/traefik-data/acme/
+Standard verification - shows routing and connectivity:
 
-# Check certificate details in dashboard
-open http://localhost:9999
 ```
+🚀 TRAEFIK STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+API: ✅ ONLINE
+Routes: 8
+Services: 6
+
+redis-ui.yourdomain.com ➜ redis
+mattermost.yourdomain.com ➜ mattermost
+
+🔗 CONNECTIVITY TESTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+redis-ui.yourdomain.com ➜ ✅ 200
+mattermost.yourdomain.com ➜ 🔒 401
+```
+
+### **`./svc-exec.sh traefik verify1`**
+
+Diagnostic mode - detailed API structure inspection for troubleshooting.
 
 ## 🏷️ **Service Configuration**
 
-Your services need these Podman labels to work with Traefik:
+Add these labels to your service containers:
 
 ```yaml
 quadlet_options:
@@ -117,17 +129,29 @@ quadlet_options:
   - "Label=traefik.http.routers.myservice.middlewares=secHeaders@file"
 ```
 
+**Result**: `https://myservice.yourdomain.com` → your container port 8080
+
 ## 🔧 **Ports Used**
 
-| Port | Purpose | Access |
-|------|---------|---------|
-| 8080 | HTTP/HTTPS traffic | `0.0.0.0:8080` |
-| 8443 | HTTPS traffic (alt) | `0.0.0.0:8443` |
-| 9999 | Traefik Dashboard | `127.0.0.1:9999` |
+| Port | Purpose | Access | Note |
+|------|---------|---------|------|
+| 8080 | HTTP/HTTPS | `0.0.0.0:8080` | Main traffic port |
+| 8443 | HTTPS Alt | `0.0.0.0:8443` | Alternative HTTPS |
+| 9999 | Dashboard | `127.0.0.1:9999` | Management UI |
 
 ## 🛠️ **Troubleshooting**
 
-### **No SSL Certificates**
+### **No Routes Showing**
+
+```bash
+# Check if containers have proper labels
+podman inspect myservice | jq '.Config.Labels'
+
+# Verify Traefik can discover containers
+./svc-exec.sh traefik verify1
+```
+
+### **SSL Certificate Issues**
 
 ```bash
 # Check ACME logs
@@ -136,56 +160,33 @@ podman logs traefik-svc | grep -i acme
 # Verify DNS provider token
 echo $LINODE_TOKEN
 
-# Check DNS resolution
-nslookup myservice.mydomain.com
+# Check certificate storage
+ls -la ~/traefik-data/acme/
 ```
 
-### **Service Not Appearing**
+### **Connectivity Problems**
 
 ```bash
-# Check container labels
-podman inspect myservice-container | jq '.[] | .Config.Labels'
+# Test specific route
+curl -H 'Host: myservice.yourdomain.com' http://localhost:8080
 
-# Verify network connectivity
-podman exec traefik-svc ping myservice-container
+# Check Traefik dashboard
+open http://localhost:9999
 ```
 
-### **Dashboard API**
+## 🌟 **Example Integration**
 
-```bash
-# Check all routers
-curl http://localhost:9999/api/http/routers | jq .
+With Redis Commander:
 
-# Check specific service
-curl http://localhost:9999/api/http/services | jq .
+```yaml
+# In redis role quadlet
+- "Label=traefik.enable=true"
+- "Label=traefik.http.routers.redis.rule=Host(`redis-ui.{{ domain }}`)"
+- "Label=traefik.http.routers.redis.service=redis"
+- "Label=traefik.http.services.redis.loadbalancer.server.port=8081"
 ```
 
-## ⚡ **DNS Provider Setup**
-
-### **Linode** (Default)
-
-1. Get API token from Linode Cloud Manager
-2. Set environment: `export LINODE_TOKEN="your_token"`
-
-### **Cloudflare** (Alternative)
-
-1. Get Global API Key from Cloudflare dashboard
-2. Modify `traefik.yaml.j2`:
-
-   ```yaml
-   dnsChallenge:
-     provider: cloudflare
-   ```
-
-3. Set environment: `export CF_API_EMAIL="you@example.com"` and `export CF_API_KEY="your_key"`
-
-## 🚫 **What This Role Doesn't Do**
-
-- **Production security** - Dashboard is insecure, no rate limiting
-- **High availability** - Single container deployment
-- **Monitoring** - No metrics or alerting
-- **Backup** - No certificate backup strategy
-- **User management** - No authentication on services
+**Result**: Redis Commander gets automatic HTTPS at `https://redis-ui.yourdomain.com`
 
 ## 🔄 **Cleanup**
 
@@ -197,13 +198,13 @@ curl http://localhost:9999/api/http/services | jq .
 TRAEFIK_DELETE_DATA=true ./manage-svc.sh traefik remove
 ```
 
-## 🤝 **Integration**
+## 🎁 **What You Get**
 
-Works with other roles in this collection:
+- ✅ **Real HTTPS** for all your development services
+- ✅ **Automatic certificate renewal** via Let's Encrypt
+- ✅ **Easy service discovery** via container labels
+- ✅ **Production-like testing** with real SSL
+- ✅ **Clean verification tools** to monitor status
+- ✅ **Simple troubleshooting** with diagnostic commands
 
-- **Elasticsearch** → `https://elasticsearch.mydomain.com`
-- **Mattermost** → `https://mattermost.mydomain.com`
-- **MinIO** → `https://minio.mydomain.com`
-- **Vault** → `https://vault.mydomain.com`
-
-Each service automatically gets SSL when properly labeled.
+Perfect for testing web applications, APIs, and microservices that need HTTPS during development!

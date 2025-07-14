@@ -1,290 +1,375 @@
-# HashiCorp Vault Role Documentation
+# HashiVault Role - Development Secrets Management
 
-## Introduction
+## Purpose
 
-HashiCorp Vault is a powerful secrets management tool that provides secure storage for sensitive data such as API keys, passwords, certificates, and more. This Ansible role deploys Vault as a containerized service using Podman with a focus on ease of setup, management, and cleanup.
+HashiCorp Vault provides comprehensive secrets management for development workflows. This deployment offers secure storage and retrieval of API keys, passwords, certificates, and other sensitive data needed during testing and development cycles.
 
-Key features of this implementation:
-
-- Rootless Podman deployment
-- Systemd integration using Quadlets
-- Secure initialization and key management
-- Multiple secret engines support (KV, PKI, SSH, Transit)
-- Built-in web UI for easy management
-
-This role follows the standard SOLTI container pattern, providing consistent deployment, configuration, and management commands across all services.
-
-## Deployment Scenario
-
-By default, the role deploys Vault on the local machine with the following configuration:
-
-- **API Port**: 8200 (configurable via `vault_api_port`)
-- **Cluster Port**: 8201 (configurable via `vault_cluster_port`)
-- **UI Enabled**: Yes (access via <http://localhost:8200/ui>)
-- **Storage**: File backend (configurable to Raft for clustering)
-- **TLS**: Optional (disabled by default)
-
-## Installation
-
-### Prepare
-
-The preparation step creates the necessary directory structure and configuration files. This step runs once per host:
+## Quick Start
 
 ```bash
+# Prepare system directories and configuration  
 ./manage-svc.sh hashivault prepare
+
+# Deploy Vault container
+./manage-svc.sh hashivault deploy
+
+# Initialize Vault (one-time setup)
+./svc-exec.sh hashivault initialize
+
+# Configure authentication and policies
+./svc-exec.sh hashivault configure
+
+# Set up secret engines and initial data
+./svc-exec.sh hashivault vault-secrets
+
+# Verify deployment
+./svc-exec.sh hashivault verify
 ```
 
-This command:
+## Features
 
-- Creates configuration and data directories
-- Sets proper permissions
-- Configures SELinux contexts (on RHEL-based systems)
+- **Multiple Secret Engines**: KV, PKI, SSH, Transit encryption
+- **Authentication Methods**: Token, Username/Password, AppRole
+- **Development UI**: Built-in web interface for easy management
+- **SSL Integration**: Automatic HTTPS via Traefik
+- **Initialization Automation**: Secure key generation and storage
+- **Policy Management**: Role-based access control
 
-Directory structure created:
+## Architecture
 
 ```
-~/vault-data/
-├── config/    # Vault configuration files
-├── data/      # Vault storage
-├── logs/      # Audit logs
-└── tls/       # TLS certificates (if enabled)
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
+│  Your Apps      │───▶│   HashiVault     │◀───│   Vault Web UI      │
+│                 │    │   API (8200)     │    │   (Built-in)        │
+└─────────────────┘    └──────────────────┘    └─────────────────────┘
+                              │                           │
+                              └───────────────────────────┘
+                                           │
+                              ┌──────────────────────┐
+                              │       Traefik        │
+                              │   (SSL Termination)  │
+                              └──────────────────────┘
+                                           │
+                              https://vault.yourdomain.com
 ```
 
-### Deploy
+## Access Points
 
-The deployment step creates and starts the Vault container:
+| Interface | URL | Purpose |
+|-----------|-----|---------|
+| Vault API | `http://localhost:8200` | Direct Vault API access |
+| Web UI | `http://localhost:8200/ui` | Local web interface |
+| SSL Endpoint | `https://vault.{{ domain }}` | Traefik-proxied HTTPS access |
+
+## Complete Setup Workflow
+
+### 1. Initial Deployment
 
 ```bash
+# Deploy Vault
 ./manage-svc.sh hashivault deploy
 ```
 
-This command is idempotent and can be run multiple times safely. It:
-
-- Creates the Podman pod and container(s)
-- Generates systemd Quadlet files for service management
-- Starts the Vault service as a rootless container
-
-Quadlet files created:
+### 2. Initialize Vault (First Time Only)
 
 ```bash
-$ ls -1 ~/.config/containers/systemd/vault*
-/home/jackaltx/.config/containers/systemd/vault.pod
-/home/jackaltx/.config/containers/systemd/vault-svc.container
-```
-
-To check the service status:
-
-```bash
-$ systemctl --user status vault-pod
-# or
-$ systemctl --user status vault-svc
-```
-
-Sample status output:
-
-```
-● vault-svc.service - HashiCorp Vault Container
- Loaded: loaded (/home/jackaltx/.config/containers/systemd/vault-svc.container; generated)
- Drop-In: /usr/lib/systemd/user/service.d
- └─10-timeout-abort.conf
- Active: active (running) since Mon 2025-03-03 15:29:24 CST; 1h 32min ago
- Invocation: 93fc66d5087c43e3abc57921aab5d52f
- Main PID: 3337 (conmon)
- Tasks: 14 (limit: 74224)
- Memory: 378.4M (peak: 379.6M)
- CPU: 2.965s
- CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/vault-svc.service
- ├─libpod-payload-b3fcc94cd6a1c263626ac6283d30ab854d9437379ec1a618b233c7c929891819
- │ ├─3346 /usr/bin/dumb-init /bin/sh /usr/local/bin/docker-entrypoint.sh server
- │ └─3359 vault server -config=/vault/config -dev-root-token-id= -dev-listen-address=0.0.0.0:8200
- └─runtime
- └─3337 /usr/bin/conmon --api-version 1 -c b3fcc94cd6a1c263626ac6283d30ab854d9437379ec1a618b233c7c929891819 -u b3fcc94cd6a1c263626ac6283d30ab854d9437379ec1a618b233c7c929891819 -r /usr/bin/c>
-```
-
-## Configuration
-
-### Initialize Vault
-
-After deployment, Vault must be initialized to generate encryption keys and root tokens:
-
-```bash
+# Initialize with secure key sharing
 ./svc-exec.sh hashivault initialize
 ```
 
-This command:
+This creates:
 
-- Initializes Vault with a configurable number of key shares (default: 5)
-- Sets the key threshold for unsealing (default: 3)
-- Securely stores the keys and root token in `~/.secrets/vault-secrets/vault-keys.json`
-- Optionally creates a backup of the keys
-- Automatically unseals Vault if configured to do so
+- 5 unseal key shares (3 required to unseal)
+- Root token for initial configuration
+- Keys stored securely in `~/.secrets/vault-secrets/vault-keys.json`
 
-### Configure Vault
-
-Set up Vault with authentication methods and secret engines:
+### 3. Configure Authentication & Policies
 
 ```bash
+# Set up auth methods and admin user
 ./svc-exec.sh hashivault configure
 ```
 
-This command configures:
+Creates:
 
-- Authentication methods (userpass, approle)
 - Admin user with secure password
-- Policies for access control
-- KV v2 secrets engine for general secrets
+- UserPass authentication method
+- AppRole authentication method  
+- Admin and read-only policies
 
-### Set Up Secret Engines
-
-Enable and configure additional secret engines:
+### 4. Initialize Secret Engines
 
 ```bash
+# Enable secret engines and populate initial data
 ./svc-exec.sh hashivault vault-secrets
 ```
 
-This task:
+Sets up:
 
-- Enables Transit engine for encryption as a service
-- Enables PKI engine for certificate management
-- Enables SSH engine for SSH key signing/management
-- Populates initial secrets from environment variables or inventory variables
+- KV v2 engine for general secrets
+- PKI engine for certificate management
+- SSH engine for key signing
+- Transit engine for encryption services
 
-#### Initial Secrets Configuration
+## Configuration
 
-You can configure initial secrets in your inventory, host_vars, or group_vars:
+### Environment Variables
 
-```yaml
-# Example vault_initial_secrets configuration
-vault_initial_secrets:
-  - path: "kv/ansible/vault"
-    data:
-      provision_vault_password: "{{ lookup('env', 'PROVISION_VAULT_PASSWORD') | default('changeme_in_production') }}"
+```bash
+# Vault initialization
+export VAULT_ADDR="http://localhost:8200"
 
-  - path: "kv/services/elasticsearch"
-    data:
-      elastic_password: "{{ lookup('env', 'ELASTIC_PASSWORD') | default('changeme_in_production') }}"
-      es_ro_token: "{{ lookup('env', 'ES_RO_TOKEN') | default('changeme_in_production') }}"
-
-  # Additional secrets as needed
+# Optional: Set initial passwords
+export VAULT_ADMIN_PASSWORD="your_secure_admin_password"
 ```
 
-## Maintenance
+### Secret Organization
+
+Default secret structure:
+
+```
+kv/
+├── ansible/vault              # Ansible vault passwords
+├── services/
+│   ├── elasticsearch         # ES credentials and tokens
+│   ├── mattermost            # MM database passwords
+│   └── redis                 # Redis authentication
+└── providers/
+    ├── linode                # API tokens
+    ├── proxmox               # Infrastructure credentials
+    └── gitea                 # Git service tokens
+```
+
+### Initial Secrets Configuration
+
+```yaml
+vault_initial_secrets:
+  - path: "kv/services/elasticsearch"
+    data:
+      elastic_password: "{{ lookup('env', 'ELASTIC_PASSWORD') }}"
+      es_ro_token: "{{ lookup('env', 'ES_RO_TOKEN') }}"
+      es_rw_token: "{{ lookup('env', 'ES_RW_TOKEN') }}"
+
+  - path: "kv/providers/linode"
+    data:
+      linode_token: "{{ lookup('env', 'LINODE_TOKEN') }}"
+```
+
+## Using with Traefik SSL
+
+Vault automatically integrates with Traefik for SSL termination:
+
+```yaml
+# Traefik labels automatically applied
+- "Label=traefik.http.routers.vault-primary.rule=Host(`vault.{{ domain }}`)"
+- "Label=traefik.http.routers.vault-secondary.rule=Host(`hashivault.{{ domain }}`)"
+```
+
+**Result**: Access Vault securely at `https://vault.yourdomain.com`
+
+## Common Operations
 
 ### Unsealing Vault
 
-Vault requires unsealing after every restart:
+Vault seals automatically on restart and requires unsealing:
 
 ```bash
+# Unseal after container restart
 ./svc-exec.sh hashivault unseal
 ```
 
-This command:
+### Managing Secrets
 
-- Checks if Vault is already unsealed
-- Reads the unseal keys from the keys file
-- Applies the keys up to the threshold
-- Verifies the unsealed status
+```bash
+# Store a secret
+podman exec vault-svc vault kv put kv/myapp/config \
+  database_url="postgres://user:pass@db:5432/mydb" \
+  api_key="secret_key_123"
+
+# Retrieve a secret
+podman exec vault-svc vault kv get kv/myapp/config
+
+# List secrets
+podman exec vault-svc vault kv list kv/
+```
+
+### Certificate Management
+
+```bash
+# Generate a certificate
+podman exec vault-svc vault write pki/issue/server \
+  common_name="myapp.example.com" \
+  ttl="24h"
+
+# List certificates
+podman exec vault-svc vault list pki/certs
+```
+
+### User Management
+
+```bash
+# Create additional user
+podman exec vault-svc vault write auth/userpass/users/developer \
+  password="dev_password" \
+  policies="readonly"
+
+# List users
+podman exec vault-svc vault list auth/userpass/users
+```
+
+## Integration Examples
+
+### Application Integration
+
+```python
+import hvac
+
+# Connect to Vault
+client = hvac.Client(url='http://localhost:8200')
+
+# Authenticate
+client.auth.userpass.login(
+    username='admin',
+    password='your_admin_password'
+)
+
+# Read secrets
+secret = client.secrets.kv.v2.read_secret_version(
+    path='services/elasticsearch'
+)
+elastic_password = secret['data']['data']['elastic_password']
+```
+
+### Environment Loading
+
+```bash
+# Load secrets into environment
+eval $(vault kv get -format=json kv/myapp/config | \
+  jq -r '.data.data | to_entries[] | "export \(.key)=\(.value)"')
+```
+
+## Maintenance Operations
 
 ### Backup
 
-To back up your Vault data:
-
 ```bash
+# Built-in backup task
 ./svc-exec.sh hashivault backup
 ```
 
-This creates a timestamped backup of:
+Creates timestamped backup of:
 
 - Vault data directory
-- Configuration files
-- Unseal keys (encrypted)
+- Configuration files  
+- Encrypted unseal keys
 
-### Remove Vault
+### Policy Updates
 
-To remove the Vault deployment (keeping data by default):
+Policies are managed via the role's configuration:
 
-```bash
-./manage-svc.sh hashivault remove
+```yaml
+vault_policies:
+  - name: "developer"
+    rules: |
+      path "kv/data/development/*" {
+        capabilities = ["create", "read", "update", "delete", "list"]
+      }
 ```
 
-To completely remove Vault including all data:
+### Monitoring
 
 ```bash
-VAULT_DELETE_DATA=true ./manage-svc.sh hashivault remove
+# Check Vault status
+podman exec vault-svc vault status
+
+# Monitor logs
+podman logs -f vault-svc
+
+# Service status
+systemctl --user status vault-pod
 ```
 
 ## Security Considerations
 
-1. **Key Storage**: Unseal keys and root tokens are extremely sensitive. In production:
-   - Store key shares with different security officers
-   - Use hardware security modules (HSMs) if possible
-   - Never store all unseal keys on the same system as Vault
+### Production Recommendations
 
-2. **Production Settings**:
-   - Enable TLS (`vault_enable_tls: true`)
-   - Use audit logging (`vault_enable_audit: true`)
-   - Configure proper firewall rules
-   - Use Raft storage instead of file storage for high availability
+1. **Key Management**: In production, distribute unseal keys among different administrators
+2. **TLS**: Enable TLS for API communications (`vault_enable_tls: true`)
+3. **Audit Logging**: Enable audit logging for compliance (`vault_enable_audit: true`)
+4. **Root Token**: Revoke root token after initial setup
+5. **Network**: Restrict network access to Vault API
 
-3. **Root Token**: The root token should be used only for initial setup, then revoked:
+### Development Security
 
-   ```bash
-   podman exec -it vault-svc vault token revoke $ROOT_TOKEN
-   ```
+- Unseal keys stored locally for convenience
+- TLS disabled by default for easier testing
+- Admin user created for quick access
+- Audit logging enabled but stored locally
 
 ## Troubleshooting
 
-### Cannot Unseal Vault
+### Vault Sealed
 
-If you see "Error unsealing: Error making API request", check:
+```bash
+# Check if sealed
+podman exec vault-svc vault status
 
-- Is Vault running? (`systemctl --user status vault-pod`)
-- Is the keys file present and readable?
-- Does the keys file contain valid unseal keys?
-
-### API Connection Issues
-
-If you can't connect to the Vault API:
-
-- Check if Vault is running and unsealed
-- Verify the API port is accessible (`curl -v http://localhost:8200/v1/sys/health`)
-- Ensure the network connection is not blocked by a firewall
-
-### Permission Issues
-
-For SELinux-related issues:
-
-- Check SELinux contexts: `ls -Z ~/vault-data`
-- Reapply contexts: `sudo restorecon -Rv ~/vault-data`
-
-## Configuration Variables
-
-Key variables for customizing the Vault deployment:
-
-```yaml
-# Installation state
-hashivault_state: present               # Use 'absent' to remove
-vault_force_reload: false          # Force reload configuration
-vault_delete_data: false           # Delete data on removal
-
-# Container settings
-vault_image: docker.io/hashicorp/vault:1.15
-vault_data_dir: "{{ ansible_user_dir }}/vault-data"
-vault_api_port: 8200
-vault_cluster_port: 8201
-
-# Security settings
-vault_enable_ui: true
-vault_enable_audit: true
-
-# TLS Configuration
-vault_enable_tls: false
-vault_tls_cert_file: ""            # Path to certificate
-vault_tls_key_file: ""             # Path to private key
-vault_tls_ca_file: ""              # Optional CA certificate
-
-# Storage settings
-vault_storage_type: "file"         # Options: file, raft, consul
+# Unseal with stored keys
+./svc-exec.sh hashivault unseal
 ```
 
-For complete configuration options, see `defaults/main.yml`.
+### Authentication Issues
+
+```bash
+# List auth methods
+podman exec vault-svc vault auth list
+
+# Test userpass authentication
+podman exec vault-svc vault auth -method=userpass \
+  username=admin password=your_password
+```
+
+### Storage Issues
+
+```bash
+# Check storage backend
+podman exec vault-svc vault read sys/storage/raft/configuration
+
+# Check file permissions
+ls -la ~/vault-data/
+```
+
+## Development Workflows
+
+### Testing Secrets Management
+
+```bash
+# Deploy Vault
+./manage-svc.sh hashivault deploy
+./svc-exec.sh hashivault initialize
+./svc-exec.sh hashivault configure
+
+# Store test secrets
+podman exec vault-svc vault kv put kv/test/config api_key="test123"
+
+# Use in applications
+export API_KEY=$(podman exec vault-svc vault kv get -field=api_key kv/test/config)
+
+# Clean up
+./manage-svc.sh hashivault remove
+```
+
+## Related Services
+
+- **Elasticsearch**: Vault can store ES passwords and API tokens
+- **Mattermost**: Database credentials secured in Vault
+- **Traefik**: SSL certificates and API tokens managed by Vault
+- **Redis**: Authentication passwords stored securely
+
+## License
+
+MIT
+
+## Maintained By
+
+Jackaltx - Part of the SOLTI containers collection for development testing workflows.
