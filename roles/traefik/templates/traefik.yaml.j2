@@ -19,7 +19,7 @@ providers:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     network: "{{ service_network }}"
-    httpClientTimeout: 300
+    httpClientTimeout: 600
     watch: true
   file:
     filename: "/etc/traefik/traefik-dynamic.yaml"
