@@ -29,6 +29,7 @@ SUPPORTED_SERVICES=(
     "traefik"
     "minio"
     "wazuh"
+    "grafana"
 )
 
 # Supported actions

@@ -67,15 +67,21 @@
 
     # ...................................................
     - name: Configure SELinux for data directories
-      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_selinux.status == "enabled"
       block:
-        - name: Set SELinux context for Grafana directories
-          ansible.builtin.sefcontext:
-            target: "{{ grafana_data_dir }}(/.*)?"
-            setype: container_file_t
-            state: present
+        - name: Set SELinux file context for Grafana directories
+          ansible.builtin.shell: |
+            semanage fcontext -a -t container_file_t "{{ grafana_data_dir }}(/.*)?" || true
+            restorecon -R -v "{{ grafana_data_dir }}" || true
+          register: selinux_result
+          changed_when: false
+          failed_when: false
 
-        - name: Apply SELinux context
-          ansible.builtin.command: restorecon -R -v "{{ grafana_data_dir }}"
-          register: restorecon_result
-          changed_when: restorecon_result.rc == 0
+        - name: Fallback - use chcon if semanage fails
+          ansible.builtin.command: chcon -R -t container_file_t "{{ grafana_data_dir }}"
+          when: selinux_result.rc != 0
+          register: chcon_result
+          changed_when: chcon_result.rc == 0
+          failed_when: false

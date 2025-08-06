@@ -295,3 +295,12 @@ all:
           # _svc only vars
           vars:
             debug_level: warn
+
+        # ========================================
+        grafana_svc:
+          hosts:
+            firefly:
+
+          # .......................................
+          # _svc only vars
+          vars:
