@@ -1,0 +1,795 @@
+# defaults/main.yml
+---
+# Installation state
+grafana_state: present
+grafana_force_reload: false
+
+# Container settings
+grafana_image: "docker.io/grafana/grafana:latest"
+
+# Directory settings
+grafana_data_dir: "{{ ansible_user_dir }}/grafana-data"
+
+# Grafana settings
+grafana_port: 3000
+grafana_domain: "grafana.{{ domain }}"
+
+# Security settings
+grafana_admin_user: "admin"
+grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') | default('changeme') }}"
+grafana_secret_key: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
+
+# Database settings (using SQLite by default for simplicity)
+grafana_database_type: "sqlite3"
+grafana_database_path: "/var/lib/grafana/grafana.db"
+
+# Security and auth settings
+grafana_allow_sign_up: false
+grafana_allow_org_create: false
+grafana_auto_assign_org: true
+grafana_auto_assign_org_role: "Viewer"
+
+# SMTP settings (optional)
+grafana_smtp_enabled: false
+grafana_smtp_host: "localhost:587"
+grafana_smtp_user: ""
+grafana_smtp_password: ""
+grafana_smtp_from_address: "admin@grafana.localhost"
+
+# Analytics and reporting
+grafana_analytics_reporting_enabled: false
+grafana_check_for_updates: false
+
+# Cleanup settings
+grafana_delete_data: false
+
+# =======================================================================
+service_network: "example-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"
+
+# =======================================================================
+service_properties:
+  root: "grafana"
+  name: "grafana-pod"
+  pod_key: "grafana.pod"
+  quadlets:
+    - "grafana-svc.container"
+    - "grafana.pod"
+  data_dir: "{{ grafana_data_dir }}"
+  config_dir: "config"
+  dirs:
+    - { path: "", mode: "0750" }
+    - { path: "config", mode: "0750" }
+    - { path: "data", mode: "0750" }
+    - { path: "logs", mode: "0750" }
+    - { path: "plugins", mode: "0750" }
+    - { path: "provisioning", mode: "0750" }
+    - { path: "provisioning/dashboards", mode: "0750" }
+    - { path: "provisioning/datasources", mode: "0750" }
+    - { path: "provisioning/notifiers", mode: "0750" }
+
+# handlers/main.yml
+---
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+- name: restart grafana
+  ansible.builtin.systemd:
+    name: "{{ service_properties.name }}"
+    state: restarted
+    scope: user
+  listen: "restart grafana"
+
+- name: reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+# meta/main.yml
+---
+galaxy_info:
+  role_name: grafana
+  namespace: jackaltx
+  author: jackaltx
+  description: Deploy Grafana visualization platform using Podman containers
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+
+  galaxy_tags:
+    - grafana
+    - monitoring
+    - visualization
+    - dashboards
+    - metrics
+    - podman
+    - containers
+
+dependencies: []
+
+# tasks/main.yml
+---
+#
+# grafana role - supports prepare, present, and absent states
+# States:
+#   prepare: First-time setup of directories and system configuration
+#   present: Deploy and configure grafana containers
+#   absent: Remove containers (optionally remove data)
+
+- name: Validate state parameter
+  ansible.builtin.fail:
+    msg: "grafana_state must be one of: prepare, present, absent. Current value: {{ grafana_state }}"
+  when: grafana_state not in ['prepare', 'present', 'absent']
+
+- name: Test become capability
+  ansible.builtin.command: whoami
+  register: become_test
+  changed_when: false
+
+# =======================================================================
+# PREPARATION (one-time setup)
+# =======================================================================
+
+- name: Prepare Grafana (one-time setup)
+  when: grafana_state == 'prepare'
+  block:
+    - name: Check if already prepared
+      ansible.builtin.stat:
+        path: "{{ grafana_data_dir }}"
+      register: data_dir_check
+
+    - name: Fail if already prepared
+      ansible.builtin.fail:
+        msg: "Grafana appears to be already prepared. Directory {{ grafana_data_dir }} exists."
+      when: data_dir_check.stat.exists
+
+    # ............................................................
+    - name: Base prepare
+      ansible.builtin.include_tasks:
+        file: ../_base/tasks/prepare.yml
+
+# =======================================================================
+# DEPLOYMENT
+# =======================================================================
+
+- name: Install Grafana
+  when: grafana_state == 'present'
+  block:
+    - name: Verify password is not default
+      ansible.builtin.fail:
+        msg: "grafana_admin_password must be set and not the default value"
+      when: >
+        grafana_admin_password == 'changeme'
+
+    - name: Verify required directories exist
+      become: true
+      ansible.builtin.stat:
+        path: "{{ grafana_data_dir }}/{{ service_properties.config_dir }}"
+      register: config_dir_check
+      failed_when: not config_dir_check.stat.exists
+      changed_when: false
+
+    - name: Include prerequisites tasks
+      ansible.builtin.include_tasks: prerequisites.yml
+
+    - name: Ensure network setup
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/networks.yml"
+
+    - name: Include container tasks
+      ansible.builtin.include_tasks: quadlet_rootless.yml
+
+# =======================================================================
+# CLEANUP
+# =======================================================================
+
+- name: Remove Grafana
+  when: grafana_state == 'absent'
+  block:
+    # ...............................................................................
+    - name: Include cleanup tasks
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/cleanup.yml"
+      vars:
+        service_state: absent
+        service_delete_data: "{{ grafana_delete_data }}"
+
+# tasks/prepare.yml
+---
+# ............................................................
+- name: Verify prerequisites
+  assert:
+    that:
+      - grafana_data_dir is defined
+    fail_msg: "Required variables not properly configured"
+
+# ............................................................
+- name: Base prepare
+  ansible.builtin.include_tasks:
+    file: ../_base/tasks/prepare.yml
+
+# tasks/prerequisites.yml
+---
+#
+# .......................................................................
+- name: Verify prerequisite variables
+  assert:
+    that:
+      - grafana_admin_password != "changeme"
+      - grafana_data_dir is defined
+      - grafana_port is defined
+    fail_msg: "Required variables not properly configured"
+
+# .......................................................................
+# Get container user mapping first
+- name: Get directory ownership
+  ansible.builtin.stat:
+    path: "{{ grafana_data_dir }}/config"
+  register: dir_info
+
+- name: Debug ownership
+  ansible.builtin.debug:
+    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+
+# .......................................................................
+- name: Become root and configure settings
+  become: true
+  block:
+    # ...................................................
+    - name: Template Grafana configuration
+      template:
+        src: grafana.ini.j2
+        dest: "{{ grafana_data_dir }}/config/grafana.ini"
+        mode: "0640"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart grafana
+
+    # ...................................................
+    - name: Create default datasource provisioning
+      ansible.builtin.copy:
+        dest: "{{ grafana_data_dir }}/provisioning/datasources/default.yaml"
+        content: |
+          apiVersion: 1
+          
+          datasources:
+            - name: Prometheus
+              type: prometheus
+              access: proxy
+              url: http://localhost:9090
+              isDefault: true
+              editable: true
+        mode: "0640"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+
+    # ...................................................
+    - name: Configure SELinux for data directories
+      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+      block:
+        - name: Set SELinux context for Grafana directories
+          ansible.builtin.sefcontext:
+            target: "{{ grafana_data_dir }}(/.*)?"
+            setype: container_file_t
+            state: present
+
+        - name: Apply SELinux context
+          ansible.builtin.command: restorecon -R -v "{{ grafana_data_dir }}"
+          register: restorecon_result
+          changed_when: restorecon_result.rc == 0
+
+# tasks/quadlet_rootless.yml
+---
+#
+# ..................................................................................
+- name: Ensure required directories exist
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+    state: directory
+    mode: "0750"
+  loop:
+    - .config/systemd/user
+    - .config/containers/systemd
+    - .config/containers/systemd/env
+
+# ..................................................................................
+- name: Create environment file for Grafana
+  ansible.builtin.template:
+    src: grafana.env.j2
+    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/grafana.env"
+    mode: "0600"
+
+# ..................................................................................
+- name: Create Grafana pod Quadlet
+  containers.podman.podman_pod:
+    name: grafana
+    state: quadlet
+    dns: "{{ service_dns_servers }}"
+    dns_search: "{{ service_dns_search }}"
+    network: "{{ service_network }}"
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    ports:
+      - "127.0.0.1:{{ grafana_port }}:3000"
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+      - |
+        [Install]
+        WantedBy=default.target
+
+# ..................................................................................
+- name: Create Grafana container Quadlet
+  containers.podman.podman_container:
+    name: grafana-svc
+    pod: grafana.pod
+    image: "{{ grafana_image }}"
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    volume:
+      - "{{ grafana_data_dir }}/config/grafana.ini:/etc/grafana/grafana.ini:Z,U,ro"
+      - "{{ grafana_data_dir }}/data:/var/lib/grafana:Z,U"
+      - "{{ grafana_data_dir }}/logs:/var/log/grafana:Z,U"
+      - "{{ grafana_data_dir }}/plugins:/var/lib/grafana/plugins:Z,U"
+      - "{{ grafana_data_dir }}/provisioning:/etc/grafana/provisioning:Z,U,ro"
+    env:
+      GF_SECURITY_ADMIN_USER: "{{ grafana_admin_user }}"
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+      GF_INSTALL_PLUGINS: ""
+    quadlet_options:
+      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/grafana.env"
+      - "Label=traefik.enable=true"
+      - "Label=traefik.http.routers.grafana.rule=Host(`{{ grafana_domain }}`)"
+      - "Label=traefik.http.routers.grafana.entrypoints=websecure"
+      - "Label=traefik.http.routers.grafana.service=grafana"
+      - "Label=traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "Label=traefik.http.routers.grafana.middlewares=secHeaders@file,redirect-to-https@file"
+      - |
+        [Unit]
+        Description=Grafana Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target
+
+# .......................................................................................
+- name: Reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+# .......................................................................................
+- name: Enable and start rootless pod with systemd
+  ansible.builtin.systemd:
+    name: "{{ service_properties.name }}"
+    state: started
+    enabled: yes
+    scope: user
+
+# tasks/verify.yml
+---
+# ....................................................................................
+- name: Verify Grafana pod is running
+  command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
+  register: pod_status
+  failed_when: "'grafana' not in pod_status.stdout"
+  changed_when: false
+
+- name: Show pod status
+  debug:
+    var: pod_status.stdout_lines
+
+# ....................................................................................
+- name: Verify Grafana container is running
+  command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=grafana"
+  register: container_status
+  failed_when: "'grafana-svc' not in container_status.stdout"
+  changed_when: false
+
+- name: Show container status
+  debug:
+    var: container_status.stdout_lines
+
+# ....................................................................................
+- name: Wait for Grafana to be ready
+  uri:
+    url: "http://localhost:{{ grafana_port }}/api/health"
+    method: GET
+    status_code: 200
+  register: health_check
+  until: health_check.status == 200
+  retries: 30
+  delay: 5
+  changed_when: false
+
+- name: Show health check result
+  debug:
+    var: health_check.json
+
+# ....................................................................................
+- name: Test Grafana login
+  uri:
+    url: "http://localhost:{{ grafana_port }}/login"
+    method: GET
+    status_code: 200
+  register: login_test
+  changed_when: false
+
+- name: Show login test
+  debug:
+    msg: "Grafana login page accessible: {{ login_test.status == 200 }}"
+
+# ....................................................................................
+- name: Get Grafana version and status
+  uri:
+    url: "http://localhost:{{ grafana_port }}/api/admin/stats"
+    method: GET
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: 200
+  register: grafana_stats
+  changed_when: false
+  no_log: true
+
+- name: Show Grafana statistics
+  debug:
+    msg: |
+      Grafana Statistics:
+      - Users: {{ grafana_stats.json.users | default('unknown') }}
+      - Dashboards: {{ grafana_stats.json.dashboards | default('unknown') }}
+      - Data Sources: {{ grafana_stats.json.datasources | default('unknown') }}
+      - Organizations: {{ grafana_stats.json.orgs | default('unknown') }}
+
+# ....................................................................................
+- name: Check available data sources
+  uri:
+    url: "http://localhost:{{ grafana_port }}/api/datasources"
+    method: GET
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: 200
+  register: datasources
+  changed_when: false
+  no_log: true
+
+- name: Show configured data sources
+  debug:
+    msg: "Data sources: {{ datasources.json | map(attribute='name') | list }}"
+  when: datasources.json | length > 0
+
+# ....................................................................................
+- name: Get container resource usage
+  command: >
+    podman stats --no-stream --format "table {% raw %}{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}{% endraw %}"
+    grafana-svc
+  register: resource_usage
+  changed_when: false
+
+- name: Show resource usage
+  debug:
+    var: resource_usage.stdout_lines
+
+# templates/grafana.ini.j2
+# Grafana configuration file
+# Generated by Ansible on {{ ansible_date_time.iso8601 }}
+
+[default]
+# instance_name = ${HOSTNAME}
+
+[paths]
+data = /var/lib/grafana
+logs = /var/log/grafana
+plugins = /var/lib/grafana/plugins
+provisioning = /etc/grafana/provisioning
+
+[server]
+protocol = http
+http_addr = 0.0.0.0
+http_port = 3000
+domain = {{ grafana_domain }}
+root_url = %(protocol)s://%(domain)s:%(http_port)s/
+
+[database]
+type = {{ grafana_database_type }}
+path = {{ grafana_database_path }}
+
+[session]
+provider = file
+provider_config = sessions
+
+[dataproxy]
+logging = false
+
+[analytics]
+reporting_enabled = {{ grafana_analytics_reporting_enabled | lower }}
+check_for_updates = {{ grafana_check_for_updates | lower }}
+
+[security]
+admin_user = {{ grafana_admin_user }}
+admin_password = {{ grafana_admin_password }}
+secret_key = {{ grafana_secret_key }}
+login_remember_days = 7
+cookie_username = grafana_user
+cookie_remember_name = grafana_remember
+
+[snapshots]
+external_enabled = true
+external_snapshot_url = https://snapshots-origin.raintank.io
+external_snapshot_name = Publish to snapshot.raintank.io
+
+[dashboards]
+versions_to_keep = 20
+
+[users]
+allow_sign_up = {{ grafana_allow_sign_up | lower }}
+allow_org_create = {{ grafana_allow_org_create | lower }}
+auto_assign_org = {{ grafana_auto_assign_org | lower }}
+auto_assign_org_role = {{ grafana_auto_assign_org_role }}
+
+[auth.anonymous]
+enabled = false
+
+{% if grafana_smtp_enabled %}
+[smtp]
+enabled = true
+host = {{ grafana_smtp_host }}
+user = {{ grafana_smtp_user }}
+password = {{ grafana_smtp_password }}
+from_address = {{ grafana_smtp_from_address }}
+from_name = Grafana
+{% endif %}
+
+[log]
+mode = console file
+level = info
+
+[log.console]
+level = info
+format = console
+
+[log.file]
+level = info
+format = text
+log_rotate = true
+max_lines = 1000000
+max_size_shift = 28
+daily_rotate = true
+max_days = 7
+
+[alerting]
+enabled = true
+execute_alerts = true
+
+[explore]
+enabled = true
+
+[help]
+enabled = true
+
+[profile]
+enabled = true
+
+[feature_toggles]
+enable = 
+
+[panels]
+disable_sanitize_html = false
+
+[plugins]
+enable_alpha = false
+
+# templates/grafana.env.j2
+# Environment variables for Grafana
+# Generated by Ansible on {{ ansible_date_time.iso8601 }}
+# DO NOT EDIT MANUALLY
+
+GF_SECURITY_ADMIN_USER={{ grafana_admin_user }}
+GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_password }}
+GF_SECURITY_SECRET_KEY={{ grafana_secret_key }}
+GF_ANALYTICS_REPORTING_ENABLED={{ grafana_analytics_reporting_enabled | lower }}
+GF_ANALYTICS_CHECK_FOR_UPDATES={{ grafana_check_for_updates | lower }}
+GF_USERS_ALLOW_SIGN_UP={{ grafana_allow_sign_up | lower }}
+GF_USERS_ALLOW_ORG_CREATE={{ grafana_allow_org_create | lower }}
+GF_INSTALL_PLUGINS=
+
+# README.md
+# Grafana Podman Role
+
+This role manages the installation and configuration of Grafana using rootless Podman containers. It provides a complete visualization platform for metrics, logs, and other data sources.
+
+## Features
+
+- Rootless Podman deployment
+- Systemd integration using Quadlets
+- Configurable data sources and dashboards
+- SQLite database backend (lightweight for development)
+- Built-in provisioning support
+- Traefik integration for reverse proxy
+- SELinux support for RHEL systems
+
+## Requirements
+
+- Podman 4.x or later
+- Systemd with user services enabled
+- User with sudo access
+- SELinux if running on RHEL/CentOS (role handles contexts)
+
+## Role Variables
+
+### Installation Options
+
+```yaml
+grafana_state: present  # Use 'absent' to remove
+grafana_force_reload: false
+grafana_delete_data: false  # Set to true to delete data during removal
+```
+
+### Container Settings
+
+```yaml
+grafana_image: "docker.io/grafana/grafana:latest"
+grafana_port: 3000
+grafana_domain: "grafana.{{ domain }}"
+```
+
+### Security Settings
+
+```yaml
+grafana_admin_user: "admin"
+grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') | default('changeme') }}"
+grafana_allow_sign_up: false
+grafana_allow_org_create: false
+```
+
+### Database Settings
+
+```yaml
+grafana_database_type: "sqlite3"  # Lightweight for development
+grafana_database_path: "/var/lib/grafana/grafana.db"
+```
+
+See defaults/main.yml for all available variables and their default values.
+
+## Example Playbooks
+
+### Basic Installation
+
+```yaml
+- hosts: servers
+  roles:
+    - role: grafana
+      vars:
+        grafana_admin_password: "secure_password"
+```
+
+### With Custom Configuration
+
+```yaml
+- hosts: servers
+  roles:
+    - role: grafana
+      vars:
+        grafana_admin_password: "secure_password"
+        grafana_allow_sign_up: true
+        grafana_smtp_enabled: true
+        grafana_smtp_host: "smtp.example.com:587"
+```
+
+### Removal with Data Cleanup
+
+```yaml
+- hosts: servers
+  roles:
+    - role: grafana
+      vars:
+        grafana_state: absent
+        grafana_delete_data: true
+```
+
+## Usage
+
+After deployment:
+
+- Grafana will be available at http://localhost:3000
+- Default credentials: admin / your_configured_password
+- Configuration file: ~/grafana-data/config/grafana.ini
+- Data directory: ~/grafana-data/data
+
+### Initial Setup
+
+1. Access the web interface at http://localhost:3000
+2. Log in with admin credentials
+3. Configure data sources (Prometheus, InfluxDB, etc.)
+4. Import or create dashboards
+
+### Adding Data Sources
+
+Data sources can be configured via:
+1. Web interface (Data Sources menu)
+2. Provisioning files in ~/grafana-data/provisioning/datasources/
+
+### Dashboard Management
+
+Dashboards can be:
+1. Created in the web interface
+2. Imported from Grafana.com
+3. Provisioned via configuration files
+
+## Integration
+
+### With Prometheus
+
+```yaml
+# Add to your provisioning/datasources/prometheus.yaml
+- name: Prometheus
+  type: prometheus
+  access: proxy
+  url: http://localhost:9090
+  isDefault: true
+```
+
+### With Traefik
+
+The role automatically configures Traefik labels for reverse proxy access when Traefik is available.
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Permission Issues**: Ensure proper ownership of data directories
+2. **Database Lock**: Stop Grafana before backing up SQLite database
+3. **Plugin Installation**: Use GF_INSTALL_PLUGINS environment variable
+
+### Useful Commands
+
+```bash
+# Check container status
+podman ps --filter "pod=grafana"
+
+# View logs
+podman logs grafana-svc
+
+# Access container
+podman exec -it grafana-svc /bin/bash
+
+# Check service status
+systemctl --user status grafana-pod
+```
+
+## Security Considerations
+
+1. Change default admin password
+2. Disable sign-up for production environments
+3. Configure proper firewall rules
+4. Use HTTPS in production (via Traefik or direct TLS)
+5. Regular backup of dashboard configurations
+
+## License
+
+MIT
+
+## Author Information
+
+Created by jackaltx following the SOLTI containers pattern.
