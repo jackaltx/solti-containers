@@ -25,11 +25,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Verify service status
 systemctl --user status <service>-pod
 
-# Check container logs  
+# Check container logs
 podman logs <service>-svc
 
 # Verify network connectivity
 podman network inspect ct-net
+
+# Check all running containers
+podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# Monitor resource usage
+podman stats --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
 ```
 
 ### Syntax Validation
@@ -37,8 +43,14 @@ podman network inspect ct-net
 # Test role syntax
 ansible-playbook --syntax-check roles/<service>/tasks/main.yml
 
-# Dry run
+# Dry run with inventory
 ansible-playbook --check -i inventory.yml <playbook>
+
+# Test with specific host
+ansible-playbook --syntax-check roles/<service>/tasks/main.yml --limit firefly
+
+# Validate YAML files
+yamllint roles/<service>/tasks/main.yml
 ```
 
 ## Architecture Overview
@@ -122,10 +134,33 @@ When Traefik is deployed, services automatically get SSL termination:
 - Services can reference each other by container names within ct-net
 
 ### Troubleshooting
-- Generated playbooks preserved in `tmp/` directory on failure
-- Use `-vvv` flag with ansible-playbook for verbose output
-- Check systemd user services: `systemctl --user status`
-- Verify SELinux contexts on RHEL: `ls -Z ~/service-data/`
+```bash
+# Generated playbooks preserved in tmp/ directory on failure
+ls -la tmp/<service>-*.yml
+
+# Use verbose output for debugging
+ansible-playbook -vvv <playbook>
+
+# Check systemd user services
+systemctl --user status
+systemctl --user list-units --type=service --state=failed
+
+# Verify SELinux contexts on RHEL
+ls -Z ~/<service>-data/
+seinfo --type | grep container
+
+# Check service-specific logs
+journalctl --user -u <service>-pod -f
+
+# Verify container configuration
+podman inspect <service>-svc | jq '.[] | {Name, State, Config}'
+
+# Check network connectivity between containers
+podman exec <service>-svc ping <other-service>-svc
+
+# Debug privilege issues
+./manage-svc.sh <service> prepare --become --ask-become-pass
+```
 
 ## File Locations
 
