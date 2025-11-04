@@ -103,7 +103,7 @@ Services use a state-driven approach:
 - Service hosts defined under `<service>_svc` groups
 - Common variables: `<service>_data_dir`, `<service>_password`, `<service>_delete_data`
 - Network: `service_network: "ct-net"`, DNS servers configured
-- Domain: `domain: a0a0.org` (used for SSL/TLS)
+- Domain: `domain: example.com` (used for SSL/TLS, configurable in inventory.yml)
 
 ### Security Model
 - Rootless containers with user privileges

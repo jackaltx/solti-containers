@@ -41,8 +41,8 @@
     #
     # grafana_provision:
     #   datasource:
-    #     - "http://monitor11.a0a0.org:8086"
-    #     - "http://jokester.a0a0.org:3100"
+    #     - "http://monitor11.example.com:8086"
+    #     - "http://jokester.example.com:3100"
     #   dashboard:
     #     - fleur_http   #  refs to a json file
     #     - fleur_mailsvc
