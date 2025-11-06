@@ -55,6 +55,29 @@ yamllint roles/<service>/tasks/main.yml
 
 ## Architecture Overview
 
+### The Three Architectural Pillars
+
+SOLTI containers is built on three core innovations that work together (detailed in Container-Role-Architecture.md):
+
+1. **Podman Quadlets** - Modern container-to-systemd integration
+   - Single declarative file replaces two-step container creation + systemd generation
+   - Filename becomes service identity (elasticsearch.pod → elasticsearch-pod.service)
+   - Native systemd integration with standard `systemctl` commands
+
+2. **Dynamic Playbook Generation** - Inventory-driven automation
+   - `manage-svc.sh` generates playbooks on-the-fly from templates
+   - Single script handles all services and actions (prepare/deploy/remove)
+   - Eliminates hundreds of lines of duplicate playbook code
+   - Generated playbooks preserved on failure for debugging
+
+3. **Role Inheritance Pattern** - Shared functionality via `_base` role
+   - Service properties define structure, `_base` role uses them generically
+   - Common functionality written once, inherited by all services
+   - 98% reduction in boilerplate code per service
+   - Bugs fixed in `_base` fix all services instantly
+
+**Result**: Consistent patterns, minimal code duplication, rapid service deployment.
+
 ### The SOLTI Pattern
 This collection follows a standardized container deployment pattern with these core components:
 
