@@ -6,7 +6,6 @@
       - grafana_admin_password != "changeme"
       - grafana_data_dir is defined
       - grafana_port is defined
-      - grafana_datasource is defined
     fail_msg: "Required variables not properly configured"
 
 # .......................................................................
@@ -66,22 +65,4 @@
     #     group: "{{ dir_info.stat.gid }}"
 
     # ...................................................
-    - name: Configure SELinux for data directories
-      when:
-        - ansible_os_family == "RedHat"
-        - ansible_selinux.status == "enabled"
-      block:
-        - name: Set SELinux file context for Grafana directories
-          ansible.builtin.shell: |
-            semanage fcontext -a -t container_file_t "{{ grafana_data_dir }}(/.*)?" || true
-            restorecon -R -v "{{ grafana_data_dir }}" || true
-          register: selinux_result
-          changed_when: false
-          failed_when: false
-
-        - name: Fallback - use chcon if semanage fails
-          ansible.builtin.command: chcon -R -t container_file_t "{{ grafana_data_dir }}"
-          when: selinux_result.rc != 0
-          register: chcon_result
-          changed_when: chcon_result.rc == 0
-          failed_when: false
+    # Note: SELinux configuration is handled by _base/tasks/prepare.yml

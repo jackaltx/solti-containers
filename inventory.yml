@@ -304,3 +304,7 @@ all:
           # .......................................
           # _svc only vars
           vars:
+            debug_level: warn
+            grafana_data_dir: "{{ ansible_env.HOME }}/grafana-data"
+            grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD', default='') }}"
+            grafana_delete_data: false
