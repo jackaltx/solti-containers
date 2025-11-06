@@ -28,6 +28,8 @@ SUPPORTED_SERVICES=(
     "mattermost"
     "traefik"
     "minio"
+    "wazuh"
+    "grafana"
 )
 
 # Default entry point if not specified

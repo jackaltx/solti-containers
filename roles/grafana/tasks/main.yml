@@ -51,7 +51,6 @@
         grafana_admin_password == 'changeme'
 
     - name: Verify required directories exist
-      become: true
       ansible.builtin.stat:
         path: "{{ grafana_data_dir }}/{{ service_properties.config_dir }}"
       register: config_dir_check

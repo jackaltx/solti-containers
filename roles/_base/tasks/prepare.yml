@@ -44,8 +44,18 @@
         target: "{{ service_properties.data_dir }}(/.*)?"
         setype: container_file_t
         state: present
+      register: sefcontext_result
+      failed_when: false
 
     - name: Apply SELinux context
       ansible.builtin.command: restorecon -R -v "{{ service_properties.data_dir }}"
       register: restorecon_result
       changed_when: restorecon_result.rc == 0
+      failed_when: false
+
+    - name: Fallback - use chcon if semanage/restorecon fails
+      ansible.builtin.command: chcon -R -t container_file_t "{{ service_properties.data_dir }}"
+      when: sefcontext_result.failed or restorecon_result.rc != 0
+      register: chcon_result
+      changed_when: chcon_result.rc == 0
+      failed_when: false
