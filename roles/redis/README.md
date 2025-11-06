@@ -20,6 +20,8 @@ Redis provides a fast in-memory key-value store ideal for collecting test result
 ./manage-svc.sh redis remove
 ```
 
+> **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
+
 ## Features
 
 - **High Performance**: In-memory storage for fastest possible data access

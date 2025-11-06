@@ -7,7 +7,7 @@ HashiCorp Vault provides comprehensive secrets management for development workfl
 ## Quick Start
 
 ```bash
-# Prepare system directories and configuration  
+# Prepare system directories and configuration
 ./manage-svc.sh hashivault prepare
 
 # Deploy Vault container
@@ -25,6 +25,8 @@ HashiCorp Vault provides comprehensive secrets management for development workfl
 # Verify deployment
 ./svc-exec.sh hashivault verify
 ```
+
+> **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
 
 ## Features
 

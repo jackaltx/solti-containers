@@ -17,6 +17,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./svc-exec.sh -K <service> <task>   # Use sudo for privileged operations
 ```
 
+**Important**: `manage-svc.sh` automatically prompts for sudo password (`-K` flag is built-in) because containers create files with elevated ownership that your user cannot modify. This is expected behavior for all operations.
+
 ### Supported Services
 - redis, elasticsearch, hashivault, mattermost, traefik, minio, grafana, wazuh
 

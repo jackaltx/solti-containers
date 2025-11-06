@@ -17,7 +17,7 @@ Modern development requires lightweight, ephemeral services that can be quickly 
 ```bash
 # Deploy a complete development stack
 ./manage-svc.sh redis prepare && ./manage-svc.sh redis deploy
-./manage-svc.sh elasticsearch prepare && ./manage-svc.sh elasticsearch deploy  
+./manage-svc.sh elasticsearch prepare && ./manage-svc.sh elasticsearch deploy
 ./manage-svc.sh mattermost prepare && ./manage-svc.sh mattermost deploy
 
 # Verify all services
@@ -30,6 +30,8 @@ Modern development requires lightweight, ephemeral services that can be quickly 
 ./manage-svc.sh elasticsearch remove
 ./manage-svc.sh mattermost remove
 ```
+
+> **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
 
 ## 📋 Service Catalog
 
@@ -140,11 +142,13 @@ graph TD
 ./manage-svc.sh <service> prepare
 
 # Deploy and start service
-./manage-svc.sh <service> deploy  
+./manage-svc.sh <service> deploy
 
 # Remove service (preserves data by default)
 ./manage-svc.sh <service> remove
 ```
+
+**Note**: Requires sudo password - containers create files with elevated ownership requiring privilege escalation for prepare/deploy/remove operations.
 
 #### Service Operations (`svc-exec.sh`)
 

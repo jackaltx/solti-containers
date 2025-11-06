@@ -26,6 +26,8 @@ ansible-playbook create-elasticsearch-tokens.yml
 ./manage-svc.sh elasticsearch remove
 ```
 
+> **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
+
 ## Features
 
 - **Full-Text Search**: Advanced search capabilities for documents and logs
