@@ -1,0 +1,52 @@
+---
+# Gitea service configuration
+# SQLite-based single container deployment
+
+# Container configuration
+gitea_image: "docker.io/gitea/gitea:latest"
+gitea_port: 3001
+gitea_ssh_port: 2222
+
+# Data directories
+gitea_data_dir: "{{ ansible_env.HOME }}/gitea-data"
+gitea_delete_data: false
+
+# Admin credentials
+gitea_admin_user: "gitea_admin"
+gitea_admin_password: "{{ lookup('env', 'GITEA_ADMIN_PASSWORD', default='changeme') }}"
+gitea_admin_email: "admin@{{ domain }}" # noqa yaml[line-length]
+
+# Application settings
+gitea_app_name: "Gitea"
+gitea_domain: "gitea.{{ domain }}"
+gitea_root_url: "https://gitea.{{ domain }}"
+gitea_disable_registration: false
+gitea_require_signin: true
+
+# Feature flags
+gitea_enable_ssh: true
+gitea_enable_actions: true
+gitea_enable_lfs: true
+gitea_enable_tls: true
+
+# Database (SQLite)
+gitea_db_type: "sqlite3"
+gitea_db_path: "/data/gitea/gitea.db"
+
+# Service properties following SOLTI pattern
+service_properties:
+  root: "gitea"
+  name: "gitea-pod"
+  pod_key: "gitea.pod"
+  quadlets:
+    - "gitea-svc.container"
+    - "gitea.pod"
+  data_dir: "{{ gitea_data_dir }}"
+  config_dir: "config"
+  dirs:
+    - { path: "", mode: "0755" }
+    - { path: "config", mode: "0775" }
+    - { path: "data", mode: "0775" }
+    - { path: "data/gitea", mode: "0775" }
+    - { path: "data/git", mode: "0775" }
+    - { path: "logs", mode: "0775" }

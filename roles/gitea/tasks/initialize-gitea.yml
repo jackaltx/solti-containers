@@ -1,0 +1,98 @@
+---
+# gitea/tasks/initialize-gitea.yml
+# Initialize Gitea with admin user via CLI
+
+# ....................................................................................
+# Verify Gitea is running and accessible
+- name: Wait for Gitea to be ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ gitea_port }}"
+    method: GET
+    status_code: 200
+  register: ping_result
+  until: ping_result.status == 200
+  retries: 30
+  delay: 5
+
+- name: Show Gitea status
+  ansible.builtin.debug:
+    msg: "Gitea is accessible at http://127.0.0.1:{{ gitea_port }}"
+
+# ....................................................................................
+# Check if admin user exists by trying to authenticate
+- name: Check if admin user exists
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ gitea_port }}/api/v1/user"
+    method: GET
+    user: "{{ gitea_admin_user }}"
+    password: "{{ gitea_admin_password }}"
+    force_basic_auth: true
+    status_code: [200, 401]
+  register: admin_check
+  failed_when: false
+
+# ....................................................................................
+# Create admin user using gitea CLI (run as git user, not root)
+- name: Create admin user via gitea CLI
+  ansible.builtin.command:
+    cmd: >
+      podman exec --user git gitea-svc
+      gitea admin user create
+      --admin
+      --username "{{ gitea_admin_user }}"
+      --password "{{ gitea_admin_password }}"
+      --email "{{ gitea_admin_email }}"
+      --must-change-password=false
+  register: admin_create
+  when: admin_check.status == 401
+  failed_when:
+    - admin_create.rc != 0
+    - "'user already exists' not in admin_create.stderr"
+    - "'user already exists' not in admin_create.stdout"
+  changed_when: admin_create.rc == 0
+
+- name: Display admin creation result
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'Admin user created successfully' if admin_create.changed
+      else 'Admin user already exists' }}
+  when: admin_check.status == 401
+
+# ....................................................................................
+# Verify admin user can authenticate
+- name: Verify admin user authentication
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ gitea_port }}/api/v1/user"
+    method: GET
+    user: "{{ gitea_admin_user }}"
+    password: "{{ gitea_admin_password }}"
+    force_basic_auth: true
+    status_code: 200
+  register: auth_verify
+  retries: 3
+  delay: 2
+
+- name: Display authenticated user info
+  ansible.builtin.debug:
+    msg:
+      - "Admin user authenticated successfully"
+      - "Username: {{ auth_verify.json.login }}"
+      - "Email: {{ auth_verify.json.email }}"
+      - "Admin: {{ auth_verify.json.is_admin }}"
+
+# ....................................................................................
+# Display completion message
+- name: Display initialization summary
+  ansible.builtin.debug:
+    msg:
+      - "===================================="
+      - "Gitea Initialization Complete"
+      - "===================================="
+      - "Admin user: {{ gitea_admin_user }}"
+      - "Access URL: http://127.0.0.1:{{ gitea_port }}"
+      - "Traefik URL: {{ gitea_root_url }}"
+      - ""
+      - "You can now log in with:"
+      - "  Username: {{ gitea_admin_user }}"
+      - "  Password: (the password you configured)"
+      - "===================================="

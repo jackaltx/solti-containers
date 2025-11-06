@@ -1,0 +1,97 @@
+---
+# Main entry point for gitea role
+# State-driven: prepare → present → absent
+
+- name: Validate state parameter
+  ansible.builtin.fail:
+    msg: >-
+      gitea_state must be one of: prepare, present, absent.
+      Current value: {{ gitea_state }}
+  when: gitea_state not in ['prepare', 'present', 'absent']
+
+- name: Test become capability
+  ansible.builtin.command: whoami
+  register: become_test
+  changed_when: false
+
+# =======================================================================
+# PREPARATION (one-time setup)
+# =======================================================================
+
+- name: Prepare gitea service (one-time setup)
+  when: gitea_state == 'prepare'
+  block:
+    - name: Check if gitea has been prepared
+      ansible.builtin.stat:
+        path: "{{ gitea_data_dir }}/.prepared"
+      register: gitea_prepared
+
+    - name: Run preparation tasks
+      when: not gitea_prepared.stat.exists
+      block:
+        - name: Include base preparation
+          ansible.builtin.include_role:
+            name: _base
+            tasks_from: prepare
+
+        - name: Mark gitea as prepared
+          ansible.builtin.file:
+            path: "{{ gitea_data_dir }}/.prepared"
+            state: touch
+            mode: '0644'
+
+# =======================================================================
+# DEPLOYMENT (present state)
+# =======================================================================
+
+- name: Deploy gitea service
+  when: gitea_state == 'present'
+  block:
+    - name: Include prerequisites
+      ansible.builtin.include_tasks: prerequisites.yml
+
+    - name: Include TLS setup
+      ansible.builtin.include_tasks: tls.yml
+      when: gitea_enable_tls | bool
+
+    - name: Ensure container network exists
+      ansible.builtin.include_role:
+        name: _base
+        tasks_from: networks
+
+    - name: Deploy gitea container
+      ansible.builtin.include_tasks: quadlet_rootless.yml
+
+    - name: Verify required directories exist
+      ansible.builtin.stat:
+        path: "{{ gitea_data_dir }}/{{ service_properties.config_dir }}"
+      register: config_dir_check
+      failed_when: not config_dir_check.stat.exists
+      changed_when: false
+
+    - name: Wait for gitea to be ready
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ gitea_port }}"
+        timeout: 120
+
+    - name: Initialize gitea with admin user
+      ansible.builtin.include_tasks: initialize-gitea.yml
+
+    - name: Include verification tasks
+      ansible.builtin.include_tasks: verify.yml
+
+# =======================================================================
+# CLEANUP (absent state)
+# =======================================================================
+
+- name: Remove gitea service
+  when: gitea_state == 'absent'
+  block:
+    - name: Include cleanup tasks
+      ansible.builtin.include_role:
+        name: _base
+        tasks_from: cleanup
+      vars:
+        service_state: absent
+        service_delete_data: "{{ gitea_delete_data | default(false) }}"

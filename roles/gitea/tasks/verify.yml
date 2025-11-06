@@ -1,0 +1,119 @@
+---
+# Verification tasks for gitea
+# Health checks and functionality tests
+
+- name: Verify gitea pod is running
+  ansible.builtin.command: podman pod ps --filter "name=gitea" --format "{{ '{{' }}.Status{{ '}}' }}"
+  register: pod_status
+  changed_when: false
+  failed_when: "'Running' not in pod_status.stdout"
+
+- name: Verify gitea container is running
+  ansible.builtin.command: podman ps --filter "pod=gitea" --filter "name=gitea-svc" --format "{{ '{{' }}.Status{{ '}}' }}"
+  register: container_status
+  changed_when: false
+  failed_when: container_status.stdout == ""
+
+- name: Wait for gitea HTTP service
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ gitea_port }}"
+    timeout: 60
+
+- name: Check gitea HTTP endpoint
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ gitea_port }}"
+    method: GET
+    status_code: 200
+  register: http_check
+  retries: 3
+  delay: 5
+  until: http_check.status == 200
+
+- name: Verify gitea SSH service is listening
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ gitea_ssh_port }}"
+    timeout: 30
+  when: gitea_enable_ssh | bool
+
+- name: Check gitea API endpoint (unauthenticated)
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ gitea_port }}/api/v1/version"
+    method: GET
+    status_code: [200, 403]
+  register: api_check_unauth
+  retries: 3
+  delay: 5
+  until: api_check_unauth.status in [200, 403]
+  failed_when: false
+
+- name: Check gitea API endpoint (authenticated)
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ gitea_port }}/api/v1/version"
+    method: GET
+    status_code: 200
+    user: "{{ gitea_admin_user }}"
+    password: "{{ gitea_admin_password }}"
+    force_basic_auth: true
+  register: api_check
+  retries: 3
+  delay: 5
+  until: api_check.status == 200
+  when: api_check_unauth.status == 403
+
+- name: Use unauthenticated result if API is open
+  ansible.builtin.set_fact:
+    api_check: "{{ api_check_unauth }}"
+  when: api_check_unauth.status == 200
+
+- name: Display gitea version
+  ansible.builtin.debug:
+    msg: "Gitea version: {{ api_check.json.version }}"
+  when: api_check.json.version is defined
+
+- name: Check container logs for errors
+  ansible.builtin.command: podman logs --tail 50 gitea-svc
+  register: container_logs
+  changed_when: false
+
+- name: Display recent logs
+  ansible.builtin.debug:
+    msg: "{{ container_logs.stdout_lines[-10:] }}"
+
+- name: Verify gitea configuration
+  ansible.builtin.command: podman exec gitea-svc ls -la /data/gitea/conf/app.ini
+  register: config_check
+  changed_when: false
+  failed_when: config_check.rc != 0
+
+- name: Check gitea database
+  ansible.builtin.command: podman exec gitea-svc ls -la /data/gitea/gitea.db
+  register: db_check
+  changed_when: false
+  failed_when: false
+
+- name: Database status
+  ansible.builtin.debug:
+    msg: "{{ 'Database initialized' if db_check.rc == 0 else 'Database will be created on first access' }}"
+
+- name: Display resource usage
+  ansible.builtin.command: podman stats --no-stream --format "table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.CPUPerc{{ '}}' }}\t{{ '{{' }}.MemUsage{{ '}}' }}" gitea-svc
+  register: stats
+  changed_when: false
+
+- name: Show gitea stats
+  ansible.builtin.debug:
+    msg: "{{ stats.stdout_lines }}"
+
+- name: Verification summary
+  ansible.builtin.debug:
+    msg:
+      - "===================================="
+      - "Gitea Verification Complete"
+      - "===================================="
+      - "HTTP: http://127.0.0.1:{{ gitea_port }}"
+      - "SSH: ssh://git@127.0.0.1:{{ gitea_ssh_port }}"
+      - "Traefik: https://{{ gitea_domain }}"
+      - "Pod Status: {{ pod_status.stdout }}"
+      - "===================================="

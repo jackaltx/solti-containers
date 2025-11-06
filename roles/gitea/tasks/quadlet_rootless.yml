@@ -1,0 +1,113 @@
+---
+# Deploy gitea using Podman Quadlets
+# Single container with SQLite
+
+- name: Ensure systemd user directories exist
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - .config/systemd/user
+    - .config/containers/systemd
+
+- name: Create gitea environment file directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/containers/systemd/env"
+    state: directory
+    mode: "0755"
+
+- name: Copy gitea environment file
+  ansible.builtin.copy:
+    src: "{{ gitea_data_dir }}/config/gitea.env"
+    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/gitea.env"
+    mode: "0640"
+    remote_src: true
+
+- name: Check if timezone files exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: tz_files
+  loop:
+    - /etc/timezone
+    - /etc/localtime
+
+- name: Build volume list
+  ansible.builtin.set_fact:
+    gitea_volumes:
+      - "{{ gitea_data_dir }}/data:/data:Z,U"
+      - "{{ gitea_data_dir }}/config/app.ini:/data/gitea/conf/app.ini:Z,U"
+
+- name: Add timezone volume if it exists
+  ansible.builtin.set_fact:
+    gitea_volumes: "{{ gitea_volumes + ['/etc/timezone:/etc/timezone:ro'] }}"
+  when: tz_files.results[0].stat.exists
+
+- name: Add localtime volume if it exists
+  ansible.builtin.set_fact:
+    gitea_volumes: "{{ gitea_volumes + ['/etc/localtime:/etc/localtime:ro'] }}"
+  when: tz_files.results[1].stat.exists
+
+- name: Create gitea pod quadlet
+  containers.podman.podman_pod:
+    name: gitea
+    state: quadlet
+    dns: "{{ service_dns_servers }}"
+    dns_search: "{{ service_dns_search }}"
+    network: "{{ service_network }}"
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    ports:
+      - "127.0.0.1:{{ gitea_port }}:3000"
+      - "127.0.0.1:{{ gitea_ssh_port }}:22"
+    quadlet_options:
+      - "[Unit]"
+      - "Description=Gitea Pod"
+      - "After=network-online.target"
+      - ""
+      - "[Service]"
+      - "Restart=always"
+      - ""
+      - "[Install]"
+      - "WantedBy=default.target"
+
+- name: Create gitea container quadlet
+  containers.podman.podman_container:
+    name: gitea-svc
+    pod: gitea.pod
+    image: "{{ gitea_image }}"
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    volume: "{{ gitea_volumes }}"
+    env_file:
+      - "{{ ansible_env.HOME }}/.config/containers/systemd/env/gitea.env"
+    label:
+      traefik.enable: "true"
+      traefik.http.routers.gitea.rule: "Host(`{{ gitea_domain }}`)"
+      traefik.http.routers.gitea.entrypoints: "websecure"
+      traefik.http.routers.gitea.service: "gitea"
+      traefik.http.services.gitea.loadbalancer.server.port: "3000"
+      traefik.http.routers.gitea.middlewares: "secHeaders@file,redirect-to-https@file"
+    quadlet_options:
+      - "[Unit]"
+      - "Description=Gitea Service Container"
+      - "After=network-online.target"
+      - ""
+      - "[Service]"
+      - "Restart=always"
+      - "TimeoutStartSec=300"
+      - "TimeoutStopSec=70"
+      - ""
+      - "[Install]"
+      - "WantedBy=default.target"
+
+- name: Reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+
+- name: Enable and start gitea-pod service
+  ansible.builtin.systemd:
+    name: gitea-pod
+    enabled: true
+    state: started
+    scope: user
