@@ -135,7 +135,10 @@ Instead of maintaining static playbooks, SOLTI **generates them dynamically** ba
     - role: elasticsearch
 ```
 
-**Note**: `manage-svc.sh` automatically includes the `-K` flag to prompt for sudo password because containers create files with elevated ownership that require privilege escalation to modify or remove.
+**Note**: `manage-svc.sh` automatically includes the `-K` flag to prompt for sudo password. This serves two purposes:
+
+1. **Technical**: Containers create files with elevated ownership requiring privilege escalation to modify or remove
+2. **Workflow**: Enables iterative development by preserving data across deploy/remove cycles - essential for data-centric services like elasticsearch (indices), mattermost (channels), and minio (objects)
 
 ### The Power of `manage-svc.sh`
 

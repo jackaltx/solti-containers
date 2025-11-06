@@ -345,6 +345,52 @@ vim roles/myservice/tasks/main.yml
 ./svc-exec.sh myservice verify
 ```
 
+### Iterative Development with Data Persistence
+
+The `-K` flag combined with data preservation enables rapid "iterate until you get it right" workflow:
+
+```bash
+# Initial deployment
+./manage-svc.sh elasticsearch deploy
+
+# Test and discover issues
+./svc-exec.sh elasticsearch verify
+
+# Remove container (data preserved by default)
+./manage-svc.sh elasticsearch remove
+
+# Modify role: edit tasks, templates, configuration
+vim roles/elasticsearch/tasks/prerequisites.yml
+
+# Redeploy with your changes - data still intact
+./manage-svc.sh elasticsearch deploy
+
+# Your test data, indices, and configurations persist!
+# Repeat this cycle until working correctly
+```
+
+**Key Benefits**:
+- **Data persists across cycles**: Elasticsearch indices, Mattermost channels, database records remain intact
+- **Faster iteration**: No need to recreate test data after each change
+- **True testing**: Work with realistic data throughout development
+
+**Data-Centric Services** (benefit from persistence):
+- elasticsearch (indices, mappings)
+- mattermost (channels, messages, users)
+- minio (buckets, objects)
+- hashivault (secrets, policies)
+
+**Stateless Services** (less critical):
+- redis (just cache)
+- traefik (just proxy configuration)
+
+**When to Reset Data**:
+```bash
+# Set in inventory.yml for full cleanup
+elasticsearch_delete_data: true
+./manage-svc.sh elasticsearch remove  # Removes data directories
+```
+
 ### Integration Testing
 
 ```bash
