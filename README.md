@@ -17,7 +17,7 @@ Modern development requires lightweight, ephemeral services that can be quickly 
 ```bash
 # Deploy a complete development stack
 ./manage-svc.sh redis prepare && ./manage-svc.sh redis deploy
-./manage-svc.sh elasticsearch prepare && ./manage-svc.sh elasticsearch deploy  
+./manage-svc.sh elasticsearch prepare && ./manage-svc.sh elasticsearch deploy
 ./manage-svc.sh mattermost prepare && ./manage-svc.sh mattermost deploy
 
 # Verify all services
@@ -30,6 +30,8 @@ Modern development requires lightweight, ephemeral services that can be quickly 
 ./manage-svc.sh elasticsearch remove
 ./manage-svc.sh mattermost remove
 ```
+
+> **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
 
 ## 📋 Service Catalog
 
@@ -140,11 +142,13 @@ graph TD
 ./manage-svc.sh <service> prepare
 
 # Deploy and start service
-./manage-svc.sh <service> deploy  
+./manage-svc.sh <service> deploy
 
 # Remove service (preserves data by default)
 ./manage-svc.sh <service> remove
 ```
+
+**Note**: Requires sudo password - containers create files with elevated ownership requiring privilege escalation for prepare/deploy/remove operations.
 
 #### Service Operations (`svc-exec.sh`)
 
@@ -339,6 +343,52 @@ vim roles/myservice/tasks/main.yml
 # Redeploy with changes
 ./manage-svc.sh myservice deploy
 ./svc-exec.sh myservice verify
+```
+
+### Iterative Development with Data Persistence
+
+The `-K` flag combined with data preservation enables rapid "iterate until you get it right" workflow:
+
+```bash
+# Initial deployment
+./manage-svc.sh elasticsearch deploy
+
+# Test and discover issues
+./svc-exec.sh elasticsearch verify
+
+# Remove container (data preserved by default)
+./manage-svc.sh elasticsearch remove
+
+# Modify role: edit tasks, templates, configuration
+vim roles/elasticsearch/tasks/prerequisites.yml
+
+# Redeploy with your changes - data still intact
+./manage-svc.sh elasticsearch deploy
+
+# Your test data, indices, and configurations persist!
+# Repeat this cycle until working correctly
+```
+
+**Key Benefits**:
+- **Data persists across cycles**: Elasticsearch indices, Mattermost channels, database records remain intact
+- **Faster iteration**: No need to recreate test data after each change
+- **True testing**: Work with realistic data throughout development
+
+**Data-Centric Services** (benefit from persistence):
+- elasticsearch (indices, mappings)
+- mattermost (channels, messages, users)
+- minio (buckets, objects)
+- hashivault (secrets, policies)
+
+**Stateless Services** (less critical):
+- redis (just cache)
+- traefik (just proxy configuration)
+
+**When to Reset Data**:
+```bash
+# Set in inventory.yml for full cleanup
+elasticsearch_delete_data: true
+./manage-svc.sh elasticsearch remove  # Removes data directories
 ```
 
 ### Integration Testing

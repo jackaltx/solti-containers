@@ -29,6 +29,8 @@ export MM_DB_PASSWORD="your_secure_db_password"
 ./manage-svc.sh mattermost remove
 ```
 
+> **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
+
 ## Features
 
 - **Private Communication**: Self-hosted team messaging platform

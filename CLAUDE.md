@@ -17,6 +17,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./svc-exec.sh -K <service> <task>   # Use sudo for privileged operations
 ```
 
+**Important**: `manage-svc.sh` automatically prompts for sudo password (`-K` flag is built-in) for two critical reasons:
+
+1. **Technical**: Containers create files with elevated ownership that your user cannot modify
+2. **Workflow**: Enables iterative development - deploy/remove cycles preserve data, allowing you to "iterate until you get it right" without losing test data (elasticsearch indices, mattermost channels, etc.)
+
+Data persists by default. Set `<SERVICE>_DELETE_DATA=true` in inventory.yml for full cleanup.
+
 ### Supported Services
 - redis, elasticsearch, hashivault, mattermost, traefik, minio, grafana, wazuh
 
@@ -54,6 +61,29 @@ yamllint roles/<service>/tasks/main.yml
 ```
 
 ## Architecture Overview
+
+### The Three Architectural Pillars
+
+SOLTI containers is built on three core innovations that work together (detailed in Container-Role-Architecture.md):
+
+1. **Podman Quadlets** - Modern container-to-systemd integration
+   - Single declarative file replaces two-step container creation + systemd generation
+   - Filename becomes service identity (elasticsearch.pod → elasticsearch-pod.service)
+   - Native systemd integration with standard `systemctl` commands
+
+2. **Dynamic Playbook Generation** - Inventory-driven automation
+   - `manage-svc.sh` generates playbooks on-the-fly from templates
+   - Single script handles all services and actions (prepare/deploy/remove)
+   - Eliminates hundreds of lines of duplicate playbook code
+   - Generated playbooks preserved on failure for debugging
+
+3. **Role Inheritance Pattern** - Shared functionality via `_base` role
+   - Service properties define structure, `_base` role uses them generically
+   - Common functionality written once, inherited by all services
+   - 98% reduction in boilerplate code per service
+   - Bugs fixed in `_base` fix all services instantly
+
+**Result**: Consistent patterns, minimal code duplication, rapid service deployment.
 
 ### The SOLTI Pattern
 This collection follows a standardized container deployment pattern with these core components:
@@ -103,7 +133,7 @@ Services use a state-driven approach:
 - Service hosts defined under `<service>_svc` groups
 - Common variables: `<service>_data_dir`, `<service>_password`, `<service>_delete_data`
 - Network: `service_network: "ct-net"`, DNS servers configured
-- Domain: `domain: a0a0.org` (used for SSL/TLS)
+- Domain: `domain: example.com` (used for SSL/TLS, configurable in inventory.yml)
 
 ### Security Model
 - Rootless containers with user privileges

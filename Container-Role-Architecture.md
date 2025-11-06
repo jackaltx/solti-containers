@@ -127,13 +127,18 @@ Instead of maintaining static playbooks, SOLTI **generates them dynamically** ba
 
 # Creates this playbook dynamically:
 ---
-- name: Manage elasticsearch Service  
+- name: Manage elasticsearch Service
   hosts: elasticsearch_svc
   vars:
     elasticsearch_state: present
   roles:
     - role: elasticsearch
 ```
+
+**Note**: `manage-svc.sh` automatically includes the `-K` flag to prompt for sudo password. This serves two purposes:
+
+1. **Technical**: Containers create files with elevated ownership requiring privilege escalation to modify or remove
+2. **Workflow**: Enables iterative development by preserving data across deploy/remove cycles - essential for data-centric services like elasticsearch (indices), mattermost (channels), and minio (objects)
 
 ### The Power of `manage-svc.sh`
 

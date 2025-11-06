@@ -26,6 +26,8 @@ export SERVICE_PASSWORD="your_secure_password"
 ./manage-svc.sh [service] remove
 ```
 
+> **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
+
 ## Features
 
 - **[Primary Feature]**: [Description]
