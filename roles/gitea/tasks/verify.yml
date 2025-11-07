@@ -52,15 +52,16 @@
   ansible.builtin.uri:
     url: "http://127.0.0.1:{{ gitea_port }}/api/v1/version"
     method: GET
-    status_code: 200
+    status_code: [200, 401]
     user: "{{ gitea_admin_user }}"
     password: "{{ gitea_admin_password }}"
     force_basic_auth: true
   register: api_check
   retries: 3
   delay: 5
-  until: api_check.status == 200
+  until: api_check.status in [200, 401]
   when: api_check_unauth.status == 403
+  failed_when: false
 
 - name: Use unauthenticated result if API is open
   ansible.builtin.set_fact:

@@ -80,6 +80,9 @@
     volume: "{{ gitea_volumes }}"
     env_file:
       - "{{ ansible_env.HOME }}/.config/containers/systemd/env/gitea.env"
+    env:
+      USER_UID: "1000"
+      USER_GID: "1000"
     label:
       traefik.enable: "true"
       traefik.http.routers.gitea.rule: "Host(`{{ gitea_domain }}`)"

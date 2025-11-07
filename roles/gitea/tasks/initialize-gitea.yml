@@ -14,9 +14,34 @@
   retries: 30
   delay: 5
 
+- name: Wait for database to be writable
+  ansible.builtin.command:
+    cmd: podman exec --user git gitea-svc test -w /data/gitea/gitea.db
+  register: db_writable
+  until: db_writable.rc == 0
+  retries: 10
+  delay: 3
+  failed_when: false
+  changed_when: false
+
 - name: Show Gitea status
   ansible.builtin.debug:
     msg: "Gitea is accessible at http://127.0.0.1:{{ gitea_port }}"
+
+# ....................................................................................
+# Check if any users exist in the database (not just our specific admin)
+- name: Check if Gitea has any users
+  ansible.builtin.command:
+    cmd: >
+      podman exec --user git gitea-svc
+      gitea admin user list
+  register: user_list
+  failed_when: false
+  changed_when: false
+
+- name: Parse user count
+  ansible.builtin.set_fact:
+    has_users: "{{ user_list.stdout_lines | length > 2 }}"
 
 # ....................................................................................
 # Check if admin user exists by trying to authenticate
@@ -33,6 +58,10 @@
 
 # ....................................................................................
 # Create admin user using gitea CLI (run as git user, not root)
+# Only create if:
+#   1. Users exist (imported database) AND our admin user doesn't authenticate -> skip (imported users exist)
+#   2. No users exist -> create our admin user (fresh install)
+#   3. Our admin user exists -> skip (already initialized)
 - name: Create admin user via gitea CLI
   ansible.builtin.command:
     cmd: >
@@ -44,7 +73,9 @@
       --email "{{ gitea_admin_email }}"
       --must-change-password=false
   register: admin_create
-  when: admin_check.status == 401
+  when:
+    - admin_check.status == 401
+    - not has_users
   failed_when:
     - admin_create.rc != 0
     - "'user already exists' not in admin_create.stderr"
@@ -54,12 +85,19 @@
 - name: Display admin creation result
   ansible.builtin.debug:
     msg: >-
-      {{ 'Admin user created successfully' if admin_create.changed
-      else 'Admin user already exists' }}
-  when: admin_check.status == 401
+      {% if admin_check.status == 200 %}
+      Admin user already exists and authenticated successfully
+      {% elif has_users %}
+      Existing users found (imported database) - skipping admin creation
+      {% elif admin_create.changed %}
+      Admin user created successfully
+      {% else %}
+      Admin user already exists
+      {% endif %}
+  when: admin_check.status == 401 or admin_check.status == 200
 
 # ....................................................................................
-# Verify admin user can authenticate
+# Verify admin user can authenticate (only if we just created it or it already existed)
 - name: Verify admin user authentication
   ansible.builtin.uri:
     url: "http://127.0.0.1:{{ gitea_port }}/api/v1/user"
@@ -71,6 +109,7 @@
   register: auth_verify
   retries: 3
   delay: 2
+  when: not has_users or admin_check.status == 200
 
 - name: Display authenticated user info
   ansible.builtin.debug:
@@ -79,10 +118,24 @@
       - "Username: {{ auth_verify.json.login }}"
       - "Email: {{ auth_verify.json.email }}"
       - "Admin: {{ auth_verify.json.is_admin }}"
+  when: auth_verify is defined and auth_verify.status is defined
 
 # ....................................................................................
-# Display completion message
-- name: Display initialization summary
+# Display completion message - imported database scenario
+- name: Display initialization summary (imported database)
+  ansible.builtin.debug:
+    msg:
+      - "===================================="
+      - "Gitea Initialization Complete"
+      - "===================================="
+      - "Imported database detected with existing users."
+      - "The configured admin user ({{ gitea_admin_user }}) was not created."
+      - "Please log in with your existing admin credentials."
+      - "===================================="
+  when: has_users and admin_check.status == 401
+
+# Display completion message - fresh install scenario
+- name: Display initialization summary (fresh install)
   ansible.builtin.debug:
     msg:
       - "===================================="
@@ -96,3 +149,4 @@
       - "  Username: {{ gitea_admin_user }}"
       - "  Password: (the password you configured)"
       - "===================================="
+  when: not has_users or admin_check.status == 200
