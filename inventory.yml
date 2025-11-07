@@ -308,3 +308,45 @@ all:
             grafana_data_dir: "{{ ansible_env.HOME }}/grafana-data"
             grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD', default='') }}"
             grafana_delete_data: false
+
+        # ========================================
+        gitea_svc:
+          hosts:
+            firefly:
+
+          # .......................................
+          # gitea_svc only vars
+          vars:
+            debug_level: warn
+            gitea_data_dir: "{{ ansible_env.HOME }}/gitea-data"
+            gitea_admin_password: "{{ lookup('env', 'GITEA_ADMIN_PASSWORD', default='') }}"
+            gitea_delete_data: false
+            gitea_port: 3001
+            gitea_ssh_port: 2222
+            gitea_image: "docker.io/gitea/gitea:latest"
+            gitea_app_name: "Gitea"
+            gitea_domain: "gitea.{{ domain }}"
+            gitea_root_url: "https://gitea.{{ domain }}:8080"
+            gitea_disable_registration: false
+            gitea_require_signin: true
+            gitea_enable_ssh: true
+            gitea_enable_actions: true
+            gitea_enable_lfs: true
+            gitea_enable_tls: true
+
+            service_properties:
+              root: "gitea"
+              name: "gitea-pod"
+              pod_key: "gitea.pod"
+              quadlets:
+                - "gitea-svc.container"
+                - "gitea.pod"
+              data_dir: "{{ gitea_data_dir }}"
+              config_dir: "config"
+              dirs:
+                - { path: "", mode: "0755" }
+                - { path: "config", mode: "0775" }
+                - { path: "data", mode: "0775" }
+                - { path: "data/gitea", mode: "0775" }
+                - { path: "data/git", mode: "0775" }
+                - { path: "logs", mode: "0775" }

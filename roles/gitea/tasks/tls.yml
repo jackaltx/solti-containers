@@ -1,0 +1,7 @@
+---
+# TLS setup for gitea
+# Placeholder for certificate management
+
+- name: TLS configuration
+  ansible.builtin.debug:
+    msg: "TLS is handled by Traefik proxy"

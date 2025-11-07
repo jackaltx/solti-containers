@@ -30,6 +30,7 @@ SUPPORTED_SERVICES=(
     "minio"
     "wazuh"
     "grafana"
+    "gitea"
 )
 
 # Default entry point if not specified

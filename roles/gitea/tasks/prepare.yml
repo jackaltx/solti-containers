@@ -1,0 +1,8 @@
+---
+# Preparation tasks for gitea
+# Includes base preparation
+
+- name: Include base preparation tasks
+  ansible.builtin.include_role:
+    name: _base
+    tasks_from: prepare
