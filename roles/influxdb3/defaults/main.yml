@@ -6,7 +6,7 @@ influxdb3_state: present
 influxdb3_force_reload: false
 
 # Container settings
-influxdb3_image: "docker.io/influxdata/influxdb:3-core"
+influxdb3_image: "docker.io/library/influxdb:3-core"
 
 # Port settings (configurable to avoid conflicts)
 influxdb3_port: 8181                    # Host port (localhost binding)
