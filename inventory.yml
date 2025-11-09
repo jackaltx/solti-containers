@@ -350,3 +350,58 @@ all:
                 - { path: "data/gitea", mode: "0775" }
                 - { path: "data/git", mode: "0775" }
                 - { path: "logs", mode: "0775" }
+
+        # ========================================
+        influxdb3_svc:
+          hosts:
+            firefly:
+
+          # .......................................
+          # influxdb3_svc only vars
+          vars:
+            debug_level: warn
+            influxdb3_data_dir: "{{ ansible_env.HOME }}/influxdb3-data"
+            influxdb3_port: 8181
+            influxdb3_delete_data: false
+
+            # Secrets directory
+            influxdb3_secrets_dir: "{{ ansible_env.HOME }}/.secrets/influxdb3-secrets"
+
+            # Admin token (loaded from environment or file)
+            influxdb3_admin_token: "{{ lookup('env', 'INFLUXDB3_AUTH_TOKEN', default='') }}"
+
+            # Databases to create during configure
+            influxdb3_databases:
+              - name: "telegraf"
+              - name: "metrics"
+              - name: "logs"
+              - name: "traces"
+
+            # Resource tokens to create during configure
+            influxdb3_tokens:
+              - description: "telegraf-writer"
+                permissions: "database:telegraf:write"
+              - description: "metrics-reader"
+                permissions: "database:metrics:read"
+              - description: "grafana-reader"
+                permissions: "database:*:read"
+              - description: "logs-writer"
+                permissions: "database:logs:write,read"
+
+            # Traefik integration
+            influxdb3_enable_traefik: true
+
+            service_properties:
+              root: "influxdb3"
+              name: "influxdb3-pod"
+              pod_key: "influxdb3.pod"
+              quadlets:
+                - "influxdb3-svc.container"
+                - "influxdb3.pod"
+              data_dir: "{{ influxdb3_data_dir }}"
+              config_dir: "config"
+              dirs:
+                - { path: "", mode: "0750" }
+                - { path: "config", mode: "0755" }
+                - { path: "data", mode: "0750" }
+                - { path: "plugins", mode: "0755" }

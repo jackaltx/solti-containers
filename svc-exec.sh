@@ -31,6 +31,7 @@ SUPPORTED_SERVICES=(
     "wazuh"
     "grafana"
     "gitea"
+    "influxdb3"
 )
 
 # Default entry point if not specified

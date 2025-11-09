@@ -1,0 +1,7 @@
+---
+# TLS setup for influxdb3
+# SSL termination is handled by Traefik proxy
+
+- name: TLS configuration
+  ansible.builtin.debug:
+    msg: "TLS is handled by Traefik proxy - container uses plain HTTP"

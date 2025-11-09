@@ -1,0 +1,108 @@
+---
+#
+# Configure InfluxDB3 by creating databases and resource tokens
+# This is run via: ./svc-exec.sh influxdb3 configure
+#
+
+# ..............................................
+# Load admin token
+- name: Check if admin token exists
+  ansible.builtin.stat:
+    path: "{{ influxdb3_secrets_dir }}/admin-token.json"
+  register: admin_token_file
+
+- name: Fail if admin token doesn't exist
+  ansible.builtin.fail:
+    msg: "Admin token not found. Please run deploy first to initialize."
+  when: not admin_token_file.stat.exists
+
+- name: Load admin token
+  ansible.builtin.slurp:
+    src: "{{ influxdb3_secrets_dir }}/admin-token.json"
+  register: encoded_token
+
+- name: Parse admin token
+  ansible.builtin.set_fact:
+    admin_token: "{{ (encoded_token.content | b64decode | from_json).token }}"
+  no_log: true
+
+# ..............................................
+# List existing databases
+- name: List existing databases
+  ansible.builtin.command:
+    cmd: >
+      podman exec
+      -e INFLUXDB3_AUTH_TOKEN={{ admin_token }}
+      influxdb3-svc influxdb3 query "SHOW DATABASES"
+  register: db_list
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+# ..............................................
+# Create databases
+- name: Create databases
+  ansible.builtin.command:
+    cmd: >
+      podman exec
+      -e INFLUXDB3_AUTH_TOKEN={{ admin_token }}
+      influxdb3-svc influxdb3 create database {{ item.name }}
+  loop: "{{ influxdb3_databases | default([]) }}"
+  when: item.name not in (db_list.stdout | default(''))
+  register: db_create
+  changed_when: db_create.rc == 0
+  failed_when:
+    - db_create.rc != 0
+    - "'already exists' not in db_create.stderr"
+
+# ..............................................
+# Create resource tokens
+- name: Create resource tokens
+  ansible.builtin.command:
+    cmd: >
+      podman exec
+      -e INFLUXDB3_AUTH_TOKEN={{ admin_token }}
+      influxdb3-svc influxdb3 create token
+      --description {{ item.description }}
+      --permission {{ item.permissions }}
+      --json
+  loop: "{{ influxdb3_tokens | default([]) }}"
+  register: token_results
+  no_log: true
+  changed_when: token_results.rc == 0
+  failed_when:
+    - token_results.rc != 0
+    - "'already exists' not in token_results.stderr"
+
+# ..............................................
+# Save tokens locally
+- name: Save tokens to local file
+  ansible.builtin.copy:
+    content: |
+      # InfluxDB 3 Core Tokens
+      # Generated: {{ ansible_date_time.iso8601 }}
+      # Host: {{ ansible_hostname }}
+
+      {% for result in token_results.results %}
+      {% if result.stdout is defined and result.stdout != '' %}
+      {% set token_data = result.stdout | from_json %}
+      - description: {{ token_data.description }}
+        token: {{ token_data.token }}
+        permissions: {{ influxdb3_tokens[loop.index0].permissions }}
+      {% endif %}
+      {% endfor %}
+    dest: "./data/influxdb3-tokens-{{ ansible_hostname }}.yml"
+    mode: "0600"
+  delegate_to: localhost
+  when: token_results.results | length > 0
+
+# ..............................................
+- name: Display configuration summary
+  ansible.builtin.debug:
+    msg:
+      - "=============================================================="
+      - "InfluxDB3 configuration complete!"
+      - "Databases created: {{ influxdb3_databases | default([]) | length }}"
+      - "Tokens created: {{ influxdb3_tokens | default([]) | length }}"
+      - "Tokens saved to: ./data/influxdb3-tokens-{{ ansible_hostname }}.yml"
+      - "=============================================================="
