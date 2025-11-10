@@ -66,11 +66,8 @@
     - name: Include container tasks
       ansible.builtin.include_tasks: quadlet_rootless.yml
 
-    - name: Initialize InfluxDB3
-      ansible.builtin.include_tasks: initialize.yml
-
-    - name: Enable authentication
-      ansible.builtin.include_tasks: enable_auth.yml
+    - name: Bootstrap admin token
+      ansible.builtin.include_tasks: bootstrap_token.yml
 
     - name: Verify deployment
       ansible.builtin.include_tasks: verify.yml

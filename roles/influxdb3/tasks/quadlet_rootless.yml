@@ -33,7 +33,7 @@
     volume:
       - "{{ influxdb3_data_dir }}/data:/var/lib/influxdb3/data:z,U"
       - "{{ influxdb3_data_dir }}/plugins:/var/lib/influxdb3/plugins:z,U"
-      - "{{ influxdb3_secrets_dir }}:/var/lib/influxdb3/secrets:z"
+      - "{{ influxdb3_secrets_dir }}:/var/lib/influxdb3/secrets:z,U"
     env:
       INFLUXDB3_NODE_IDENTIFIER_PREFIX: "{{ influxdb3_node_id }}"
     command:
@@ -41,7 +41,6 @@
       - "--http-bind=0.0.0.0:{{ influxdb3_internal_port }}"
       - "--object-store={{ influxdb3_object_store }}"
       - "--data-dir=/var/lib/influxdb3/data"
-      - "--without-auth"
     quadlet_options:
       # Traefik labels (if enabled)
       - "Label=traefik.enable={{ influxdb3_enable_traefik | lower }}"

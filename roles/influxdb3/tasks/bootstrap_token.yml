@@ -1,0 +1,66 @@
+---
+#
+# Bootstrap InfluxDB3 admin token
+# This task generates the admin token if it doesn't exist
+#
+
+# ....................................................................................
+- name: Check if admin token file exists in container
+  ansible.builtin.command:
+    cmd: podman exec influxdb3-svc test -f /var/lib/influxdb3/secrets/admin-token
+  register: token_exists
+  failed_when: false
+  changed_when: false
+
+# ....................................................................................
+- name: Bootstrap admin token
+  when: token_exists.rc != 0
+  block:
+    - name: Generate admin token
+      ansible.builtin.command:
+        cmd: >
+          podman exec influxdb3-svc
+          influxdb3 create token
+          --admin-token-file /var/lib/influxdb3/secrets/admin-token
+      register: token_created
+      changed_when: true
+
+    - name: Display token creation result
+      ansible.builtin.debug:
+        msg: "Admin token generated and saved to /var/lib/influxdb3/secrets/admin-token"
+        verbosity: 0
+
+    - name: Restart InfluxDB3 to load new token
+      ansible.builtin.systemd:
+        name: "{{ service_properties.name }}"
+        state: restarted
+        scope: user
+
+    - name: Wait for InfluxDB3 to be ready after token creation
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ influxdb3_port }}"
+        timeout: 120
+
+# ....................................................................................
+- name: Retrieve admin token for reference
+  ansible.builtin.command:
+    cmd: podman exec influxdb3-svc cat /var/lib/influxdb3/secrets/admin-token
+  register: admin_token_content
+  changed_when: false
+
+# ....................................................................................
+- name: Save token to config directory for external reference
+  ansible.builtin.copy:
+    content: "{{ admin_token_content.stdout }}"
+    dest: "{{ influxdb3_data_dir }}/config/admin-token.txt"
+    mode: '0600'
+
+# ....................................................................................
+- name: Display token location
+  ansible.builtin.debug:
+    msg: |
+      Admin token saved to:
+      - Container: /var/lib/influxdb3/secrets/admin-token (persisted)
+      - Host: {{ influxdb3_data_dir }}/config/admin-token.txt (reference copy)
+    verbosity: 0
