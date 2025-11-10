@@ -21,10 +21,13 @@
       changed_when: true
 
     - name: Save token to secrets directory (volume-mounted)
+      become: true
       ansible.builtin.copy:
         content: "{{ token_output.stdout }}"
         dest: "{{ influxdb3_secrets_dir }}/admin-token"
         mode: '0600'
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
 
     - name: Save token to config directory for reference
       ansible.builtin.copy:
