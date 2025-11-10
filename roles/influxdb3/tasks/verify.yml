@@ -46,18 +46,18 @@
   block:
     - name: Check if admin token file exists
       ansible.builtin.stat:
-        path: "{{ influxdb3_secrets_dir }}/admin-token.json"
+        path: "{{ influxdb3_data_dir }}/config/admin-token.txt"
       register: token_file_check
 
     - name: Read admin token file
       ansible.builtin.slurp:
-        src: "{{ influxdb3_secrets_dir }}/admin-token.json"
+        src: "{{ influxdb3_data_dir }}/config/admin-token.txt"
       register: encoded_token
       when: token_file_check.stat.exists
 
-    - name: Parse admin token
+    - name: Set admin token
       ansible.builtin.set_fact:
-        verify_token: "{{ (encoded_token.content | b64decode | from_json).token }}"
+        verify_token: "{{ encoded_token.content | b64decode | trim }}"
       # no_log: true
       when: token_file_check.stat.exists
 
