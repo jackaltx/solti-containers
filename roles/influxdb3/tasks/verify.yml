@@ -6,7 +6,7 @@
 
 # ...................................................................................
 - name: Verify InfluxDB3 pod is running
-  command: podman pod ps --format "{{.Name}}"
+  command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
   register: pod_status
   failed_when: "'influxdb3' not in pod_status.stdout"
   changed_when: false
@@ -17,7 +17,7 @@
 
 # ...................................................................................
 - name: Verify InfluxDB3 containers are running
-  command: podman ps --format "{{.Names}}" --filter "pod=influxdb3"
+  command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=influxdb3"
   register: container_status
   changed_when: false
 
@@ -58,7 +58,7 @@
     - name: Parse admin token
       ansible.builtin.set_fact:
         verify_token: "{{ (encoded_token.content | b64decode | from_json).token }}"
-      no_log: true
+      # no_log: true
       when: token_file_check.stat.exists
 
     - name: Fail if no token available
@@ -78,7 +78,7 @@
   failed_when:
     - test_db.rc != 0
     - "'already exists' not in test_db.stderr"
-  no_log: true
+  # no_log: true
 
 # ...................................................................................
 # Write test data
@@ -90,7 +90,7 @@
     --data-binary "test_measurement,host={{ ansible_hostname }} value=123,status=\"ok\" {{ ansible_date_time.epoch }}000000000"
   register: write_result
   changed_when: false
-  no_log: true
+  # no_log: true
 
 - name: Show write result
   debug:
@@ -106,7 +106,7 @@
     -H "Authorization: Bearer {{ verify_token }}"
   register: query_result
   changed_when: false
-  no_log: true
+  # no_log: true
 
 - name: Show query result
   debug:
@@ -121,7 +121,7 @@
     influxdb3-svc influxdb3 delete database test-ansible
   changed_when: false
   failed_when: false
-  no_log: true
+  # no_log: true
 
 # ...................................................................................
 - name: Display verification summary

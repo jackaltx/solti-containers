@@ -1,29 +1,9 @@
 ---
 #
-# Deploy InfluxDB3 using Podman Quadlets
+# Enable authentication by updating container command and restarting
 #
 
-# ....................................................................................
-- name: Create InfluxDB3 pod Quadlet
-  containers.podman.podman_pod:
-    name: influxdb3
-    state: quadlet
-    dns: "{{ service_dns_servers }}"
-    dns_search: "{{ service_dns_search }}"
-    network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
-    ports:
-      - "127.0.0.1:{{ influxdb3_port }}:{{ influxdb3_internal_port }}"
-    quadlet_options:
-      - |
-        [Service]
-        Restart=always
-      - |
-        [Install]
-        WantedBy=default.target
-
-# ....................................................................................
-- name: Create InfluxDB3 server container Quadlet
+- name: Update container Quadlet to enable auth
   containers.podman.podman_container:
     name: influxdb3-svc
     pod: influxdb3.pod
@@ -41,7 +21,7 @@
       - "--http-bind=0.0.0.0:{{ influxdb3_internal_port }}"
       - "--object-store={{ influxdb3_object_store }}"
       - "--data-dir=/var/lib/influxdb3/data"
-      - "--without-auth"
+      - "--admin-token-file=/var/lib/influxdb3/secrets/admin-token.json"
     quadlet_options:
       # Traefik labels (if enabled)
       - "Label=traefik.enable={{ influxdb3_enable_traefik | lower }}"
@@ -62,28 +42,28 @@
         [Install]
         WantedBy=default.target
 
-# ....................................................................................
-- name: Wait a moment for quadlet to be written
-  ansible.builtin.wait_for:
-    timeout: 10
-
-# ....................................................................................
-- name: Reload systemd user daemon
+- name: Reload systemd after Quadlet update
   ansible.builtin.systemd:
     daemon_reload: yes
     scope: user
 
-# ....................................................................................
-- name: Enable and start rootless pod with systemd
+- name: Restart pod with auth enabled
   ansible.builtin.systemd:
     name: "{{ service_properties.name }}"
-    state: started
-    enabled: yes
+    state: restarted
     scope: user
 
-# ....................................................................................
-- name: Wait for InfluxDB3 to be ready
+- name: Wait for InfluxDB3 to be ready with auth
   ansible.builtin.wait_for:
     host: 127.0.0.1
     port: "{{ influxdb3_port }}"
-    timeout: 120
+    timeout: 60
+
+- name: Display auth status
+  ansible.builtin.debug:
+    msg:
+      - "=============================================================="
+      - "InfluxDB3 authentication enabled!"
+      - "Admin token file: /var/lib/influxdb3/secrets/admin-token.json (in container)"
+      - "Host token file: {{ influxdb3_secrets_dir }}/admin-token.json"
+      - "=============================================================="

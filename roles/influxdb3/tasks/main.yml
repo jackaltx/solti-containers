@@ -46,7 +46,6 @@
   when: influxdb3_state == 'present'
   block:
     - name: Verify required directories exist
-      become: true
       ansible.builtin.stat:
         path: "{{ influxdb3_data_dir }}/{{ service_properties.config_dir }}"
       register: config_dir_check
@@ -69,6 +68,9 @@
 
     - name: Initialize InfluxDB3
       ansible.builtin.include_tasks: initialize.yml
+
+    - name: Enable authentication
+      ansible.builtin.include_tasks: enable_auth.yml
 
     - name: Verify deployment
       ansible.builtin.include_tasks: verify.yml

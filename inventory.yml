@@ -362,10 +362,10 @@ all:
             debug_level: warn
             influxdb3_data_dir: "{{ ansible_env.HOME }}/influxdb3-data"
             influxdb3_port: 8181
-            influxdb3_delete_data: false
+            influxdb3_delete_data: true
 
-            # Secrets directory
-            influxdb3_secrets_dir: "{{ ansible_env.HOME }}/.secrets/influxdb3-secrets"
+            # Secrets directory (under data dir for proper permissions)
+            influxdb3_secrets_dir: "{{ ansible_env.HOME }}/influxdb3-data/secrets"
 
             # Admin token (loaded from environment or file)
             influxdb3_admin_token: "{{ lookup('env', 'INFLUXDB3_AUTH_TOKEN', default='') }}"

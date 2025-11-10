@@ -14,7 +14,7 @@ influxdb3_internal_port: 8181           # Container port (can override if needed
 
 # Directory settings
 influxdb3_data_dir: "{{ ansible_user_dir }}/influxdb3-data"
-influxdb3_secrets_dir: "{{ ansible_user_dir }}/.secrets/influxdb3-secrets"
+influxdb3_secrets_dir: "{{ ansible_user_dir }}/influxdb3-data/secrets"
 
 # Server settings
 influxdb3_node_id: "{{ inventory_hostname }}-influxdb3"
@@ -53,3 +53,4 @@ service_properties:
     - { path: "config", mode: "0755" }
     - { path: "data", mode: "0750" }
     - { path: "plugins", mode: "0755" }
+    - { path: "secrets", mode: "0755" }

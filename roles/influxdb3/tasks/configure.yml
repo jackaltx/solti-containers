@@ -24,7 +24,7 @@
 - name: Parse admin token
   ansible.builtin.set_fact:
     admin_token: "{{ (encoded_token.content | b64decode | from_json).token }}"
-  no_log: true
+  # no_log: true
 
 # ..............................................
 # List existing databases
@@ -37,7 +37,7 @@
   register: db_list
   changed_when: false
   failed_when: false
-  no_log: true
+  # no_log: true
 
 # ..............................................
 # Create databases
@@ -65,10 +65,10 @@
       influxdb3-svc influxdb3 create token
       --description {{ item.description }}
       --permission {{ item.permissions }}
-      --json
+      --format json
   loop: "{{ influxdb3_tokens | default([]) }}"
   register: token_results
-  no_log: true
+  # no_log: true
   changed_when: token_results.rc == 0
   failed_when:
     - token_results.rc != 0
