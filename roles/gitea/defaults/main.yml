@@ -9,7 +9,6 @@ gitea_ssh_port: 2222
 
 # Data directories
 gitea_data_dir: "{{ ansible_env.HOME }}/gitea-data"
-gitea_delete_data: false
 
 # Admin credentials
 gitea_admin_user: "gitea_admin"
@@ -43,6 +42,7 @@ service_properties:
     - "gitea.pod"
   data_dir: "{{ gitea_data_dir }}"
   config_dir: "config"
+  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
   dirs:
     - { path: "", mode: "0755" }
     - { path: "config", mode: "0775" }

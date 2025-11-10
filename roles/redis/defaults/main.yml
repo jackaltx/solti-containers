@@ -30,8 +30,6 @@ redis_tls_auth_clients: "no"
 # SMELL false will mess up _base/tasks/cleanup.yml
 redis_enable_gui: true
 
-# Cleanup settings
-redis_delete_data: false
 
 # =======================================================================
 service_network: "example-net"
@@ -51,6 +49,7 @@ service_properties:
     - "redis.pod"
   data_dir: "{{ redis_data_dir }}"
   config_dir: "config"
+  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
   image: "{{ redis_image }}"
   dirs:
     - { path: "", mode: "0750" }

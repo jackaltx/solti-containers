@@ -74,4 +74,3 @@
         file: "../_base/tasks/cleanup.yml"
       vars:
         service_state: absent
-        service_delete_data: "{{ traefik_delete_data }}"

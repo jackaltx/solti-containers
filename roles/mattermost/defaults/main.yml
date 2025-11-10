@@ -37,8 +37,6 @@ mattermost_site_url: "http://localhost:{{ mattermost_port }}"
 mattermost_site_name: "Mattermost"
 mattermost_log_level: "WARN"
 
-# Cleanup settings
-mattermost_delete_data: false
 
 # =======================================================================
 service_network: "example-net"
@@ -58,6 +56,7 @@ service_properties:
     - "mattermost.pod"
   data_dir: "{{ mattermost_data_dir }}" # override in playbook
   config_dir: "config"
+  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
   dirs:
     - { path: "", mode: "0755" }
     - { path: "config", mode: "0775" }

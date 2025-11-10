@@ -23,8 +23,6 @@ influxdb3_object_store: "file"  # file, memory, or s3
 # Admin token (loaded from environment or file)
 influxdb3_admin_token: "{{ lookup('env', 'INFLUXDB3_AUTH_TOKEN', default='') }}"
 
-# Cleanup settings
-influxdb3_delete_data: false
 
 # Traefik integration
 influxdb3_enable_traefik: true
@@ -48,6 +46,7 @@ service_properties:
     - "influxdb3.pod"
   data_dir: "{{ influxdb3_data_dir }}"
   config_dir: "config"
+  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(true) | bool }}"
   dirs:
     - { path: "", mode: "0750" }
     - { path: "config", mode: "0755" }

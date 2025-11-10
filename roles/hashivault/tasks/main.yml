@@ -88,4 +88,3 @@
         file: "../_base/tasks/cleanup.yml"
       vars:
         service_state: absent
-        service_delete_data: "{{ vault_delete_data }}"

@@ -35,8 +35,6 @@ traefik_enable_ssl: true
 traefik_acme_email: "jack@lavnet.net"
 traefik_acme_staging: false
 
-# Cleanup settings
-traefik_delete_data: false
 
 # =======================================================================
 service_network: "example-net"
@@ -55,6 +53,7 @@ service_properties:
     - "traefik.pod"
   data_dir: "{{ traefik_data_dir }}" # override in playbook
   config_dir: "config"
+  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
   dirs:
     - { path: "", mode: "0750" }
     - { path: "config", mode: "0750" }
