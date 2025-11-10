@@ -20,10 +20,19 @@
       register: token_output
       changed_when: true
 
+    - name: Extract token from output
+      ansible.builtin.set_fact:
+        admin_token: "{{ token_output.stdout | regex_search('apiv3_[A-Za-z0-9_-]+') }}"
+
+    - name: Verify token was extracted
+      ansible.builtin.fail:
+        msg: "Failed to extract valid token from output"
+      when: admin_token is not defined or admin_token == "" or not admin_token.startswith('apiv3_')
+
     - name: Save token to secrets directory (volume-mounted)
       become: true
       ansible.builtin.copy:
-        content: "{{ token_output.stdout }}"
+        content: "{{ admin_token }}"
         dest: "{{ influxdb3_secrets_dir }}/admin-token"
         mode: '0600'
         owner: "{{ ansible_user_id }}"
@@ -31,13 +40,22 @@
 
     - name: Save token to config directory for reference
       ansible.builtin.copy:
-        content: "{{ token_output.stdout }}"
+        content: "{{ admin_token }}"
         dest: "{{ influxdb3_data_dir }}/config/admin-token.txt"
         mode: '0600'
 
+    - name: Verify token is valid (query token list)
+      ansible.builtin.command:
+        cmd: >
+          podman exec influxdb3-svc
+          influxdb3 show tokens --format json --token {{ admin_token }}
+      register: token_verify
+      changed_when: false
+      failed_when: token_verify.rc != 0
+
     - name: Display token creation result
       ansible.builtin.debug:
-        msg: "Admin token generated and saved"
+        msg: "Admin token generated, saved, and verified"
         verbosity: 0
 
     - name: Restart InfluxDB3 to load new token
