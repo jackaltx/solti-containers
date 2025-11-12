@@ -2,11 +2,11 @@
 #
 # manage-svc - Manage services using dynamically generated Ansible playbooks
 #
-# Usage: manage-svc <service> <action>
+# Usage: manage-svc [-h HOST] <service> <action>
 #
 # Example:
 #   manage-svc elasticsearch prepare
-#   manage-svc hashivault deploy
+#   manage-svc -h firefly hashivault deploy
 #   manage-svc redis remove
 
 # Exit on error
@@ -16,6 +16,7 @@ set -e
 ANSIBLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INVENTORY="${ANSIBLE_DIR}/inventory.yml"
 TEMP_DIR="${ANSIBLE_DIR}/tmp"
+HOST=""
 
 # Ensure temp directory exists
 mkdir -p "${TEMP_DIR}"
@@ -49,7 +50,11 @@ STATE_MAP["remove"]="absent"
 
 # Display usage information
 usage() {
-    echo "Usage: $(basename $0) <service> <action>"
+    echo "Usage: $(basename $0) [-h HOST] <service> <action> [options]"
+    echo ""
+    echo "Options:"
+    echo "  -h HOST          - Target specific host from inventory (default: uses all hosts in service group)"
+    echo "  -e VAR=VALUE     - Set extra variables (can be used multiple times)"
     echo ""
     echo "Services:"
     for svc in "${SUPPORTED_SERVICES[@]}"; do
@@ -63,8 +68,10 @@ usage() {
     echo ""
     echo "Examples:"
     echo "  $(basename $0) elasticsearch prepare"
-    echo "  $(basename $0) hashivault deploy"
+    echo "  $(basename $0) -h firefly hashivault deploy"
     echo "  $(basename $0) redis remove"
+    echo "  $(basename $0) mattermost deploy -e mattermost_version=8.1.0"
+    echo "  $(basename $0) -h firefly elasticsearch prepare -e elasticsearch_memory=2g"
     exit 1
 }
 
@@ -90,29 +97,60 @@ is_action_supported() {
     return 1
 }
 
+
 # Generate playbook from template
 generate_playbook() {
     local service="$1"
     local action="$2"
     local state="${STATE_MAP[$action]}"
-    
+    local host_param=""
+
+    # Add host specification if provided
+    if [[ -n "$HOST" ]]; then
+        host_param="hosts: $HOST"
+    else
+        host_param="hosts: ${service}_svc"
+    fi
+
     # Create playbook directly with the proper substitutions
     cat > "$TEMP_PLAYBOOK" << EOF
 ---
+# Dynamically generated playbook
 # Works for: prepare, deploy, remove
 - name: Manage ${service} Service
-  hosts: ${service}_svc
+  $host_param
+  become: true
   vars:
     ${service}_state: ${state}
   roles:
     - role: ${service}
 EOF
-    
+
     echo "Generated playbook for ${service} ${action}"
 }
 
+# Parse command line arguments
+while getopts "h:" opt; do
+    case ${opt} in
+        h)
+            HOST=$OPTARG
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            usage
+            ;;
+        :)
+            echo "Option -$OPTARG requires an argument." >&2
+            usage
+            ;;
+    esac
+done
+
+# Shift past the options
+shift $((OPTIND - 1))
+
 # Validate arguments
-if [[ $# -ne 2 ]]; then
+if [[ $# -lt 2 ]]; then
     echo "Error: Incorrect number of arguments"
     usage
 fi
@@ -120,6 +158,10 @@ fi
 # Extract arguments
 SERVICE="$1"
 ACTION="$2"
+shift 2
+
+# Remaining arguments are extra vars
+EXTRA_ARGS=("$@")
 
 # Validate service
 if ! is_service_supported "$SERVICE"; then
@@ -143,7 +185,15 @@ generate_playbook "$SERVICE" "$ACTION"
 # Display execution info
 echo "Managing service: $SERVICE"
 echo "Action: $ACTION"
+if [[ -n "$HOST" ]]; then
+    echo "Target host: $HOST"
+else
+    echo "Target hosts: ${SERVICE}_svc (from inventory)"
+fi
 echo "Using generated playbook: $TEMP_PLAYBOOK"
+if [[ ${#EXTRA_ARGS[@]} -gt 0 ]]; then
+    echo "Extra arguments: ${EXTRA_ARGS[*]}"
+fi
 echo ""
 
 # Display playbook content
@@ -153,9 +203,16 @@ cat "${TEMP_PLAYBOOK}"
 echo "----------------"
 echo ""
 
+# Ask for confirmation
+read -p "Execute this playbook? [Y/n]: " confirm
+if [[ "$confirm" =~ ^[Nn] ]]; then
+    echo "Operation cancelled"
+    exit 0
+fi
+
 # Always use sudo for all states
-echo "Executing with sudo privileges: ansible-playbook -K -i ${INVENTORY} ${TEMP_PLAYBOOK}"
-ansible-playbook -K -i "${INVENTORY}" "${TEMP_PLAYBOOK}"
+echo "Executing with sudo privileges: ansible-playbook -K -i ${INVENTORY} ${TEMP_PLAYBOOK} ${EXTRA_ARGS[*]}"
+ansible-playbook -K -i "${INVENTORY}" "${TEMP_PLAYBOOK}" "${EXTRA_ARGS[@]}"
 
 # Check execution status
 EXIT_CODE=$?
