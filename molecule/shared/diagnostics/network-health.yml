@@ -1,0 +1,30 @@
+---
+- name: Check network health
+  block:
+    - name: Container Diagnostics -> Check network interfaces
+      command: ip addr
+      register: network_info
+      changed_when: false
+
+    - name: Container Diagnostics -> Check listening ports
+      command: ss -tulpn
+      register: port_info
+      changed_when: false
+
+    - debug:
+        var: container_service_ports
+
+    - name: Container Diagnostics -> Check service port bindings
+      command: "ss -lptn sport = :{{ item }}"
+      register: service_ports
+      loop: "{{ container_service_ports | default([]) }}"
+      when: container_service_ports is defined and container_service_ports | length > 0
+      changed_when: false
+      failed_when: false
+
+    - name: Container Diagnostics -> Set network health facts
+      set_fact:
+        network_health:
+          interfaces: "{{ network_info.stdout_lines }}"
+          listening_ports: "{{ port_info.stdout_lines }}"
+          service_ports: "{{ service_ports.results | map(attribute='stdout_lines') | list }}"

@@ -1,0 +1,36 @@
+---
+- name: Check service health
+  block:
+    - name: Gather service facts
+      service_facts:
+
+    - name: Check service logs
+      command: "journalctl -u {{ item }} --no-pager -n 50"
+      register: service_logs
+      loop: "{{ monitored_services | default([]) }}"
+      when: monitored_services is defined and monitored_services | length > 0
+      changed_when: false
+      failed_when: false
+
+    - name: Check resource usage
+      command: "ps aux | grep {{ item }} | grep -v grep"
+      register: service_processes
+      loop: "{{ monitored_services | default([]) }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Set service health facts
+      set_fact:
+        service_health: "{{ {} }}"
+
+    - name: Compile service status
+      set_fact:
+        service_health: "{{ service_health | combine({
+          item: {
+          'state': ansible_facts.services[item + '.service'].state | default('not found'),
+          'status': ansible_facts.services[item + '.service'].status | default('not found'),
+          'process': service_processes.results | selectattr('item', 'equalto', item) | map(attribute='stdout') | first | default('not running')
+          }
+          })
+          }}"
+      loop: "{{ monitored_services | default([]) }}"

@@ -1,0 +1,132 @@
+---
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'roles/**'
+      - 'molecule/**'
+      - '.github/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'roles/**'
+      - 'molecule/**'
+  workflow_dispatch:
+    inputs:
+      test_role:
+        description: 'Service role to test (redis, elasticsearch, etc.)'
+        required: false
+        default: 'redis'
+
+env:
+  DEBUG_MODE: save
+  MOLECULE_NO_LOG: false
+  PY_COLORS: 1
+  ANSIBLE_FORCE_COLOR: 1
+
+jobs:
+  molecule:
+    name: Molecule Test
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        platform: ['uut-ct0', 'uut-ct1', 'uut-ct2']
+      fail-fast: false
+      max-parallel: 3
+    env:
+      MOLECULE_PLATFORM_NAME: ${{ matrix.platform }}
+      MOLECULE_TEST_ROLE: ${{ github.event.inputs.test_role || 'redis' }}
+      ANSIBLE_LOCALHOST_WARNING: false
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            ansible-core==2.18.1 \
+            molecule==24.12.0 \
+            molecule-plugins==23.5.3 \
+            ansible-lint==24.12.1 \
+            yamllint==1.35.1 \
+            podman \
+            jmespath \
+            molecule[podman]
+
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
+
+      - name: Podman Info
+        run: |
+          podman version
+          podman info
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Pull container images
+        run: |
+          case ${{ matrix.platform }} in
+            uut-ct0)
+              podman pull ghcr.io/jackaltx/testing-containers/debian-ssh:12
+              ;;
+            uut-ct1)
+              podman pull ghcr.io/jackaltx/testing-containers/rocky-ssh:9
+              ;;
+            uut-ct2)
+              podman pull ghcr.io/jackaltx/testing-containers/ubuntu-ssh:24
+              ;;
+          esac
+
+      - name: Create verify_output and log directories
+        run: |
+          mkdir -p log
+          mkdir -p verify_output
+          chmod -R 755 verify_output
+
+      - name: Install Ansible collections
+        run: |
+          ansible-galaxy collection install community.general
+          ansible-galaxy collection install -r requirements.yml || echo "No requirements.yml found"
+
+      - name: Run Molecule tests
+        run: molecule test -s github
+        continue-on-error: ${{ env.DEBUG_MODE != 'none' }}
+        env:
+          IN_GITHUB_CI: true
+          LOG_DURATION: "5m"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: containers-test-results-${{ matrix.platform }}
+          path: verify_output
+          retention-days: 5
+          if-no-files-found: warn
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: containers-logs-${{ matrix.platform }}
+          path: log
+          retention-days: 2
+          if-no-files-found: warn

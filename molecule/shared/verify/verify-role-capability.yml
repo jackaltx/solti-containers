@@ -1,0 +1,26 @@
+---
+# Verify specific ROLE capability by running its verification tasks
+# Input variables required:
+# - capability: The capability being verified (e.g., 'logs', 'metrics')
+# - capability_role: The specific role to verify (e.g., 'loki', 'alloy')
+# - monitoring_capabilities: Dictionary of capability definitions
+
+- name: Debug role verification tasks
+  debug:
+    msg:
+      - "Capability: {{ capability }}"
+      - "Role: {{ capability_role }}"
+      - "Tasks: {{ monitoring_capabilities[capability].verify_role_tasks[capability_role] | default([]) }}"
+    verbosity: 0
+
+- name: Run role verification tasks
+  when:
+    - monitoring_capabilities[capability].verify_role_tasks is defined
+    - monitoring_capabilities[capability].verify_role_tasks[capability_role] is defined
+  include_role:
+    name: "{{ project_root }}/roles/{{ capability_role }}"
+    tasks_from: "{{ verify_task }}"
+  loop: "{{ monitoring_capabilities[capability].verify_role_tasks[capability_role] }}"
+  loop_control:
+    loop_var: verify_task
+    label: "Running {{ verify_task }} for role {{ capability_role }} in {{ capability }} capability"

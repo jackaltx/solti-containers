@@ -1,0 +1,17 @@
+---
+- name: Include container diagnostics
+  ansible.builtin.include_tasks:
+    file: container-health.yml
+
+- name: Include service diagnostics
+  ansible.builtin.include_tasks:
+    file: service-health.yml
+
+- name: Include network diagnostics
+  ansible.builtin.include_tasks:
+    file: network-health.yml
+
+- name: Generate container diagnostics report
+  ansible.builtin.include_tasks:
+    file: report.yml
+  when: generate_report | default(true)

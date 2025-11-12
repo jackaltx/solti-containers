@@ -1,0 +1,90 @@
+---
+- name: Create Podman container
+  hosts: localhost
+  gather_facts: false
+  vars:
+    domain: "{{ lookup('env', 'LAB_DOMAIN') | default('example.com', true) }}"
+    molecule_inventory:
+      all:
+        hosts: {}
+        molecule: {}
+
+  tasks:
+    # .....................................................................
+    - name: Create podman network if not exists
+      containers.podman.podman_network:
+        name: "{{ item.network }}"
+        state: present
+      loop: "{{ molecule_yml.platforms }}"
+      when:
+        - item.network is defined
+        - item.network != ''
+
+    # .....................................................................
+    - name: Create a container
+      containers.podman.podman_container:
+        name: "{{ item.name }}" # from platform in molecule.yml
+        image: "{{ item.image | regex_replace('\\{\\{ domain \\}\\}', domain) }}"
+        state: started
+        network: "{{ item.network }}"
+        log_driver: json-file
+        privileged: "{{ item.privileged | default(true) }}"
+        cgroupns: "{{ item.cgroupns_mode | default('host') }}"
+        volumes: "{{ item.volumes | default([]) }}"
+        command: "{{ item.command | default('/sbin/init') }}"
+        publish: "{{ ['%s:22' | format(item.ssh_port|string)] if item.ssh_port is defined else [] }}"
+        security_opt:
+          - label=disable
+      register: result
+      loop: "{{ molecule_yml.platforms }}"
+
+    # .....................................................................
+    - name: Fail if container is not running
+      when: >
+        item.container.State.ExitCode != 0 or
+        not item.container.State.Running
+      ansible.builtin.include_tasks:
+        file: tasks/create-fail.yml
+      loop: "{{ result.results }}"
+      loop_control:
+        label: "{{ item.container.Name }}"
+
+    # .....................................................................
+    - name: Add container to molecule_inventory
+      vars:
+        inventory_partial_yaml: |
+          all:
+            children:
+              molecule:
+                hosts:
+                  "{{ item.name }}":
+                    ansible_connection: "{{ 'ssh' if item.ssh_port is defined else 'containers.podman.podman' }}"
+                    ansible_host: "{{ '127.0.0.1' if item.ssh_port is defined else item.name }}"
+                    ansible_port: "{{ item.ssh_port | default(omit) }}"
+                    ansible_user: "{{ item.ssh_user | default(omit) }}"
+      ansible.builtin.set_fact:
+        molecule_inventory: >
+          {{ molecule_inventory | combine(inventory_partial_yaml | from_yaml) }}
+      loop: "{{ molecule_yml.platforms }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    # .....................................................................
+    - name: Dump molecule_inventory
+      ansible.builtin.copy:
+        content: |
+          {{ molecule_inventory | to_yaml }}
+        dest: "{{ molecule_ephemeral_directory }}/inventory/molecule_inventory.yml"
+        mode: "0600"
+
+    # .....................................................................
+    - name: Force inventory refresh
+      ansible.builtin.meta: refresh_inventory
+
+    # .....................................................................
+    - name: Fail if molecule group is missing
+      ansible.builtin.assert:
+        that: "'molecule' in groups"
+        fail_msg: |
+          molecule group was not found inside inventory groups: {{ groups }}
+      run_once: true # noqa: run-once[task]

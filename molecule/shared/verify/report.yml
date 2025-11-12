@@ -1,0 +1,38 @@
+---
+- name: Display all_verify_results keys
+  debug:
+    msg: "Available result keys: {{ all_verify_results.keys() | list }}"
+    verbosity: 0
+
+- name: Create consolidated report
+  set_fact:
+    final_report: |
+      === Monitoring Stack Test Report ===
+      Timestamp: {{ ansible_date_time.iso8601 }}
+
+      Pre-verify Diagnostics:
+      {{ all_verify_results.preverify }}
+
+      {% for capability in monitoring_capabilities.keys() %}
+
+
+      ============================================================
+      ===
+      === {{ capability | upper }} Verification Results
+      ===
+
+      {{ all_verify_results[capability + '-shared'] }}
+      {% endfor %}
+
+      Post-verify Diagnostics:
+      {{ all_verify_results.postverify }}
+
+      Overall Status: {{ 'FAILED' if all_verify_failed.values() | select('true') | list | length > 0 else 'PASSED' }}
+
+- name: Save consolidated report
+  delegate_to: localhost
+  become: false
+  ansible.builtin.copy:
+    content: "{{ final_report }}"
+    dest: "{{ report_root }}/{{ ansible_distribution | lower }}/consolidated_test_report.md"
+    mode: "0644"

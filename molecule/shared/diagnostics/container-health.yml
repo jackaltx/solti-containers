@@ -1,0 +1,44 @@
+---
+- name: Check container health
+  block:
+    - name: Check container initialization
+      command: systemctl is-system-running
+      register: init_status
+      changed_when: false
+      failed_when: false
+
+    - name: Verify container systemd functionality
+      command: systemctl --version
+      register: systemd_version
+      changed_when: false
+
+    - name: Check container cgroup mounts
+      command: mount | grep cgroup
+      register: cgroup_mounts
+      changed_when: false
+      failed_when: false
+
+    - name: Verify container process supervisor
+      command: ps aux
+      register: process_list
+      changed_when: false
+
+    - name: Check failed container units
+      command: systemctl --failed
+      register: failed_units
+      changed_when: false
+
+    - name: Check overall container systemd status
+      command: systemctl status
+      register: systemd_status
+      changed_when: false
+
+    - name: Set container health facts
+      set_fact:
+        container_health:
+          init_system: "{{ init_status.stdout }}"
+          systemd_version: "{{ systemd_version.stdout_lines[0] }}"
+          cgroups_mounted: "{{ cgroup_mounts.stdout_lines | length > 0 }}"
+          process_supervisor: "{{ 'systemd' in process_list.stdout }}"
+          failed_units: "{{ failed_units.stdout_lines | default([]) }}"
+          systemd_status: "{{ systemd_status.stdout_lines | default([]) }}"

@@ -1,0 +1,187 @@
+---
+# ..................................................................................
+- name: Collect process information
+  shell: "lsof -p $(pidof {{ item }})"
+  register: process_info
+  loop:
+    - influxd
+    - telegraf
+    - loki
+    - alloy
+  changed_when: false
+
+# ..................................................................................
+- name: Filter lsof output
+  no_log: true
+  when: process_info is defined
+  set_fact:
+    process_filtered: {}
+  loop: "{{ process_info.results }}"
+  vars:
+    filtered_lines: "{{ item.stdout_lines | select('search', '(cwd|rtd|txt|TCP)') | list }}"
+  register: filter_results
+
+# ..................................................................................
+- name: Collect service logs
+  command: "journalctl -u {{ item }} --since '5 minutes ago'"
+  register: service_logs
+  loop:
+    - influxdb
+    - telegraf
+    - loki
+    - alloy
+  changed_when: false
+
+# ..................................................................................
+- name: Get Git information
+  ansible.builtin.set_fact:
+    git_info:
+      branch: "{{ lookup('pipe', 'git rev-parse --abbrev-ref HEAD') }}"
+      commit: "{{ lookup('pipe', 'git rev-parse HEAD') }}"
+      status: "{{ lookup('pipe', 'git status --porcelain') | default('clean', true) }}"
+
+# ..................................................................................
+
+- name: Create common status data structure
+  set_fact:
+    status_data:
+      timestamp: "{{ ansible_date_time.iso8601 }}"
+      environment:
+        os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+        kernel: "{{ ansible_kernel }}"
+        python: "{{ ansible_python_version }}"
+      git:
+        branch: "{{ lookup('pipe', 'git rev-parse --abbrev-ref HEAD') }}"
+        commit: "{{ lookup('pipe', 'git rev-parse HEAD') }}"
+        status: "{{ lookup('pipe', 'git status --porcelain') | default('clean', true) }}"
+      services:
+        influxdb:
+          state: "{{ ansible_facts.services['influxdb.service'].state }}"
+          port: 8086
+        telegraf:
+          state: "{{ ansible_facts.services['telegraf.service'].state }}"
+          port: null
+        loki:
+          state: "{{ ansible_facts.services['loki.service'].state }}"
+          port: 3100
+        alloy:
+          state: "{{ ansible_facts.services['alloy.service'].state }}"
+          port: null
+      data_ingestion:
+        influxdb: "{{ metrics_test_results | default('No data') }}"
+        loki: "{{ logs_test_results | default('No data') }}"
+      logs: "{{ service_logs.results }}"
+      processes: "{{ process_info.results }}"
+
+# ..................................................................................
+#  Save as text file
+#
+- name: Save test results
+  become: false
+  ansible.builtin.copy:
+    content: |
+      === GitHub CI Test Results ===
+      Timestamp: {{ status_data.timestamp }}
+
+      Git Repository Status
+
+      - Branch: {{ git_info.branch }}
+      - Commit: {{ git_info.commit }}
+      - Status: {{ 'Clean' if not git_info.status else 'Modified' }}
+
+      Process Information:
+
+      {% for item in process_info.results %}
+      === {{ item.item }} Processes ===
+      {{ item.stdout }}
+
+      {% endfor %}
+
+      Service Logs:
+
+      {% for item in service_logs.results %}
+      === {{ item.item }} Logs ===
+      {{ item.stdout }}
+
+      {% endfor %}
+    dest: "{{ report_root }}/{{ ansible_distribution | lower }}/github_ci_results.md"
+    mode: "0644"
+  delegate_to: localhost
+
+# ..........................................................................................
+- name: Format Gist content
+  become: false
+  ansible.builtin.copy:
+    content: |
+      # Monitoring Stack Status Report
+      **Run Date:** {{ status_data.timestamp }}
+
+      ## Environment
+      - OS: {{ status_data.environment.os }}
+      - Kernel: {{ status_data.environment.kernel }}
+      - Python: {{ status_data.environment.python }}
+
+      ## Git Status
+      - Branch: {{ status_data.git.branch }}
+      - Commit: {{ status_data.git.commit }}
+      - Working Tree: {{ 'Clean' if status_data.git.status == 'clean' else 'Modified' }}
+
+      ## Service Status
+      | Service  | Status | Port | Listening |
+      |----------|--------|------|-----------|
+      {% for name, svc in status_data.services.items() %}
+      | {{ name | capitalize }} | {{ svc.state }} | {{ svc.port | default('-') }} | {{ 'Yes' if svc.state == 'running' and svc.port else 'N/A' }} |
+      {% endfor %}
+
+    dest: "{{ report_root }}/{{ ansible_distribution | lower }}/gist-content.md"
+    mode: "0644"
+  delegate_to: localhost
+
+# .......................................................................................
+- name: Format Wiki content
+  become: false
+  ansible.builtin.copy:
+    content: |
+      # Test Results: {{ status_data.timestamp }}
+
+      ## Environment
+      - **OS:** {{ status_data.environment.os }}
+      - **Kernel:** {{ status_data.environment.kernel }}
+
+      ## Status Summary
+      {% for name, svc in status_data.services.items() %}
+      - {{ name | capitalize }}: {{ svc.state }}{{ ' (Port ' + svc.port|string + ')' if svc.port }}
+      {% endfor %}
+
+      ## Data Collection
+      - **InfluxDB:** {{ 'Receiving data' if status_data.data_ingestion.influxdb != 'No data' else 'No data received' }}
+      - **Loki:** {{ 'Receiving data' if status_data.data_ingestion.loki != 'No data' else 'No data received' }}
+
+      ## Service Logs
+
+      {% for item in status_data.logs %}
+      <details>
+      <summary><b>{{ item.item | upper }} Logs</b></summary>
+
+      ```
+      {{ item.stdout | trim }}
+      ```
+      </details>
+
+      {% endfor %}
+
+      ## Process Information
+
+      {% for proc in status_data.processes %}
+      <details>
+      <summary><b>{{ proc.item | upper }} Processes</b></summary>
+
+      ```
+      {{ proc.stdout | trim }}
+      ```
+      </details>
+
+      {% endfor %}
+    dest: "{{ report_root }}/{{ ansible_distribution | lower }}/wiki-content.md"
+    mode: "0644"
+  delegate_to: localhost
