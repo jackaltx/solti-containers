@@ -196,6 +196,9 @@ podman exec <service>-svc ping <other-service>-svc
 
 ### Key Files
 - `inventory.yml`: Service configuration and variables
+  - **Shared core vars** (sync with solti-platforms): domain, mylab_nolog, ansible_user, ansible_ssh_private_key_file, mylab_non_ssh
+  - **Container-specific vars**: service_network, service_dns_servers, service_dns_search, test_index, test_doc
+  - mylab_nolog controls debug output in roles
 - `ansible.cfg`: Ansible settings and vault configuration
 - `roles/_base/`: Common functionality used by all services
 - `tmp/`: Generated playbooks (preserved on failure for debugging)

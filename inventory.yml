@@ -1,11 +1,29 @@
 ---
+# Container services inventory for solti-containers collection
+# Used by manage-svc.sh
+#
+# Pattern: Central host registry + capability groups
+# - Top level 'mylab' group = central host registry (all known service hosts)
+# - Children groups = service capabilities (mattermost_svc, redis_svc, etc.)
+# - Hosts can belong to multiple capability groups
+# - When targeting specific host with -h, it inherits all group vars from its capability groups
+
 all:
   vars:
+    # ============================================
+    # Shared Core Variables (sync with solti-platforms)
+    # These vars are consistent across all SOLTI collections
+    # ============================================
     domain: a0a0.org
-    mylab_nolog: "{{ cluster_secure_log | bool | default(true) }}"
-    ansible_user: lavender
-    ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+    mylab_nolog: "{{ cluster_secure_log | bool | default(true) }}"  # Controls debug output
+    ansible_user: lavender                                           # SSH user
+    ansible_ssh_private_key_file: ~/.ssh/id_ed25519                 # SSH key
+    mylab_non_ssh: false                                            # LXC container flag
 
+    # ============================================
+    # Container-Specific Variables
+    # These vars are specific to solti-containers
+    # ============================================
     # Container networking overrides
     service_network: "ct-net"
     service_dns_servers:
@@ -13,9 +31,7 @@ all:
       - "8.8.8.8"
     service_dns_search: "{{ domain }}"
 
-    # basically non-ssh stuff, like LXC containers
-    mylab_non_ssh: false
-
+    # Test/verification variables
     test_index: "test-ansible"
     test_doc: '{"message": "Verification {{ ansible_date_time.iso8601 }}"}'
 
