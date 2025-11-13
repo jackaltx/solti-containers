@@ -9,9 +9,10 @@ This file defines custom commands that Claude Code can execute for this project.
 **Process:**
 
 1. Discover which services have `verify.yml` files by checking `roles/*/tasks/verify.yml`
-2. Load `labenv` environment once
-3. Execute `./svc-exec.sh <service> verify` for each service with verify.yml
-4. Report summary of passed/failed/skipped verifications
+2. Exclude services that require sudo (wazuh) or are not currently running
+3. Load `labenv` environment once
+4. Execute `./svc-exec.sh <service> verify` for each service with verify.yml
+5. Report summary of passed/failed/skipped verifications
 
 **Usage:**
 
