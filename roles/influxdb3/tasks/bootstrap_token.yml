@@ -1,0 +1,82 @@
+---
+#
+# Bootstrap InfluxDB3 admin token
+# This task generates the admin token if it doesn't exist
+#
+
+# ....................................................................................
+- name: Check if admin token file exists on host
+  ansible.builtin.stat:
+    path: "{{ influxdb3_secrets_dir }}/admin-token"
+  register: token_file
+
+# ....................................................................................
+- name: Bootstrap admin token
+  when: not token_file.stat.exists
+  block:
+    - name: Generate admin token from container
+      ansible.builtin.command:
+        cmd: podman exec influxdb3-svc influxdb3 create token --admin
+      register: token_output
+      changed_when: true
+
+    - name: Extract token from output
+      ansible.builtin.set_fact:
+        admin_token: "{{ token_output.stdout | regex_search('apiv3_[A-Za-z0-9_-]+') }}"
+
+    - name: Verify token was extracted
+      ansible.builtin.fail:
+        msg: "Failed to extract valid token from output"
+      when: admin_token is not defined or admin_token == "" or not admin_token.startswith('apiv3_')
+
+    - name: Save token to secrets directory (volume-mounted)
+      become: true
+      ansible.builtin.copy:
+        content: "{{ admin_token }}"
+        dest: "{{ influxdb3_secrets_dir }}/admin-token"
+        mode: '0600'
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
+
+    - name: Save token to config directory for reference
+      ansible.builtin.copy:
+        content: "{{ admin_token }}"
+        dest: "{{ influxdb3_data_dir }}/config/admin-token.txt"
+        mode: '0600'
+
+    - name: Verify token is valid (query token list)
+      ansible.builtin.command:
+        cmd: >
+          podman exec influxdb3-svc
+          influxdb3 show tokens --format json --token {{ admin_token }}
+      register: token_verify
+      changed_when: false
+      failed_when: token_verify.rc != 0
+
+    - name: Display token creation result
+      ansible.builtin.debug:
+        msg: "Admin token generated, saved, and verified"
+        verbosity: 0
+
+    - name: Restart InfluxDB3 to load new token
+      ansible.builtin.systemd:
+        name: "{{ service_properties.name }}"
+        state: restarted
+        scope: user
+
+    - name: Wait for InfluxDB3 to be ready after token creation
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ influxdb3_port }}"
+        timeout: 120
+
+# ....................................................................................
+- name: Display token location
+  when: not token_file.stat.exists
+  ansible.builtin.debug:
+    msg: |
+      Admin token saved to:
+      - Host (persisted): {{ influxdb3_secrets_dir }}/admin-token
+      - Reference copy: {{ influxdb3_data_dir }}/config/admin-token.txt
+      - Container sees: /var/lib/influxdb3/secrets/admin-token (via volume mount)
+    verbosity: 0

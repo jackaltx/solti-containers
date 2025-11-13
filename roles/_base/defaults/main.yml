@@ -15,6 +15,7 @@ service_properties:
   quadlets: [] # List of quadlet files
   data_dir: "" # Main data directory
   config_dir: "config" # Config subdirectory
+  delete_data: false # Whether to delete data on removal (override via DELETE_DATA env var)
   image: "" # Main container image
   gui_image: "" # GUI container image (if applicable)
   dirs: [] # Required directories with permissions

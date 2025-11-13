@@ -33,9 +33,6 @@ minio_api_domain: "minio.{{ domain }}"
 minio_console_domain: "minio-console.{{ domain }}"
 minio_browser_redirect_url: "https://{{ minio_console_domain }}:{{ traefik_http_port }}"
 
-# Cleanup settings
-minio_delete_data: false
-
 # =======================================================================
 service_network: "example-net"
 service_dns_servers:
@@ -54,6 +51,7 @@ service_properties:
     - "minio.pod"
   data_dir: "{{ minio_data_dir }}" # override in playbook
   config_dir: "config"
+  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
   dirs:
     - { path: "", mode: "0750" }
     - { path: "config", mode: "0750" }

@@ -1,0 +1,21 @@
+---
+# Verify specific capability by running its verification tasks
+# Input variables required:
+# - capability: The capability being verified (e.g., 'logs', 'metrics')
+# - monitoring_capabilities: Dictionary of capability definitions
+
+# First, loop over the role specific tests
+- name: Run role-specific capability verifications
+  include_tasks: verify-role-capability.yml
+  loop: "{{ monitoring_capabilities[capability].roles }}"
+  loop_control:
+    loop_var: capability_role
+    label: "Runnning verifications on role {{ capability_role }} for {{ capability }} capability"
+
+# Then run all verification tasks for this capability
+- name: Run verification tasks for {{ capability }}
+  include_tasks: "{{ verify_task }}"
+  loop: "{{ monitoring_capabilities[capability].verify_tasks }}"
+  loop_control:
+    loop_var: verify_task
+    label: "Running {{ verify_task }} for {{ capability}} capability"

@@ -1,0 +1,240 @@
+---
+- name: Prepare
+  hosts: "{{ lookup('env', 'MOLECULE_PLATFORM_NAME', default='all') }}"
+  gather_facts: true
+  serial: "{{ lookup('env', 'MOLECULE_SERIAL', default='0') }}"
+
+  vars:
+    on_github: "{{ lookup('env', 'IN_GITHUB_CI', default=False) }}"
+
+  tasks:
+    #
+    # First confirm localhost information and directories
+    # ..................................................................................
+    - name: Connection information from localhost
+      debug:
+        msg:
+          - "Running on {{ inventory_hostname }} with IP {{ ansible_host }}"
+          - "Ansible host: {{ ansible_host | default('undefined') }}"
+          - "Ansible port: {{ ansible_port | default('undefined') }}"
+          - "Ansible user: {{ ansible_user | default('undefined') }}"
+          - "Connection type: {{ ansible_connection | default('undefined') }}"
+      delegate_to: localhost
+
+    # ..................................................................
+    - name: Ensure project directories exist on localhost
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/data"
+        - "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/verify_output"
+      delegate_to: localhost
+      become: false
+
+    # ..................................................................
+    # Now work on the instance
+    #
+
+    # ..................................................................
+    # Ubuntu??   the works local, but not on github.
+    - name: Ensure ansible temp directory exists with proper permissions
+      become: true
+      ansible.builtin.file:
+        path: /tmp/ansible-tmp
+        state: directory
+        owner: root
+        group: root
+        mode: "0777"
+
+    # ..................................................................
+    - name: Get basic system info
+      setup:
+        gather_subset:
+          - "min"
+          - "distribution"
+          - "pkg_mgr"
+
+    - name: Debug system info
+      debug:
+        msg:
+          - "Distribution: {{ ansible_distribution }}"
+          - "Package Manager: {{ ansible_pkg_mgr }}"
+
+    # ..................................................................................
+    - name: Debug Molecule environment vars
+      ansible.builtin.debug:
+        msg: |
+          Debug: {{ item }} = {{ lookup('env', item) }}
+        verbosity: 1
+      loop:
+        - MOLECULE_DEBUG
+        - MOLECULE_INSTANCE_NAME
+        - MOLECULE_SCENARIO_NAME
+        - MOLECULE_FILE
+        - MOLECULE_INVENTORY_FILE
+        - MOLECULE_DEPENDENCY_NAME
+        - MOLECULE_DRIVER_NAME
+        - MOLECULE_VERIFIER_NAME
+        - MOLECULE_PROVISIONER_NAME
+        - MOLECULE_STATE_FILE
+        - MOLECULE_EPHEMERAL_DIRECTORY
+        - MOLECULE_DIRECTORY
+        - MOLECULE_PROJECT_DIRECTORY
+
+    # ..................................................................................
+    - name: Prepare debug information
+      debug:
+        msg:
+          - "GithubCi: {{ on_github }}"
+          - "Playbook dir: {{ playbook_dir }}"
+          - "Roles path: {{ playbook_dir }}/../../roles"
+          - "Project_root: {{ project_root }}"
+          - "Distribution: {{ ansible_distribution }}"
+          - "Testing capability: {{ testing_capabilities }}"
+
+    # ..................................................................................
+    # note this has to be loaded in each phase playbook!
+    - name: Load capability role definitions
+      include_vars:
+        file: "{{ project_root }}/molecule/vars/capabilities.yml"
+
+    # ..................................................................................
+    - name: Debug monitoring_capabilities
+      debug:
+        var: monitoring_capabilities
+        verbosity: 1
+
+    # ..................................................................................
+    - name: Get required packages for each tested capability
+      set_fact:
+        combined_required_packages: >-
+          {{
+            testing_capabilities
+            | map('extract', monitoring_capabilities)
+            | map(attribute='required_packages')
+            | map(attribute=ansible_os_family)
+            | flatten
+            | unique
+            | list
+          }}
+
+    # ..................................................................................
+    - name: Debug package selection
+      debug:
+        msg:
+          - "Testing Capabilities: {{ testing_capabilities }}"
+          - "Required Packages: {{ combined_required_packages }}"
+        verbosity: 0
+
+    # ..................................................................................
+    - name: Handle Debian/Ubuntu systems
+      when: ansible_os_family == "Debian"
+      block:
+        - name: Install required Debian packages
+          apt:
+            name: "{{ combined_required_packages }}"
+            state: present
+            update_cache: yes
+          register: pkg_install
+          retries: 3
+          delay: 10
+          until: pkg_install is success
+          become: true
+
+    # ..................................................................................
+    - name: Handle RedHat systems
+      when: ansible_os_family == "RedHat"
+      block:
+        - name: Install required RedHat packages
+          dnf:
+            name: "{{ combined_required_packages }}"
+            state: present
+            update_cache: yes
+          register: pkg_install
+          retries: 3
+          delay: 10
+          until: pkg_install is success
+          become: true
+
+    # ..................................................................
+    # TODO:  evaluate this as it seems overkill.
+    #
+    - name: Configure container for systemd
+      when: on_github
+      block:
+        - name: Create systemd directories
+          file:
+            path: "{{ item }}"
+            state: directory
+          loop:
+            - /run/systemd
+            - /run/dbus
+            - /var/run/dbus
+
+        - name: Initialize D-Bus machine id
+          copy:
+            content: ""
+            dest: /etc/machine-id
+            force: no
+            mode: "0444"
+
+        - name: Initialize D-Bus system socket
+          copy:
+            content: ""
+            dest: /var/run/dbus/system_bus_socket
+            force: no
+            mode: "0755"
+
+        - name: Configure systemd by distribution
+          include_tasks: "systemd-{{ ansible_os_family }}.yml"
+
+        - name: Wait for dbus socket
+          wait_for:
+            path: /var/run/dbus/system_bus_socket
+            timeout: 30
+
+    # ..................................................................................
+    # Test systemd functionality
+    - name: Ensure systemd is available
+      command: systemctl --version
+      changed_when: false
+      register: systemd_check
+
+    - name: Show systemd version
+      debug:
+        var: systemd_check.stdout_lines
+        verbosity: 1
+
+    # SMELL  this is umbuntu thing ???
+    - name: Configure container for systemd operation
+      become: true
+      command: systemctl daemon-reexec
+      when: systemd_check is success and not on_github
+
+    # ..................................................................................
+    # - name: Debug systemd environment
+    #   block:
+    #     - name: Check cgroup mounts
+    #       shell: "mount | grep cgroup"
+    #       register: cgroup_mounts
+    #       changed_when: false
+    #       ignore_errors: true
+
+    #     - name: Check systemd paths
+    #       stat:
+    #         path: "{{ item }}"
+    #       loop:
+    #         - /run/systemd/system
+    #         - /sys/fs/cgroup/systemd
+    #       register: systemd_paths
+
+    #     - name: Show systemd env debug info
+    #       debug:
+    #         msg:
+    #           - "Cgroup mounts:"
+    #           - "{{ cgroup_mounts.stdout_lines }}"
+    #           - "Systemd paths:"
+    #           - "{{ systemd_paths.results | map(attribute='stat') | list }}"
+    #         verbosity: 1

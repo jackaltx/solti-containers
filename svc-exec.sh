@@ -2,12 +2,13 @@
 #
 # svc-exec - Execute specific tasks for services using dynamically generated Ansible playbooks
 #
-# Usage: svc-exec [-K] <service> [entry]
+# Usage: svc-exec [-K] <service> [entry] [options]
 #
 # Example:
 #   svc-exec elasticsearch verify     # No sudo prompt
 #   svc-exec -K redis configure       # With sudo prompt
 #   svc-exec mattermost               # Default entry point, no sudo
+#   svc-exec redis verify -e redis_password=newpass
 
 # Exit on error
 set -e
@@ -31,6 +32,7 @@ SUPPORTED_SERVICES=(
     "wazuh"
     "grafana"
     "gitea"
+    "influxdb3"
 )
 
 # Default entry point if not specified
@@ -43,14 +45,15 @@ ENTRY=""
 
 # Display usage information
 usage() {
-    echo "Usage: $(basename $0) [-K] <service> [entry]"
+    echo "Usage: $(basename $0) [-K] <service> [entry] [options]"
     echo ""
     echo "Options:"
-    echo "  -K      - Prompt for sudo password (needed for some operations)"
+    echo "  -K               - Prompt for sudo password (needed for some operations)"
     echo ""
     echo "Parameters:"
-    echo "  service - The service to manage"
-    echo "  entry   - The entry point task (default: verify)"
+    echo "  service          - The service to manage"
+    echo "  entry            - The entry point task (default: verify)"
+    echo "  options          - Extra variables (-e VAR=VALUE)"
     echo ""
     echo "Services:"
     for svc in "${SUPPORTED_SERVICES[@]}"; do
@@ -61,6 +64,8 @@ usage() {
     echo "  $(basename $0) elasticsearch verify     # No sudo prompt"
     echo "  $(basename $0) -K redis configure       # With sudo prompt"
     echo "  $(basename $0) mattermost               # Default entry, no sudo"
+    echo "  $(basename $0) redis verify -e redis_password=newpass"
+    echo "  $(basename $0) -K elasticsearch configure -e elasticsearch_memory=4g"
     exit 1
 }
 
@@ -113,14 +118,25 @@ done
 shift $((OPTIND - 1))
 
 # Validate remaining arguments
-if [[ $# -lt 1 || $# -gt 2 ]]; then
-    echo "Error: Incorrect number of arguments"
+if [[ $# -lt 1 ]]; then
+    echo "Error: Service name required"
     usage
 fi
 
 # Extract parameters
 SERVICE="$1"
-ENTRY="${2:-$DEFAULT_ENTRY}"  # Use default if not provided
+shift
+
+# Extract entry point (default if not provided or if it starts with -)
+if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
+    ENTRY="$1"
+    shift
+else
+    ENTRY="$DEFAULT_ENTRY"
+fi
+
+# Capture any remaining arguments as extra args
+EXTRA_ARGS=("$@")
 
 # Validate service
 if ! is_service_supported "$SERVICE"; then
@@ -143,6 +159,9 @@ if $USE_SUDO; then
 else
     echo "Using sudo: No"
 fi
+if [[ ${#EXTRA_ARGS[@]} -gt 0 ]]; then
+    echo "Extra arguments: ${EXTRA_ARGS[*]}"
+fi
 echo ""
 
 # Display playbook content
@@ -154,11 +173,11 @@ echo ""
 
 # Execute the playbook with or without sudo prompt
 if $USE_SUDO; then
-    echo "Executing with sudo privileges: ansible-playbook -K -i ${INVENTORY} ${TEMP_PLAYBOOK}"
-    ansible-playbook -K -i "${INVENTORY}" "${TEMP_PLAYBOOK}"
+    echo "Executing with sudo privileges: ansible-playbook -K -i ${INVENTORY} ${TEMP_PLAYBOOK} ${EXTRA_ARGS[*]}"
+    ansible-playbook -K -i "${INVENTORY}" "${TEMP_PLAYBOOK}" "${EXTRA_ARGS[@]}"
 else
-    echo "Executing: ansible-playbook -i ${INVENTORY} ${TEMP_PLAYBOOK}"
-    ansible-playbook -i "${INVENTORY}" "${TEMP_PLAYBOOK}"
+    echo "Executing: ansible-playbook -i ${INVENTORY} ${TEMP_PLAYBOOK} ${EXTRA_ARGS[*]}"
+    ansible-playbook -i "${INVENTORY}" "${TEMP_PLAYBOOK}" "${EXTRA_ARGS[@]}"
 fi
 
 # Check execution status

@@ -94,4 +94,3 @@
         tasks_from: cleanup
       vars:
         service_state: absent
-        service_delete_data: "{{ gitea_delete_data | default(false) }}"

@@ -1,0 +1,13 @@
+---
+# systemd-RedHat.yml
+- name: Initialize dbus for RedHat
+  shell: |
+    if [ -x /usr/bin/dbus-daemon ]; then
+      /usr/bin/dbus-daemon --system --nofork --nopidfile &
+    else
+      /usr/bin/dbus-uuidgen > /etc/machine-id
+    fi
+  async: 45
+  poll: 0
+  ignore_errors: true
+  changed_when: false

@@ -41,9 +41,6 @@ grafana_smtp_from_address: "admin@grafana.localhost"
 grafana_analytics_reporting_enabled: false
 grafana_check_for_updates: false
 
-# Cleanup settings
-grafana_delete_data: false
-
 # =======================================================================
 service_network: "example-net"
 service_dns_servers:
@@ -61,6 +58,7 @@ service_properties:
     - "grafana.pod"
   data_dir: "{{ grafana_data_dir }}"
   config_dir: "config"
+  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
   dirs:
     - { path: "", mode: "0750" }
     - { path: "config", mode: "0750" }

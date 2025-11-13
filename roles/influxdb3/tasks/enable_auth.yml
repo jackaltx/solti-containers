@@ -1,0 +1,69 @@
+---
+#
+# Enable authentication by updating container command and restarting
+#
+
+- name: Update container Quadlet to enable auth
+  containers.podman.podman_container:
+    name: influxdb3-svc
+    pod: influxdb3.pod
+    image: "{{ influxdb3_image }}"
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    volume:
+      - "{{ influxdb3_data_dir }}/data:/var/lib/influxdb3/data:z,U"
+      - "{{ influxdb3_data_dir }}/plugins:/var/lib/influxdb3/plugins:z,U"
+      - "{{ influxdb3_secrets_dir }}:/var/lib/influxdb3/secrets:z"
+    env:
+      INFLUXDB3_NODE_IDENTIFIER_PREFIX: "{{ influxdb3_node_id }}"
+    command:
+      - "serve"
+      - "--http-bind=0.0.0.0:{{ influxdb3_internal_port }}"
+      - "--object-store={{ influxdb3_object_store }}"
+      - "--data-dir=/var/lib/influxdb3/data"
+      - "--admin-token-file=/var/lib/influxdb3/secrets/admin-token.json"
+    quadlet_options:
+      # Traefik labels (if enabled)
+      - "Label=traefik.enable={{ influxdb3_enable_traefik | lower }}"
+      - "Label=traefik.http.routers.influxdb3.rule=Host(`influxdb3.{{ domain }}`)"
+      - "Label=traefik.http.routers.influxdb3.entrypoints=websecure"
+      - "Label=traefik.http.services.influxdb3.loadbalancer.server.port={{ influxdb3_internal_port }}"
+      - "Label=traefik.http.routers.influxdb3.middlewares=secHeaders@file"
+      - |
+        [Unit]
+        Description=InfluxDB 3 Core Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target
+
+- name: Reload systemd after Quadlet update
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+- name: Restart pod with auth enabled
+  ansible.builtin.systemd:
+    name: "{{ service_properties.name }}"
+    state: restarted
+    scope: user
+
+- name: Wait for InfluxDB3 to be ready with auth
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ influxdb3_port }}"
+    timeout: 60
+
+- name: Display auth status
+  ansible.builtin.debug:
+    msg:
+      - "=============================================================="
+      - "InfluxDB3 authentication enabled!"
+      - "Admin token file: /var/lib/influxdb3/secrets/admin-token.json (in container)"
+      - "Host token file: {{ influxdb3_secrets_dir }}/admin-token.json"
+      - "=============================================================="

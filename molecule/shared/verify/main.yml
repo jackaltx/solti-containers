@@ -1,0 +1,140 @@
+---
+- name: Verify
+  hosts: "{{ lookup('env', 'MOLECULE_PLATFORM_NAME', default='all') }}"
+  become: true
+  serial: "{{ lookup('env', 'MOLECULE_SERIAL', default='0') }}"
+
+  vars:
+    molecule_nolog: true
+    # verify_timestamp set in converge.yml via cacheable fact, fallback provided in tasks
+    on_github: "{{ lookup('env', 'IN_GITHUB_CI', default=false) }}"
+
+  tasks:
+    #
+    # .....................................................................
+    #
+    - name: Set verify timestamp if not already set from converge
+      set_fact:
+        verify_timestamp: "{{ ansible_facts['date_time']['iso8601'] }}"
+      when: verify_timestamp is not defined
+
+    - name: Ensure verify_output directory exists
+      ansible.builtin.file:
+        path: "{{ report_root }}"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+      become: false
+
+    # .....................................................................
+    - name: Debug information
+      debug:
+        msg:
+          - "GithubCi: {{ on_github }}"
+          - "Playbook dir: {{ playbook_dir }}"
+          - "Roles path: {{ playbook_dir }}/../../roles"
+          - "Project_root: {{ project_root }}"
+          - "Distribution: {{ ansible_facts['distribution'] }}"
+          - "Testing capability: {{ testing_capabilities }}"
+
+    # ................................................................
+    # note this has to be loaded in each phase playbook!
+    # This sets monitoring_capabilities variable. This is a hard-coded for now
+    - name: Load capability role definitions
+      include_vars:
+        file: "{{ project_root }}/molecule/vars/capabilities.yml"
+
+    # ................................................................
+    - name: Get listening ports for selected capabilities
+      set_fact:
+        container_service_ports: >-
+          {{
+            testing_capabilities |
+            map('extract', monitoring_capabilities) |
+            map(attribute='service_ports') |
+            flatten |
+            list
+          }}
+
+    # ................................................................
+    - name: Get service names for selected capabilities
+      set_fact:
+        monitored_services: >-
+          {{
+            testing_capabilities |
+            map('extract', monitoring_capabilities) |
+            map(attribute='service_names') |
+            flatten |
+            list
+          }}
+
+    # ................................................................
+    - name: Debug service ports
+      debug:
+        msg:
+          - "Testing Capabilities: {{ testing_capabilities }}"
+          - "Roles to Include: {{ container_service_ports }}"
+        verbosity: 0
+
+    # ................................................................
+    - name: Initialize result for capability
+      set_fact:
+        all_verify_results: {}
+        all_verify_failed: {}
+
+    # .......................................................................
+    - name: Run pre-verify container diagnostics
+      ansible.builtin.include_tasks:
+        file: "{{ project_root }}/molecule/shared/diagnostics/main.yml"
+      vars:
+        report_suffix: "preverify"
+
+    # .......................................................................
+    # Version 2
+    #
+    # This is a nested loop that iterates over the testing_capabilities
+    # The inner loop is a short included script to loop over a list of test tasks
+    #
+    - name: Run capability-specific verifications
+      loop: "{{ testing_capabilities }}"
+      include_tasks: verify-capability.yml
+      loop_control:
+        loop_var: capability
+        label: "Verifying {{ capability }} capability"
+
+    # .......................................................................
+    - name: Run post-verify container diagnostics
+      ansible.builtin.include_tasks:
+        file: "{{ project_root }}/molecule/shared/diagnostics/main.yml"
+      vars:
+        report_suffix: "postverify"
+
+    # .......................................................................
+    - name: Report Results
+      ansible.builtin.include_tasks:
+        file: report.yml
+
+    # .......................................................................
+    # TODO: review this.
+    - name: Create verification status map
+      set_fact:
+        verification_status: >-
+          {{
+            verification_status | default({}) | combine(
+              { capability: hostvars[inventory_hostname][capability + '_verify_failed'] | default(false) }
+            )
+          }}
+      loop: "{{ testing_capabilities }}"
+      loop_control:
+        loop_var: capability
+
+    # .......................................................................
+    - name: Final verification check
+      fail:
+        msg: "Verifications failed: {{ verification_status | dict2items | selectattr('value', 'true') | map(attribute='key') | list | join(', ') }}"
+      when: verification_status.values() | list | select('true') | list | length > 0
+
+    # .......................................................................
+    - name: Run Gitlab CI only tasks
+      when: on_github
+      ansible.builtin.include_tasks: "verify-github.yml"

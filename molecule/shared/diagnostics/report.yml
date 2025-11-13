@@ -1,0 +1,49 @@
+---
+- name: Generate container diagnostic report
+  block:
+    - name: Set container_diagnostics fact
+      no_log: "{{ molecule_nolog | default(true) }}"
+      ansible.builtin.set_fact:
+        container_diagnostics: |
+          === Container Diagnostic Report ===
+          Timestamp: {{ ansible_facts['date_time']['iso8601'] }}
+
+          Container Health:
+          ----------------
+          {{ container_health | to_nice_yaml | indent(2) }}
+
+          Network Health:
+          --------------
+          {{ network_health | to_nice_yaml | indent(2) }}
+
+          Service Health:
+          --------------
+          {{ service_health | default({}) | to_nice_yaml | indent(2) }}
+
+        dest: "{{ report_root }}/{{ ansible_facts['distribution'] | lower }}/container-diagnostics-{{ report_suffix }}-{{ ansible_facts['date_time']['epoch'] }}.yml"
+        mode: "0644"
+      delegate_to: localhost
+
+    # .........................................................................................................
+    # Add to all_verify_results using task name as key
+    - name: Add diagnostics results to dictionary
+      set_fact:
+        all_verify_results: "{{ all_verify_results | combine({ report_suffix : container_diagnostics}) }}"
+
+    # .........................................................................................................
+    - name: Create local data directory for diagnostic diagnostics
+      become: false
+      ansible.builtin.file:
+        path: "{{ report_root }}/{{ ansible_facts['distribution'] | lower }}"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+
+    # Save test results
+    - name: Save container diagnostics results
+      become: false
+      ansible.builtin.copy:
+        content: "{{ container_diagnostics }}"
+        dest: "{{ report_root }}/{{ ansible_facts['distribution'] | lower }}/container-diagnostics-{{ report_suffix }}-{{ ansible_facts['date_time']['epoch'] }}.yml"
+        mode: "0644"
+      delegate_to: localhost

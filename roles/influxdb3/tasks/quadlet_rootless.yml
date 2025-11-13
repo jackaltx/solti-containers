@@ -1,0 +1,88 @@
+---
+#
+# Deploy InfluxDB3 using Podman Quadlets
+#
+
+# ....................................................................................
+- name: Create InfluxDB3 pod Quadlet
+  containers.podman.podman_pod:
+    name: influxdb3
+    state: quadlet
+    dns: "{{ service_dns_servers }}"
+    dns_search: "{{ service_dns_search }}"
+    network: "{{ service_network }}"
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    ports:
+      - "127.0.0.1:{{ influxdb3_port }}:{{ influxdb3_internal_port }}"
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+      - |
+        [Install]
+        WantedBy=default.target
+
+# ....................................................................................
+- name: Create InfluxDB3 server container Quadlet
+  containers.podman.podman_container:
+    name: influxdb3-svc
+    pod: influxdb3.pod
+    image: "{{ influxdb3_image }}"
+    state: quadlet
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    volume:
+      - "{{ influxdb3_data_dir }}/data:/var/lib/influxdb3/data:z,U"
+      - "{{ influxdb3_data_dir }}/plugins:/var/lib/influxdb3/plugins:z,U"
+      - "{{ influxdb3_secrets_dir }}:/var/lib/influxdb3/secrets:z,U"
+    env:
+      INFLUXDB3_NODE_IDENTIFIER_PREFIX: "{{ influxdb3_node_id }}"
+    command:
+      - "serve"
+      - "--http-bind=0.0.0.0:{{ influxdb3_internal_port }}"
+      - "--object-store={{ influxdb3_object_store }}"
+      - "--data-dir=/var/lib/influxdb3/data"
+    quadlet_options:
+      # Traefik labels (if enabled)
+      - "Label=traefik.enable={{ influxdb3_enable_traefik | lower }}"
+      - "Label=traefik.http.routers.influxdb3.rule=Host(`influxdb3.{{ domain }}`)"
+      - "Label=traefik.http.routers.influxdb3.entrypoints=websecure"
+      - "Label=traefik.http.services.influxdb3.loadbalancer.server.port={{ influxdb3_internal_port }}"
+      - "Label=traefik.http.routers.influxdb3.middlewares=secHeaders@file"
+      - |
+        [Unit]
+        Description=InfluxDB 3 Core Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target
+
+# ....................................................................................
+- name: Wait a moment for quadlet to be written
+  ansible.builtin.wait_for:
+    timeout: 10
+
+# ....................................................................................
+- name: Reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    scope: user
+
+# ....................................................................................
+- name: Enable and start rootless pod with systemd
+  ansible.builtin.systemd:
+    name: "{{ service_properties.name }}"
+    state: started
+    enabled: yes
+    scope: user
+
+# ....................................................................................
+- name: Wait for InfluxDB3 to be ready
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ influxdb3_port }}"
+    timeout: 120

@@ -1,0 +1,53 @@
+---
+#
+# Prerequisites for InfluxDB3 deployment
+# - Verifies configuration
+# - Templates environment files
+# - Configures SELinux
+#
+
+- name: Verify prerequisite variables
+  assert:
+    that:
+      - influxdb3_data_dir is defined
+      - influxdb3_port is defined
+      - influxdb3_node_id is defined
+    fail_msg: "Required variables not properly configured"
+
+# .....................................................................................
+# Get container user mapping first
+- name: Get directory ownership
+  ansible.builtin.stat:
+    path: "{{ influxdb3_data_dir }}/config"
+  register: dir_info
+
+- name: Debug ownership
+  ansible.builtin.debug:
+    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+
+# .....................................................................................
+- name: Become root and template config files
+  become: true
+  block:
+    - name: Template InfluxDB3 environment file
+      ansible.builtin.template:
+        src: influxdb3.env.j2
+        dest: "{{ influxdb3_data_dir }}/config/influxdb3.env"
+        mode: "0644"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+
+    # .....................................................................................
+    - name: Configure SELinux for data directories
+      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+      block:
+        - name: Set SELinux context for InfluxDB3 directories
+          ansible.builtin.sefcontext:
+            target: "{{ influxdb3_data_dir }}(/.*)?"
+            setype: container_file_t
+            state: present
+
+        - name: Apply SELinux context
+          ansible.builtin.command: restorecon -R -v "{{ influxdb3_data_dir }}"
+          register: restorecon_result
+          changed_when: restorecon_result.rc == 0

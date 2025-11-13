@@ -1,0 +1,32 @@
+---
+# Converge playbook for solti-containers
+# Uses the collection's service deployment pattern
+
+- name: Converge - Deploy test service
+  hosts: all
+  gather_facts: true
+  become: true
+
+  vars:
+    # Default to redis if not specified
+    test_service: "{{ test_role | default('redis') }}"
+    service_state: "present"
+
+  tasks:
+    - name: Display test configuration
+      ansible.builtin.debug:
+        msg:
+          - "Testing service: {{ test_service }}"
+          - "Target platform: {{ selected_platform | default('unknown') }}"
+          - "Ansible distribution: {{ ansible_distribution }}"
+
+    - name: Deploy service using collection role
+      ansible.builtin.include_role:
+        name: "jackaltx.solti_containers.{{ test_service }}"
+      vars:
+        quadlet_state: "{{ service_state }}"
+
+    - name: Wait for service to be ready
+      ansible.builtin.pause:
+        seconds: 10
+      when: service_state == "present"

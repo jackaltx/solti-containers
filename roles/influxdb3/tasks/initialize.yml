@@ -1,0 +1,78 @@
+---
+#
+# Initialize InfluxDB3 by creating the operator (admin) token
+# This is run automatically during deployment
+#
+
+# ..............................................
+# Create secrets directory
+- name: Ensure secrets directory exists
+  ansible.builtin.file:
+    path: "{{ influxdb3_secrets_dir }}"
+    state: directory
+    mode: "0700"
+
+# ..............................................
+# Check if already initialized
+- name: Check if admin token exists
+  ansible.builtin.stat:
+    path: "{{ influxdb3_secrets_dir }}/admin-token.json"
+  register: admin_token_file
+
+# ..............................................
+# Create operator token
+- name: Create operator (admin) token
+  when: not admin_token_file.stat.exists
+  block:
+    - name: Generate operator token offline to temp file
+      ansible.builtin.command:
+        cmd: podman exec influxdb3-svc influxdb3 create token --admin --format json --offline --output-file /tmp/admin-token.json
+      register: token_result
+      # no_log: true
+      changed_when: true
+
+    - name: Read token from container
+      ansible.builtin.command:
+        cmd: podman exec influxdb3-svc cat /tmp/admin-token.json
+      register: token_content
+      # no_log: true
+      changed_when: false
+
+    - name: Save admin token securely on host
+      ansible.builtin.copy:
+        content: "{{ token_content.stdout }}"
+        dest: "{{ influxdb3_secrets_dir }}/admin-token.json"
+        mode: "0644"
+
+    - name: Parse token
+      ansible.builtin.set_fact:
+        influxdb3_admin_token: "{{ (token_content.stdout | from_json).token }}"
+      # no_log: true
+
+    - name: Display initialization status
+      ansible.builtin.debug:
+        msg:
+          - "=============================================================="
+          - "InfluxDB3 initialized successfully!"
+          - "Operator token saved to: {{ influxdb3_secrets_dir }}/admin-token.json"
+          - "IMPORTANT: Store this token securely - it cannot be retrieved later"
+          - "=============================================================="
+
+# ..............................................
+# Load existing token
+- name: Load existing admin token
+  when: admin_token_file.stat.exists
+  block:
+    - name: Read existing token file
+      ansible.builtin.slurp:
+        src: "{{ influxdb3_secrets_dir }}/admin-token.json"
+      register: encoded_token
+
+    - name: Parse existing token
+      ansible.builtin.set_fact:
+        influxdb3_admin_token: "{{ (encoded_token.content | b64decode | from_json).token }}"
+      # no_log: true
+
+    - name: Display status
+      ansible.builtin.debug:
+        msg: "InfluxDB3 already initialized - using existing operator token"

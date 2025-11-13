@@ -57,8 +57,6 @@ wazuh_users:
     reserved: true
     description: "User for Wazuh Dashboard service"
 
-# Cleanup settings
-wazuh_delete_data: false
 
 # =======================================================================
 service_network: "example-net"
@@ -79,6 +77,7 @@ service_properties:
     - "wazuh.pod"
   data_dir: "{{ wazuh_data_dir }}" # override in playbook
   config_dir: "config"
+  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
   dirs:
     - { path: "", mode: "0750" }
     #

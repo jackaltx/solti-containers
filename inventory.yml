@@ -1,11 +1,29 @@
 ---
+# Container services inventory for solti-containers collection
+# Used by manage-svc.sh
+#
+# Pattern: Central host registry + capability groups
+# - Top level 'mylab' group = central host registry (all known service hosts)
+# - Children groups = service capabilities (mattermost_svc, redis_svc, etc.)
+# - Hosts can belong to multiple capability groups
+# - When targeting specific host with -h, it inherits all group vars from its capability groups
+
 all:
   vars:
+    # ============================================
+    # Shared Core Variables (sync with solti-platforms)
+    # These vars are consistent across all SOLTI collections
+    # ============================================
     domain: a0a0.org
-    mylab_nolog: "{{ cluster_secure_log | bool | default(true) }}"
-    ansible_user: lavender
-    ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+    mylab_nolog: "{{ cluster_secure_log | bool | default(true) }}"  # Controls debug output
+    ansible_user: lavender                                           # SSH user
+    ansible_ssh_private_key_file: ~/.ssh/id_ed25519                 # SSH key
+    mylab_non_ssh: false                                            # LXC container flag
 
+    # ============================================
+    # Container-Specific Variables
+    # These vars are specific to solti-containers
+    # ============================================
     # Container networking overrides
     service_network: "ct-net"
     service_dns_servers:
@@ -13,9 +31,7 @@ all:
       - "8.8.8.8"
     service_dns_search: "{{ domain }}"
 
-    # basically non-ssh stuff, like LXC containers
-    mylab_non_ssh: false
-
+    # Test/verification variables
     test_index: "test-ansible"
     test_doc: '{"message": "Verification {{ ansible_date_time.iso8601 }}"}'
 
@@ -46,7 +62,6 @@ all:
           vars:
             debug_level: warn
             mattermost_data_dir: "{{ ansible_env.HOME }}/mattermost-data"
-            mattermost_delete_data: false
 
             test_email: "test-{{ ansible_date_time.epoch }}@example.com"
             test_username: "testuser-{{ ansible_date_time.epoch }}"
@@ -64,7 +79,6 @@ all:
             debug_level: warn
             elasticsearch_data_dir: "{{ ansible_env.HOME }}/elasticsearch-data" #
             elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
-            elasticsearch_delete_data: false
 
             elasticsearch_proxy: "https://es.{{ domain }}:8443"
 
@@ -80,7 +94,6 @@ all:
             debug_level: warn
             redis_data_dir: "{{ ansible_env.HOME }}/redis-data"
             redis_password: "{{ lookup('env', 'REDIS_PASSWORD', default='') }}"
-            redis_delete_data: false
 
             test_key: "test:ansible"
             test_value: "Verification {{ ansible_date_time.iso8601 }}"
@@ -225,7 +238,6 @@ all:
             traefik_data_dir: "{{ ansible_env.HOME }}/traefik-data"
 
             traefik_force_reload: false
-            traefik_delete_data: false
 
         # ========================================
         minio_svc:
@@ -241,8 +253,6 @@ all:
             debug_level: warn
             minio_dashboard_enabled: true
             minio_data_dir: "{{ ansible_env.HOME }}/minio-data"
-
-            minio_delete_data: false
 
             # MinIO credentials
             # NOTE: These would be read from HashiVault in production
@@ -307,7 +317,6 @@ all:
             debug_level: warn
             grafana_data_dir: "{{ ansible_env.HOME }}/grafana-data"
             grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD', default='') }}"
-            grafana_delete_data: false
 
         # ========================================
         gitea_svc:
@@ -320,7 +329,6 @@ all:
             debug_level: warn
             gitea_data_dir: "{{ ansible_env.HOME }}/gitea-data"
             gitea_admin_password: "{{ lookup('env', 'GITEA_ADMIN_PASSWORD', default='') }}"
-            gitea_delete_data: false
             gitea_port: 3001
             gitea_ssh_port: 2222
             gitea_image: "docker.io/gitea/gitea:latest"
@@ -334,19 +342,41 @@ all:
             gitea_enable_lfs: true
             gitea_enable_tls: true
 
-            service_properties:
-              root: "gitea"
-              name: "gitea-pod"
-              pod_key: "gitea.pod"
-              quadlets:
-                - "gitea-svc.container"
-                - "gitea.pod"
-              data_dir: "{{ gitea_data_dir }}"
-              config_dir: "config"
-              dirs:
-                - { path: "", mode: "0755" }
-                - { path: "config", mode: "0775" }
-                - { path: "data", mode: "0775" }
-                - { path: "data/gitea", mode: "0775" }
-                - { path: "data/git", mode: "0775" }
-                - { path: "logs", mode: "0775" }
+        # ========================================
+        influxdb3_svc:
+          hosts:
+            firefly:
+
+          # .......................................
+          # influxdb3_svc only vars
+          vars:
+            debug_level: warn
+            influxdb3_data_dir: "{{ ansible_env.HOME }}/influxdb3-data"
+            influxdb3_port: 8181
+
+            # Secrets directory (under data dir for proper permissions)
+            influxdb3_secrets_dir: "{{ ansible_env.HOME }}/influxdb3-data/secrets"
+
+            # Admin token (loaded from environment or file)
+            influxdb3_admin_token: "{{ lookup('env', 'INFLUXDB3_AUTH_TOKEN', default='') }}"
+
+            # Databases to create during configure
+            influxdb3_databases:
+              - name: "telegraf"
+              - name: "metrics"
+              - name: "logs"
+              - name: "traces"
+
+            # Resource tokens to create during configure
+            influxdb3_tokens:
+              - description: "telegraf-writer"
+                permissions: "database:telegraf:write"
+              - description: "metrics-reader"
+                permissions: "database:metrics:read"
+              - description: "grafana-reader"
+                permissions: "database:*:read"
+              - description: "logs-writer"
+                permissions: "database:logs:write,read"
+
+            # Traefik integration
+            influxdb3_enable_traefik: true

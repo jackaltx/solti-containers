@@ -45,6 +45,9 @@ Modern development requires lightweight, ephemeral services that can be quickly 
 | **[Mattermost](roles/mattermost/README.md)** | Team communication and notifications | 8065 | `mattermost.domain.com` | ✅ Ready |
 | **[Traefik](roles/traefik/README.md)** | HTTP reverse proxy with SSL termination | 8080, 8443, 9999 | `*.domain.com` | ✅ Ready |
 | **[MinIO](roles/minio/README.md)** | S3-compatible object storage | 9000, 9001 | `minio.domain.com` | ✅ Ready |
+| **[Gitea](roles/gitea/README.md)** | Lightweight Git hosting service | 3000, 2222 | `gitea.domain.com` | ✅ Ready |
+| **[Grafana](roles/grafana/README.md)** | Metrics visualization and dashboards | 3001 | `grafana.domain.com` | ✅ Ready |
+| **[InfluxDB3](roles/influxdb3/README.md)** | Time-series database for metrics storage | 8086 | `influxdb.domain.com` | ✅ Ready |
 
 ### Development Status
 

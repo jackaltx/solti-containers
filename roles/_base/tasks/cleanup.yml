@@ -42,12 +42,12 @@
 
 - name: Debug service file removal
   ansible.builtin.debug:
-    msg: "_base.cleanup:  state: {{ service_state }}, del_data: {{ service_delete_data }}, dir: {{ service_properties.data_dir }}"
+    msg: "_base.cleanup:  state: {{ service_state }}, del_data: {{ service_properties.delete_data }}, dir: {{ service_properties.data_dir }}"
     verbosity: 0
 
 # .................................................................
 - name: Remove all traces
-  when: service_state == 'absent' and (service_delete_data | bool)
+  when: service_state == 'absent' and (service_properties.delete_data | bool)
   block:
     # ................................
     - name: Remove configuration

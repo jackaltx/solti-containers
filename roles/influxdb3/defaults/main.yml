@@ -1,0 +1,55 @@
+---
+# defaults file for influxdb3
+
+# Installation state
+influxdb3_state: present
+influxdb3_force_reload: false
+
+# Container settings
+influxdb3_image: "docker.io/library/influxdb:3-core"
+
+# Port settings (configurable to avoid conflicts)
+influxdb3_port: 8181                    # Host port (localhost binding)
+influxdb3_internal_port: 8181           # Container port (can override if needed)
+
+# Directory settings
+influxdb3_data_dir: "{{ ansible_user_dir }}/influxdb3-data"
+influxdb3_secrets_dir: "{{ ansible_user_dir }}/influxdb3-data/secrets"
+
+# Server settings
+influxdb3_node_id: "{{ inventory_hostname }}-influxdb3"
+influxdb3_object_store: "file"  # file, memory, or s3
+
+# Admin token (loaded from environment or file)
+influxdb3_admin_token: "{{ lookup('env', 'INFLUXDB3_AUTH_TOKEN', default='') }}"
+
+
+# Traefik integration
+influxdb3_enable_traefik: true
+
+# =======================================================================
+# Network settings (can be overridden in inventory)
+service_network: "ct-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"
+
+# =======================================================================
+# Service properties (for _base role inheritance)
+service_properties:
+  root: "influxdb3"
+  name: "influxdb3-pod"
+  pod_key: "influxdb3.pod"
+  quadlets:
+    - "influxdb3-svc.container"
+    - "influxdb3.pod"
+  data_dir: "{{ influxdb3_data_dir }}"
+  config_dir: "config"
+  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(true) | bool }}"
+  dirs:
+    - { path: "", mode: "0750" }
+    - { path: "config", mode: "0755" }
+    - { path: "data", mode: "0750" }
+    - { path: "plugins", mode: "0755" }
+    - { path: "secrets", mode: "0755" }

@@ -1,0 +1,87 @@
+---
+#
+# influxdb3 role - supports prepare, present, and absent states
+# States:
+#   prepare: First-time setup of directories and system configuration
+#   present: Deploy and configure InfluxDB3 containers
+#   absent: Remove containers (optionally remove data)
+
+- name: Validate state parameter
+  ansible.builtin.fail:
+    msg: "influxdb3_state must be one of: prepare, present, absent. Current value: {{ influxdb3_state }}"
+  when: influxdb3_state not in ['prepare', 'present', 'absent']
+
+- name: Test become capability
+  ansible.builtin.command: whoami
+  register: become_test
+  changed_when: false
+
+# =======================================================================
+# PREPARATION (one-time setup)
+# =======================================================================
+
+- name: Prepare InfluxDB3 (one-time setup)
+  when: influxdb3_state == 'prepare'
+  block:
+    - name: Check if already prepared
+      ansible.builtin.stat:
+        path: "{{ influxdb3_data_dir }}"
+      register: data_dir_check
+
+    - name: Fail if already prepared
+      ansible.builtin.fail:
+        msg: "InfluxDB3 appears to be already prepared. Directory {{ influxdb3_data_dir }} exists."
+      when: data_dir_check.stat.exists
+
+    # ............................................................
+    - name: Base prepare
+      ansible.builtin.include_tasks:
+        file: ../_base/tasks/prepare.yml
+
+# =======================================================================
+# DEPLOYMENT
+# =======================================================================
+
+- name: Install InfluxDB3
+  when: influxdb3_state == 'present'
+  block:
+    - name: Verify required directories exist
+      ansible.builtin.stat:
+        path: "{{ influxdb3_data_dir }}/{{ service_properties.config_dir }}"
+      register: config_dir_check
+      failed_when: not config_dir_check.stat.exists
+      changed_when: false
+
+    - name: Include prerequisites tasks
+      ansible.builtin.include_tasks: prerequisites.yml
+
+    - name: Include TLS tasks
+      ansible.builtin.include_tasks: tls.yml
+      when: influxdb3_enable_traefik | bool
+
+    - name: Ensure network setup
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/networks.yml"
+
+    - name: Include container tasks
+      ansible.builtin.include_tasks: quadlet_rootless.yml
+
+    - name: Bootstrap admin token
+      ansible.builtin.include_tasks: bootstrap_token.yml
+
+    - name: Verify deployment
+      ansible.builtin.include_tasks: verify.yml
+
+# =======================================================================
+# CLEANUP
+# =======================================================================
+
+- name: Remove InfluxDB3
+  when: influxdb3_state == 'absent'
+  block:
+    # ...............................................................................
+    - name: Include cleanup tasks
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/cleanup.yml"
+      vars:
+        service_state: absent
