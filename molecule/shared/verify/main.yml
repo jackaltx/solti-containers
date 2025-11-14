@@ -35,34 +35,34 @@
           - "Roles path: {{ playbook_dir }}/../../roles"
           - "Project_root: {{ project_root }}"
           - "Distribution: {{ ansible_facts['distribution'] }}"
-          - "Testing capability: {{ testing_capabilities }}"
+          - "Testing services: {{ testing_services }}"
 
     # ................................................................
     # note this has to be loaded in each phase playbook!
-    # This sets monitoring_capabilities variable. This is a hard-coded for now
-    - name: Load capability role definitions
+    # This sets container_services variable
+    - name: Load service role definitions
       include_vars:
-        file: "{{ project_root }}/molecule/vars/capabilities.yml"
+        file: "{{ project_root }}/molecule/vars/services.yml"
 
     # ................................................................
-    - name: Get listening ports for selected capabilities
+    - name: Get listening ports for selected services
       set_fact:
         container_service_ports: >-
           {{
-            testing_capabilities |
-            map('extract', monitoring_capabilities) |
+            testing_services |
+            map('extract', container_services) |
             map(attribute='service_ports') |
             flatten |
             list
           }}
 
     # ................................................................
-    - name: Get service names for selected capabilities
+    - name: Get service names for selected services
       set_fact:
         monitored_services: >-
           {{
-            testing_capabilities |
-            map('extract', monitoring_capabilities) |
+            testing_services |
+            map('extract', container_services) |
             map(attribute='service_names') |
             flatten |
             list
@@ -72,8 +72,8 @@
     - name: Debug service ports
       debug:
         msg:
-          - "Testing Capabilities: {{ testing_capabilities }}"
-          - "Roles to Include: {{ container_service_ports }}"
+          - "Testing Services: {{ testing_services }}"
+          - "Service Ports: {{ container_service_ports }}"
         verbosity: 0
 
     # ................................................................
@@ -90,17 +90,17 @@
         report_suffix: "preverify"
 
     # .......................................................................
-    # Version 2
+    # Version 2 - Adapted for container services
     #
-    # This is a nested loop that iterates over the testing_capabilities
-    # The inner loop is a short included script to loop over a list of test tasks
+    # This is a nested loop that iterates over the testing_services
+    # Each service runs its verify tasks from roles/<service>/tasks/verify.yml
     #
-    - name: Run capability-specific verifications
-      loop: "{{ testing_capabilities }}"
-      include_tasks: verify-capability.yml
+    - name: Run service-specific verifications
+      loop: "{{ testing_services }}"
+      include_tasks: verify-service.yml
       loop_control:
-        loop_var: capability
-        label: "Verifying {{ capability }} capability"
+        loop_var: service
+        label: "Verifying {{ service }} service"
 
     # .......................................................................
     - name: Run post-verify container diagnostics
@@ -121,12 +121,12 @@
         verification_status: >-
           {{
             verification_status | default({}) | combine(
-              { capability: hostvars[inventory_hostname][capability + '_verify_failed'] | default(false) }
+              { service: hostvars[inventory_hostname][service + '_verify_failed'] | default(false) }
             )
           }}
-      loop: "{{ testing_capabilities }}"
+      loop: "{{ testing_services }}"
       loop_control:
-        loop_var: capability
+        loop_var: service
 
     # .......................................................................
     - name: Final verification check

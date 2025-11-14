@@ -92,27 +92,36 @@
           - "Roles path: {{ playbook_dir }}/../../roles"
           - "Project_root: {{ project_root }}"
           - "Distribution: {{ ansible_distribution }}"
-          - "Testing capability: {{ testing_capabilities }}"
+          - "Testing services: {{ testing_services }}"
 
     # ..................................................................................
     # note this has to be loaded in each phase playbook!
-    - name: Load capability role definitions
+    - name: Load service role definitions
       include_vars:
-        file: "{{ project_root }}/molecule/vars/capabilities.yml"
+        file: "{{ project_root }}/molecule/vars/services.yml"
 
     # ..................................................................................
-    - name: Debug monitoring_capabilities
+    - name: Debug container_services
       debug:
-        var: monitoring_capabilities
+        var: container_services
         verbosity: 1
 
     # ..................................................................................
-    - name: Get required packages for each tested capability
+    # Install podman using solti-ensemble collection role
+    # This enables nested container testing (containers inside test containers)
+    - name: Install podman in test containers
+      include_role:
+        name: jackaltx.solti_ensemble.podman
+      vars:
+        podman_state: present
+
+    # ..................................................................................
+    - name: Get required packages for each tested service
       set_fact:
         combined_required_packages: >-
           {{
-            testing_capabilities
-            | map('extract', monitoring_capabilities)
+            testing_services
+            | map('extract', container_services)
             | map(attribute='required_packages')
             | map(attribute=ansible_os_family)
             | flatten
@@ -124,7 +133,7 @@
     - name: Debug package selection
       debug:
         msg:
-          - "Testing Capabilities: {{ testing_capabilities }}"
+          - "Testing Services: {{ testing_services }}"
           - "Required Packages: {{ combined_required_packages }}"
         verbosity: 0
 
@@ -158,11 +167,20 @@
           until: pkg_install is success
           become: true
 
+    # ..................................................................................
+    # Test systemd functionality first
+    - name: Ensure systemd is available
+      command: systemctl --version
+      changed_when: false
+      register: systemd_check
+      ignore_errors: yes
+
     # ..................................................................
-    # TODO:  evaluate this as it seems overkill.
+    # Only needed for GitHub CI containers that don't boot with systemd
+    # Local test containers use /sbin/init so systemd is already running
     #
     - name: Configure container for systemd
-      when: on_github
+      when: on_github or (systemd_check.rc is defined and systemd_check.rc != 0)
       block:
         - name: Create systemd directories
           file:
@@ -195,12 +213,11 @@
             path: /var/run/dbus/system_bus_socket
             timeout: 30
 
-    # ..................................................................................
-    # Test systemd functionality
-    - name: Ensure systemd is available
-      command: systemctl --version
-      changed_when: false
-      register: systemd_check
+        # Re-check systemd after setup
+        - name: Verify systemd is now available
+          command: systemctl --version
+          changed_when: false
+          register: systemd_check
 
     - name: Show systemd version
       debug:

@@ -51,13 +51,16 @@
 - name: Install Redis
   when: redis_state == 'present'
   block:
-    - name: Verify required directories exist
+    - name: Check if directories exist
       become: true
       ansible.builtin.stat:
         path: "{{ redis_data_dir }}/{{ service_properties.config_dir }}"
       register: config_dir_check
-      failed_when: not config_dir_check.stat.exists
       changed_when: false
+
+    - name: Auto-prepare if directories don't exist (for molecule/testing)
+      ansible.builtin.include_tasks: prepare.yml
+      when: not config_dir_check.stat.exists
 
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml

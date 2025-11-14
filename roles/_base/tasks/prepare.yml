@@ -22,15 +22,24 @@
       service_properties.data_dir.startswith('/etc') }}"
 
 # ....................................................................................
-- name: Create service directories
-  become: "{{ needs_root | bool }}"
+- name: Create service directories (with root ownership)
+  become: true
   ansible.builtin.file:
     path: "{{ service_properties.data_dir }}{{ '/' + item.path if item.path != '' else '' }}"
     state: directory
     mode: "{{ item.mode }}"
-    owner: "{{ 'root' if needs_root else ansible_user_id }}"
-    group: "{{ 'root' if needs_root else ansible_user_id }}"
+    owner: root
+    group: root
   loop: "{{ service_properties.dirs }}"
+  when: needs_root | bool
+
+- name: Create service directories (user ownership)
+  ansible.builtin.file:
+    path: "{{ service_properties.data_dir }}{{ '/' + item.path if item.path != '' else '' }}"
+    state: directory
+    mode: "{{ item.mode }}"
+  loop: "{{ service_properties.dirs }}"
+  when: not (needs_root | bool)
 
 # ....................................................................................
 - name: Configure SELinux if enabled

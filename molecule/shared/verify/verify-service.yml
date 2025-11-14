@@ -1,0 +1,32 @@
+---
+# Verify a single container service
+# Called from main.yml for each service in testing_services
+# Variable 'service' contains the service name (e.g., 'traefik', 'hashivault')
+
+- name: "Debug service verification for {{ service }}"
+  debug:
+    msg:
+      - "Verifying service: {{ service }}"
+      - "Service definition: {{ container_services[service] }}"
+    verbosity: 0
+
+# Get verify tasks for this service from services.yml
+- name: "Get verify tasks for {{ service }}"
+  set_fact:
+    service_verify_tasks: "{{ container_services[service].verify_role_tasks }}"
+
+# Run verify tasks for the service
+# Simply includes the verify.yml from the service's role directory
+# Example: roles/traefik/tasks/verify.yml
+- name: "Run verification for {{ service }}"
+  include_role:
+    name: "{{ project_root }}/roles/{{ service }}"
+    tasks_from: verify.yml
+  when: service_verify_tasks is defined
+  ignore_errors: yes
+  register: service_verify_result
+
+# Capture verification results
+- name: "Record {{ service }} verification result"
+  set_fact:
+    "{{ service }}_verify_failed": "{{ service_verify_result.failed | default(false) }}"

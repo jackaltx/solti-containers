@@ -21,33 +21,36 @@
           - "Roles path: {{ playbook_dir }}/../../roles"
           - "Project_root: {{ project_root }}"
           - "Distribution: {{ ansible_facts['distribution'] }}"
-          - "Testing capability: {{ testing_capabilities }}"
+          - "Distribution major version: {{ ansible_facts['distribution_major_version'] }}"
+          - "Distribution release: {{ ansible_facts['distribution_release'] }}"
+          - "Distribution version: {{ ansible_facts['distribution_version'] }}"
+          - "Testing services: {{ testing_services }}"
           - "Test timestamp: {{ verify_timestamp }}"
 
     # ................................................................
     # note this has to be loaded in each phase playbook!
-    - name: Load capability role definitions
+    - name: Load service role definitions
       include_vars:
-        file: "{{ project_root }}/molecule/vars/capabilities.yml"
+        file: "{{ project_root }}/molecule/vars/services.yml"
 
     # ................................................................
-    - name: Validate testing capabilities
+    - name: Validate testing services
       assert:
         that:
-          - capability in monitoring_capabilities.keys()
-        fail_msg: "Invalid capability specified: {{ capability }}"
-        success_msg: "Valid capability: {{ capability }}"
-      loop: "{{ testing_capabilities }}"
+          - service in container_services.keys()
+        fail_msg: "Invalid service specified: {{ service }}"
+        success_msg: "Valid service: {{ service }}"
+      loop: "{{ testing_services }}"
       loop_control:
-        loop_var: capability
+        loop_var: service
 
     # ................................................................
-    - name: Get roles for selected capabilities
+    - name: Get roles for selected services
       set_fact:
         roles_to_include: >-
           {{
-            testing_capabilities |
-            map('extract', monitoring_capabilities) |
+            testing_services |
+            map('extract', container_services) |
             map(attribute='roles') |
             flatten |
             list
@@ -57,11 +60,19 @@
     - name: Debug role inclusion
       debug:
         msg:
-          - "Testing Capabilities: {{ testing_capabilities }}"
+          - "Testing Services: {{ testing_services }}"
           - "Roles to Include: {{ roles_to_include }}"
         verbosity: 0
 
     # ................................................................
+    # Enable loginctl linger for user so containers persist
+    - name: Enable loginctl linger for ansible_user
+      command: "loginctl enable-linger {{ ansible_user }}"
+      changed_when: false
+      become: true
+
+    # ................................................................
+    # Roles handle privilege escalation internally via their own become directives
     - name: Include roles to be tested
       include_role:
         name: "{{ project_root }}/roles/{{ role_name }}"
