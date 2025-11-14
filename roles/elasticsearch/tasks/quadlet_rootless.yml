@@ -5,7 +5,7 @@
 # TODO this should be part of _base
 - name: Ensure required directories exist
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ ansible_facts.user_dir }}/{{ item }}"
     state: directory
     mode: "0750"
   loop:
@@ -17,7 +17,7 @@
 - name: Create environment file for Elasticsearch
   ansible.builtin.template:
     src: elasticsearch.env.j2
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/elasticsearch.env"
+    dest: "{{ ansible_facts.user_dir }}/.config/containers/systemd/env/elasticsearch.env"
     mode: "0600"
 
 # ....................................................................................
@@ -28,7 +28,7 @@
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ elasticsearch_port }}:9200"
       - "127.0.0.1:{{ elasticsearch_gui_port }}:8080"
@@ -54,7 +54,7 @@
     pod: elasticsearch.pod
     image: "{{ elasticsearch_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume:
       - "{{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z,U"
       - "{{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z,U"
@@ -66,7 +66,7 @@
       xpack.security.enabled: "{{ elasticsearch_enable_security | string }}"
       bootstrap.memory_lock: "true"
     quadlet_options:
-      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/elasticsearch.env"
+      - "EnvironmentFile={{ ansible_facts.user_dir }}/.config/containers/systemd/env/elasticsearch.env"
       - "Label=traefik.enable=true"
 
       # API router (port 9200) - Explicit service binding
@@ -108,7 +108,7 @@
     pod: elasticsearch.pod
     image: "{{ elasticsearch_elasticvue_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     quadlet_options:
       - |
         [Unit]

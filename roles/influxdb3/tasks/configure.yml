@@ -80,7 +80,7 @@
   ansible.builtin.copy:
     content: |
       # InfluxDB 3 Core Tokens
-      # Generated: {{ ansible_date_time.iso8601 }}
+      # Generated: {{ ansible_facts.date_time.iso8601 }}
       # Host: {{ ansible_hostname }}
 
       {% for result in token_results.results %}

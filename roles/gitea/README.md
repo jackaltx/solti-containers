@@ -32,12 +32,14 @@ export GITEA_ADMIN_PASSWORD="your-secure-password"
 ## Architecture
 
 ### Single Container Design
+
 - **Container**: gitea-svc (gitea/gitea:latest)
 - **Database**: SQLite (embedded, no separate container)
 - **Pod**: gitea-pod (systemd managed)
 - **Network**: ct-net with internal DNS
 
 ### Data Persistence
+
 ```
 ~/gitea-data/
 ├── config/
@@ -61,12 +63,14 @@ export GITEA_ADMIN_PASSWORD="your-secure-password"
 ### Inventory Variables
 
 **Required**:
+
 ```yaml
 gitea_admin_password: "{{ lookup('env', 'GITEA_ADMIN_PASSWORD') }}"
-gitea_data_dir: "{{ ansible_env.HOME }}/gitea-data"
+gitea_data_dir: "{{ ansible_facts.user_dir }}/gitea-data"
 ```
 
 **Optional**:
+
 ```yaml
 # Ports
 gitea_port: 3001                    # HTTP port
@@ -95,6 +99,7 @@ gitea_delete_data: false            # Preserve data on remove
 ### Environment Variables
 
 Set before deployment:
+
 ```bash
 export GITEA_ADMIN_PASSWORD="your-secure-password"
 ```
@@ -102,22 +107,26 @@ export GITEA_ADMIN_PASSWORD="your-secure-password"
 ## Access Methods
 
 ### Web Interface
-- **Local**: http://localhost:3001
-- **Traefik**: https://git.example.com (with SSL)
+
+- **Local**: <http://localhost:3001>
+- **Traefik**: <https://git.example.com> (with SSL)
 
 ### Git Operations
 
 **HTTPS Clone**:
+
 ```bash
 git clone https://git.example.com/username/repo.git
 ```
 
 **SSH Clone** (port 2222):
+
 ```bash
 git clone ssh://git@git.example.com:2222/username/repo.git
 ```
 
 **Configure SSH**:
+
 ```bash
 # Add to ~/.ssh/config
 Host git.example.com
@@ -129,6 +138,7 @@ Host git.example.com
 ## Features
 
 ### Git Hosting
+
 - Unlimited repositories (public/private)
 - Organization support
 - Branch protection rules
@@ -136,17 +146,20 @@ Host git.example.com
 - Issues and wikis
 
 ### CI/CD Actions
+
 - GitHub Actions-compatible workflows
 - Self-hosted runners
 - Matrix builds
 - Artifact storage
 
 ### Git LFS
+
 - Large file storage (>50MB files)
 - Automatic garbage collection
 - Configurable retention policies
 
 ### SSH Access
+
 - Key-based authentication
 - Multiple keys per user
 - Port 2222 (doesn't conflict with system SSH)
@@ -155,7 +168,7 @@ Host git.example.com
 
 After deployment, create the admin account:
 
-1. Access web UI: http://localhost:3001
+1. Access web UI: <http://localhost:3001>
 2. Initial setup will auto-create admin user:
    - Username: `gitea_admin` (from inventory)
    - Password: `$GITEA_ADMIN_PASSWORD`
@@ -164,6 +177,7 @@ After deployment, create the admin account:
 ## Operations
 
 ### Start/Stop Service
+
 ```bash
 systemctl --user start gitea-pod
 systemctl --user stop gitea-pod
@@ -171,6 +185,7 @@ systemctl --user restart gitea-pod
 ```
 
 ### View Logs
+
 ```bash
 # Container logs
 podman logs gitea-svc
@@ -183,6 +198,7 @@ journalctl --user -u gitea-pod -f
 ```
 
 ### Check Status
+
 ```bash
 # Service status
 systemctl --user status gitea-pod
@@ -195,6 +211,7 @@ podman stats gitea-svc
 ```
 
 ### Database Backup
+
 ```bash
 # Backup SQLite database
 podman exec gitea-svc sqlite3 /data/gitea/gitea.db ".backup /data/gitea/gitea-backup.db"
@@ -204,6 +221,7 @@ podman cp gitea-svc:/data/gitea/gitea-backup.db ~/gitea-backup-$(date +%Y%m%d).d
 ```
 
 ### Upgrade Gitea
+
 ```bash
 # Pull latest image
 podman pull docker.io/gitea/gitea:latest
@@ -216,6 +234,7 @@ podman pull docker.io/gitea/gitea:latest
 ## Troubleshooting
 
 ### Container Won't Start
+
 ```bash
 # Check pod status
 podman pod ps
@@ -229,6 +248,7 @@ journalctl --user -u gitea-pod -n 50
 ```
 
 ### Database Errors
+
 ```bash
 # Check database file
 podman exec gitea-svc ls -la /data/gitea/gitea.db
@@ -238,6 +258,7 @@ podman exec gitea-svc sqlite3 /data/gitea/gitea.db "PRAGMA integrity_check;"
 ```
 
 ### SSH Connection Issues
+
 ```bash
 # Verify SSH port is listening
 ss -tlnp | grep 2222
@@ -250,6 +271,7 @@ ssh -T -p 2222 git@localhost
 ```
 
 ### Performance Issues
+
 ```bash
 # Check resource usage
 podman stats gitea-svc
@@ -262,6 +284,7 @@ podman exec gitea-svc du -sh /data/git/repositories
 ```
 
 ### Traefik Integration Not Working
+
 ```bash
 # Verify container labels
 podman inspect gitea-svc | jq '.[].Config.Labels'
@@ -276,13 +299,17 @@ curl -H "Host: git.example.com" http://localhost
 ## Integration
 
 ### Traefik SSL Termination
+
 Gitea automatically integrates with Traefik when deployed:
+
 - Router: `git.example.com` → gitea-svc:3000
 - Automatic Let's Encrypt certificates
 - Security headers and HTTPS redirect
 
 ### Actions Runners
+
 Deploy self-hosted runners for CI/CD:
+
 ```bash
 # In Gitea UI: Settings → Actions → Runners
 # Generate runner token
@@ -290,7 +317,9 @@ Deploy self-hosted runners for CI/CD:
 ```
 
 ### Webhook Integration
+
 Configure webhooks for external services:
+
 - Mattermost notifications
 - Discord/Slack integration
 - Custom HTTP endpoints
@@ -298,18 +327,21 @@ Configure webhooks for external services:
 ## Security
 
 ### Authentication
+
 - Password-based login (default)
 - SSH key authentication for git
 - 2FA support (optional)
 - OAuth2 providers (future)
 
 ### Access Control
+
 - User/Organization/Repository levels
 - Branch protection rules
 - Required reviews for PRs
 - Deploy keys (read-only access)
 
 ### Network Security
+
 - Localhost binding (127.0.0.1)
 - Traefik SSL termination
 - Internal DNS within ct-net
@@ -318,6 +350,7 @@ Configure webhooks for external services:
 ## Data Management
 
 ### Backup Strategy
+
 ```bash
 # Full backup (data directory)
 tar -czf gitea-backup-$(date +%Y%m%d).tar.gz ~/gitea-data/
@@ -330,6 +363,7 @@ tar -czf gitea-repos-$(date +%Y%m%d).tar.gz ~/gitea-data/data/git/repositories/
 ```
 
 ### Restore Procedure
+
 ```bash
 # Stop service
 ./manage-svc.sh gitea remove
@@ -342,6 +376,7 @@ tar -xzf gitea-backup-20250106.tar.gz -C ~/
 ```
 
 ### Data Cleanup
+
 ```bash
 # Remove service but keep data (default)
 ./manage-svc.sh gitea remove

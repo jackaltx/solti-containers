@@ -49,7 +49,7 @@ Date: 20250221
 # Common pattern:
 - name: Ensure required directories exist
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ ansible_facts.user_dir }}/{{ item }}"
     state: directory
     mode: "0750"
 ```

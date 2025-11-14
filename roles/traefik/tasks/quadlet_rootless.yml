@@ -2,7 +2,7 @@
 # .............................................................................
 - name: Ensure required directories exist
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ ansible_facts.user_dir }}/{{ item }}"
     state: directory
     mode: "0750"
   loop:
@@ -47,7 +47,7 @@
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     ports:
       - "0.0.0.0:{{ traefik_http_port }}:8080" # Maps to internal 8000
       - "0.0.0.0:{{ traefik_https_port }}:8443" # Maps to internal 8443
@@ -67,7 +67,7 @@
     pod: traefik.pod
     image: "{{ traefik_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume:
       - "{{ traefik_data_dir }}/config:/etc/traefik:Z,U,ro"
       - "{{ traefik_data_dir }}/acme:/etc/traefik/acme:Z,U"

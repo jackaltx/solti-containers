@@ -62,8 +62,8 @@
 # Test 1: Verify non-admin user cannot create accounts
 - name: Create test user for negative testing
   set_fact:
-    test_email: "security-test-{{ ansible_date_time.epoch }}@example.com"
-    test_username: "security-test-{{ ansible_date_time.epoch }}"
+    test_email: "security-test-{{ ansible_facts.date_time.epoch }}@example.com"
+    test_username: "security-test-{{ ansible_facts.date_time.epoch }}"
     test_password: "TestPassword123!"
 
 - name: Attempt to create a user without authentication (should fail)
@@ -119,7 +119,7 @@
     method: POST
     body_format: json
     body:
-      email: "nonexistent-{{ ansible_date_time.epoch }}@example.com"
+      email: "nonexistent-{{ ansible_facts.date_time.epoch }}@example.com"
     status_code: [400] # Will fail because email doesn't exist, but will return password requirements
   register: password_requirements
   failed_when: false

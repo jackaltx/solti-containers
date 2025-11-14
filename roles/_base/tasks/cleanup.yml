@@ -4,50 +4,59 @@
 # TODO: test idempotence
 # ....................................................................................
 
-- name: Debug service_properties in prepare
-  ansible.builtin.debug:
-    var: service_properties
-    verbosity: 1
+- name: manage-svc.sh script runs with sudo, but this is a non-privilege
+  become: false
+  block:
+    #
+    # .................................................................
+
+    - name: Debug service_properties in prepare
+      ansible.builtin.debug:
+        var: service_properties
+        verbosity: 1
+
+    # .................................................................
+    - name: Stop and disable services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+        scope: user
+      loop:
+        - "{{ service_properties.name }}"
+      ignore_errors: true
+
+    # .................................................................
+    - name: Debug service file removal
+      ansible.builtin.debug:
+        msg: "_base.cleanup:  quadlets : {{ service_properties.quadlets }}"
+        verbosity: 0
+
+    - name: Remove Quadlet files
+      ansible.builtin.file:
+        path: "{{ real_user_dir }}/.config/containers/systemd/{{ item }}"
+        state: absent
+      loop: "{{ service_properties.quadlets }}"
+
+    # .................................................................
+    # This removes the pod/container services from systemd
+    # SMELL this is for rootless!!!
+    - name: Reload systemd user daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
+        scope: user
+
+    - name: Debug service file removal
+      ansible.builtin.debug:
+        msg: "_base.cleanup:  state: {{ service_state }}, del_data: {{ service_properties.delete_data }}, dir: {{ service_properties.data_dir }}"
+        verbosity: 1
 
 # .................................................................
-- name: Stop and disable services
-  ansible.builtin.systemd:
-    name: "{{ item }}"
-    state: stopped
-    enabled: no
-    scope: user
-  loop:
-    - "{{ service_properties.name }}"
-  ignore_errors: true
+# likely this will require root as some apps change ownership
 
-- name: Debug service file removal
-  ansible.builtin.debug:
-    msg: "_base.cleanup:  quadlets : {{ service_properties.quadlets }}"
-    verbosity: 1
-
-# .................................................................
-- name: Remove Quadlet files
-  ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item }}"
-    state: absent
-  loop: "{{ service_properties.quadlets }}"
-
-# .................................................................
-# This removes the pod/container services from systemd
-# SMELL this is for rootless!!!
-- name: Reload systemd user daemon
-  ansible.builtin.systemd:
-    daemon_reload: yes
-    scope: user
-
-- name: Debug service file removal
-  ansible.builtin.debug:
-    msg: "_base.cleanup:  state: {{ service_state }}, del_data: {{ service_properties.delete_data }}, dir: {{ service_properties.data_dir }}"
-    verbosity: 0
-
-# .................................................................
 - name: Remove all traces
   when: service_state == 'absent' and (service_properties.delete_data | bool)
+  become: true
   block:
     # ................................
     - name: Remove configuration

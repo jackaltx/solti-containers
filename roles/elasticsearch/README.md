@@ -90,7 +90,7 @@ elasticsearch_enable_security: true          # X-Pack security
 elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD') }}"
 
 # Data persistence
-elasticsearch_data_dir: "{{ ansible_user_dir }}/elasticsearch-data"
+elasticsearch_data_dir: "{{ ansible_facts.user_dir }}/elasticsearch-data"
 
 # Performance tuning
 elasticsearch_discovery_type: "single-node"  # Single node cluster

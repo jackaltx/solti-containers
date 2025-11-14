@@ -1,6 +1,14 @@
 ---
 #
 # ....................................................................................
+- name: Ensure quadlet directory exists
+  ansible.builtin.file:
+    path: "~{{ real_user }}/.config/containers/systemd"
+    state: directory
+    mode: '0755'
+  become: false
+
+# ....................................................................................
 - name: Create Redis pod Quadlet
   containers.podman.podman_pod:
     name: redis
@@ -8,7 +16,7 @@
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "~{{ real_user }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ redis_port }}:6379"
       - "127.0.0.1:{{ redis_gui_port }}:8081"
@@ -27,7 +35,7 @@
     pod: redis.pod
     image: "{{ redis_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "~{{ real_user }}/.config/containers/systemd"
     volume:
       - "{{ redis_data_dir }}/config:/usr/local/etc/redis:Z"
       - "{{ redis_data_dir }}/data:/data:Z"
@@ -58,7 +66,7 @@
     pod: redis.pod
     image: "{{ redis_commander_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "~{{ real_user }}/.config/containers/systemd"
     env:
       REDIS_HOSTS: "local:redis-svc:6379:0:{{ redis_password }}"
     quadlet_options:
@@ -86,17 +94,27 @@
 
 #
 # .......................................................................................
+- name: Fix quadlet file ownership
+  ansible.builtin.file:
+    path: "~{{ real_user }}/.config/containers/systemd"
+    state: directory
+    owner: "{{ real_user }}"
+    group: "{{ real_user }}"
+    recurse: yes
+  become: true
+
+# .......................................................................................
 - name: reload systemd user daemon
-  ansible.builtin.command: systemctl --user daemon-reload
-  environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ ansible_user_uid }}"
-    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_user_uid }}/bus"
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user daemon-reload
+  become: false
   changed_when: false
 
 # .......................................................................................
-- name: Enable and start rootless pod with systemd
-  ansible.builtin.command: systemctl --user enable --now {{ service_properties.name }}
-  environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ ansible_user_uid }}"
-    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_user_uid }}/bus"
+- name: Start rootless pod with systemd
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user start {{ service_properties.name }}
+  become: false
   changed_when: true

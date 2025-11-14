@@ -79,7 +79,7 @@
     - name: Ensure data directory exists
       delegate_to: localhost
       ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.secrets"
+        path: "{{ ansible_facts.user_dir }}/.secrets"
         state: directory
         mode: "0750"
 
@@ -89,5 +89,5 @@
         content: |
           export ES_RO_TOKEN="{{ ro_key.json.encoded }}"
           export ES_RW_TOKEN="{{ rw_key.json.encoded }}"
-        dest: "{{ ansible_env.HOME }}/.secrets/elasticsearch_api_keys"
+        dest: "{{ ansible_facts.user_dir }}/.secrets/elasticsearch_api_keys"
         mode: "0600"

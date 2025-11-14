@@ -84,7 +84,7 @@ export [SERVICE]_PASSWORD="your_secure_password_here"
 [service]_password: "{{ lookup('env', '[SERVICE]_PASSWORD') | default('changeme') }}"
 
 # Data persistence
-[service]_data_dir: "{{ ansible_user_dir }}/[service]-data"
+[service]_data_dir: "{{ ansible_facts.user_dir }}/[service]-data"
 
 # [Category] settings
 [service]_[setting]: "[value]"               # [Description]

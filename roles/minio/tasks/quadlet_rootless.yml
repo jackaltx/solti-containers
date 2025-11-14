@@ -3,7 +3,7 @@
 # TODO this should be part of _base
 - name: Ensure required directories exist
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ ansible_facts.user_dir }}/{{ item }}"
     state: directory
     mode: "0750"
   loop:
@@ -15,7 +15,7 @@
 - name: Create environment file for MinIO secrets
   ansible.builtin.template:
     src: minio.env.j2
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/minio.env"
+    dest: "{{ ansible_facts.user_dir }}/.config/containers/systemd/env/minio.env"
     mode: "0600"
 
 # ..................................................................................
@@ -26,7 +26,7 @@
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ minio_api_port }}:9000"
       - "127.0.0.1:{{ minio_console_port }}:9001"
@@ -45,14 +45,14 @@
     pod: minio.pod
     image: "{{ minio_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume:
       - "{{ minio_data_dir }}/data:/data:Z"
       - "{{ minio_data_dir }}/config:/root/.minio:Z"
       - "{{ minio_data_dir }}/tls:/root/.minio/certs:Z"
     command: ["server", "/data", "--console-address", ":9001"]
     quadlet_options:
-      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/minio.env"
+      - "EnvironmentFile={{ ansible_facts.user_dir }}/.config/containers/systemd/env/minio.env"
       - "Label=traefik.enable=true"
 
       # API router (port 9000) - Explicit service binding
@@ -90,14 +90,14 @@
     pod: minio.pod
     image: "{{ minio_console_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume:
       - "{{ minio_data_dir }}/tls:/certs:Z,ro"
     env:
       MINIO_SERVER_URL: "http://minio-svc:9000"
       MINIO_SERVER_API_URL: "http://minio-svc:9000"
     quadlet_options:
-      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/minio.env"
+      - "EnvironmentFile={{ ansible_facts.user_dir }}/.config/containers/systemd/env/minio.env"
       - |
         [Unit]
         Description=MinIO Console Container

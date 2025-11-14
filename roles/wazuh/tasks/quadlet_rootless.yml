@@ -3,7 +3,7 @@
 # TODO this should be part of _base
 - name: Ensure required directories exist
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ ansible_facts.user_dir }}/{{ item }}"
     state: directory
     mode: "0750"
   loop:
@@ -15,7 +15,7 @@
 - name: Create environment file for Wazuh
   ansible.builtin.template:
     src: wazuh.env.j2
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/wazuh.env"
+    dest: "{{ ansible_facts.user_dir }}/.config/containers/systemd/env/wazuh.env"
     mode: "0600"
 
 # ..................................................................................
@@ -26,7 +26,7 @@
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ wazuh_api_port }}:{{ wazuh_api_port }}" # Wazuh API
       - "127.0.0.1:{{ wazuh_registration_port }}:{{ wazuh_registration_port }}" # Agent registration
@@ -60,7 +60,7 @@
     pod: wazuh.pod
     image: "{{ wazuh_indexer_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume:
       - "{{ wazuh_data_dir }}/config/indexer:/usr/share/wazuh-indexer/config:Z,U"
       - "{{ wazuh_data_dir }}/data/indexer:/var/lib/wazuh-indexer:Z,U"
@@ -80,7 +80,7 @@
       - "nofile=65535:65535"
       - "memlock=-1:-1"
     quadlet_options:
-      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/wazuh.env"
+      - "EnvironmentFile={{ ansible_facts.user_dir }}/.config/containers/systemd/env/wazuh.env"
       # These security options are critical for the indexer to work
       - "SecurityLabelDisable=true"
       - "User=1000:1000"
@@ -104,7 +104,7 @@
     pod: wazuh.pod
     image: "{{ wazuh_manager_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume:
       - "{{ wazuh_data_dir }}/config/manager:/var/ossec/etc:Z,U"
       - "{{ wazuh_data_dir }}/data/manager:/var/ossec/data:Z,U"
@@ -115,7 +115,7 @@
       INDEXER_PASSWORD: "{{ wazuh_admin_password }}"
       FILEBEAT_SSL_VERIFICATION: "none"
     quadlet_options:
-      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/wazuh.env"
+      - "EnvironmentFile={{ ansible_facts.user_dir }}/.config/containers/systemd/env/wazuh.env"
       - "User=1000:1000"
       - "SecurityLabelDisable=true"
       - |
@@ -138,7 +138,7 @@
     pod: wazuh.pod
     image: "{{ wazuh_dashboard_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume:
       - "{{ wazuh_data_dir }}/config/dashboard:/usr/share/wazuh-dashboard/config:Z,U"
       - "{{ wazuh_data_dir }}/data/dashboard:/usr/share/wazuh-dashboard/data:Z,U"

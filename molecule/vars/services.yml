@@ -17,7 +17,6 @@ container_services:
       Ubuntu: *debian_container_deps
       RedHat: &redhat_container_deps
         - podman
-        - podman-compose
         - crun
         - systemd
         - systemd-container

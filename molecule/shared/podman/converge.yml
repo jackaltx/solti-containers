@@ -8,6 +8,19 @@
     on_github: "{{ lookup('env', 'IN_GITHUB_CI', default=false) }}"
 
   tasks:
+    - name: Gather facts without become to get real user info
+      setup:
+      become: false
+
+    # CLAUDE, this is a potential problem
+    - name: Get real user UID (before become takes effect)
+      set_fact:
+        real_user_uid: "{{ ansible_facts['user_uid'] }}"
+        real_user: "{{ ansible_facts['user_id'] }}"
+
+    - name: Re-gather facts with become for system info
+      setup:
+
     - name: Set test run timestamp (used across converge and verify)
       set_fact:
         verify_timestamp: "{{ ansible_facts['date_time']['iso8601'] }}"
@@ -75,7 +88,7 @@
     # Ensure user runtime directory and D-Bus session exist
     - name: Check if user runtime directory exists
       ansible.builtin.stat:
-        path: "/run/user/{{ ansible_user_uid }}"
+        path: "/run/user/{{ real_user_uid }}"
       register: runtime_dir_check
 
     - name: Initialize user session if needed
@@ -83,11 +96,11 @@
       block:
         - name: Create user runtime directory
           ansible.builtin.file:
-            path: "/run/user/{{ ansible_user_uid }}"
+            path: "/run/user/{{ real_user_uid }}"
             state: directory
             mode: "0700"
-            owner: "{{ ansible_user }}"
-            group: "{{ ansible_user }}"
+            owner: "{{ real_user }}"
+            group: "{{ real_user }}"
           become: true
 
     # ................................................................

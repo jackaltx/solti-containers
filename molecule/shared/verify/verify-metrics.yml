@@ -209,7 +209,7 @@
       become: false
       ansible.builtin.copy:
         content: "{{ metrics_test_results }}"
-        dest: "{{ report_root }}/{{ ansible_distribution | lower }}/metrics-collection-{{ ansible_date_time.epoch }}-1.yml"
+        dest: "{{ report_root }}/{{ ansible_distribution | lower }}/metrics-collection-{{ ansible_facts.date_time.epoch }}-1.yml"
         mode: "0644"
       delegate_to: localhost
 
@@ -251,7 +251,7 @@
           capability: metrics
           distribution: {{ ansible_distribution | lower }}
           timestamp: {{ verify_timestamp }}
-        dest: "{{ report_root }}/{{ ansible_distribution | lower }}/verify-metrics-status-{{ ansible_date_time.epoch }}-1.yml"
+        dest: "{{ report_root }}/{{ ansible_distribution | lower }}/verify-metrics-status-{{ ansible_facts.date_time.epoch }}-1.yml"
         mode: "0644"
 
   rescue:
@@ -267,5 +267,5 @@
           error: Unexpected failure during verification process
           timestamp: {{ verify_timestamp }}
           distribution: {{ ansible_distribution | lower }}
-        dest: "{{ report_root }}/{{ ansible_distribution | lower }}/verify-metrics-failure-{{ ansible_date_time.epoch }}-1.yml"
+        dest: "{{ report_root }}/{{ ansible_distribution | lower }}/verify-metrics-failure-{{ ansible_facts.date_time.epoch }}-1.yml"
         mode: "0644"

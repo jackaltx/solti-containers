@@ -4,7 +4,7 @@
 
 - name: Ensure systemd user directories exist
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ ansible_facts.user_dir }}/{{ item }}"
     state: directory
     mode: "0755"
   loop:
@@ -13,14 +13,14 @@
 
 - name: Create gitea environment file directory
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/containers/systemd/env"
+    path: "{{ ansible_facts.user_dir }}/.config/containers/systemd/env"
     state: directory
     mode: "0755"
 
 - name: Copy gitea environment file
   ansible.builtin.copy:
     src: "{{ gitea_data_dir }}/config/gitea.env"
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/gitea.env"
+    dest: "{{ ansible_facts.user_dir }}/.config/containers/systemd/env/gitea.env"
     mode: "0640"
     remote_src: true
 
@@ -55,7 +55,7 @@
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ gitea_port }}:3000"
       - "127.0.0.1:{{ gitea_ssh_port }}:22"
@@ -76,10 +76,10 @@
     pod: gitea.pod
     image: "{{ gitea_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume: "{{ gitea_volumes }}"
     env_file:
-      - "{{ ansible_env.HOME }}/.config/containers/systemd/env/gitea.env"
+      - "{{ ansible_facts.user_dir }}/.config/containers/systemd/env/gitea.env"
     env:
       USER_UID: "1000"
       USER_GID: "1000"

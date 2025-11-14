@@ -80,7 +80,7 @@ redis_enable_gui: true                      # Enable Redis Commander
 redis_gui_port: 8081                       # Commander port
 
 # Data persistence
-redis_data_dir: "{{ ansible_user_dir }}/redis-data"
+redis_data_dir: "{{ ansible_facts.user_dir }}/redis-data"
 ```
 
 ## Using with Traefik SSL

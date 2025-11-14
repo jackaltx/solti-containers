@@ -7,7 +7,7 @@ These variables are used across multiple roles:
 ```bash
 # User Environment
 XDG_RUNTIME_DIR          # Required for rootless container operations
-ANSIBLE_USER_DIR         # User's home directory
+ansible_facts.user_dir         # User's home directory
 ANSIBLE_USER_ID          # User ID for container operations
 ```
 

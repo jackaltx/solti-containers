@@ -22,9 +22,11 @@
 ## Overview
 
 ### Purpose
+
 Deploy InfluxDB 3 Core as a rootless Podman container following the SOLTI container pattern, with SSL termination via Traefik and token-based authentication.
 
 ### Key Technologies
+
 - **Container**: InfluxDB 3 Core (`docker.io/influxdata/influxdb:3-core`)
 - **Port**: 8181 (HTTP API)
 - **Storage**: Parquet/Apache Arrow (not TSM)
@@ -32,6 +34,7 @@ Deploy InfluxDB 3 Core as a rootless Podman container following the SOLTI contai
 - **SSL**: Traefik termination (transparent to container)
 
 ### Design Patterns
+
 - Follows `_base` role inheritance
 - Dynamic playbook generation (`manage-svc.sh`, `svc-exec.sh`)
 - Post-deploy configuration via `initialize.yml` and `configure.yml`
@@ -52,6 +55,7 @@ Deploy InfluxDB 3 Core as a rootless Podman container following the SOLTI contai
 | **Traefik SSL** | `https://influxdb3.a0a0.org:8080` | ✅ Yes | **External**: Production access, clients |
 
 **Critical Understanding:**
+
 - Container always listens on plain HTTP (port 8181)
 - Traefik handles SSL termination externally
 - All Ansible tasks use `podman exec` with `http://localhost:8181`
@@ -91,6 +95,7 @@ svc-exec.sh influxdb3 verify
 | "Permissions" | Token permissions (database:name:read/write) |
 
 **Example Token Mapping:**
+
 ```yaml
 # These are NOT users - they are named tokens
 influxdb3_tokens:
@@ -107,11 +112,13 @@ influxdb3_tokens:
 ### 4. Traefik Configuration
 
 **From roles/traefik:**
+
 - Port **8080** → HTTPS only (Let's Encrypt)
 - NO HTTP entrypoint (commented out)
 - Entrypoint: `websecure` on port 8080
 
 **InfluxDB3 Traefik Labels:**
+
 ```yaml
 - "Label=traefik.enable=true"
 - "Label=traefik.http.routers.influxdb3.rule=Host(`influxdb3.{{ domain }}`)"
@@ -210,12 +217,14 @@ curl --user "ignored:${TOKEN}" \
 ```
 
 **Actions:**
+
 - Creates `~/influxdb3-data/` directory structure
 - Sets permissions (0750 for data, 0755 for config)
 - Configures SELinux contexts (RHEL)
 - Sets up container network (`ct-net`)
 
 **Directory Structure:**
+
 ```
 ~/influxdb3-data/
 ├── config/          # Environment files
@@ -230,6 +239,7 @@ curl --user "ignored:${TOKEN}" \
 ```
 
 **Execution Flow:**
+
 1. `prerequisites.yml` - Template environment file
 2. `tls.yml` - Placeholder (Traefik handles SSL)
 3. `quadlet_rootless.yml` - Create pod/container, start service
@@ -237,6 +247,7 @@ curl --user "ignored:${TOKEN}" \
 5. `verify.yml` - Basic health checks
 
 **Result:**
+
 - Container running on `127.0.0.1:8181`
 - Operator token saved to `~/.secrets/influxdb3-secrets/admin-token.json`
 - Service accessible via Traefik at `https://influxdb3.a0a0.org:8080`
@@ -248,6 +259,7 @@ curl --user "ignored:${TOKEN}" \
 ```
 
 **Actions:**
+
 1. Load operator token from file
 2. List existing databases
 3. Create databases from `influxdb3_databases` (inventory)
@@ -255,6 +267,7 @@ curl --user "ignored:${TOKEN}" \
 5. Save all tokens to `./data/influxdb3-tokens-firefly.yml`
 
 **Output File Example:**
+
 ```yaml
 # ./data/influxdb3-tokens-firefly.yml
 - description: telegraf-writer
@@ -273,6 +286,7 @@ curl --user "ignored:${TOKEN}" \
 ```
 
 **Tests:**
+
 - Pod/container status
 - API health endpoint
 - Create test database
@@ -288,6 +302,7 @@ curl --user "ignored:${TOKEN}" \
 ```
 
 **Actions:**
+
 - Stop and remove containers
 - Preserve data by default (`influxdb3_delete_data: false`)
 - Remove quadlet files
@@ -320,6 +335,7 @@ roles/influxdb3/
 ### Task Breakdown
 
 #### 1. Create Role Directory Structure
+
 ```bash
 mkdir -p roles/influxdb3/{defaults,tasks,templates,handlers,meta}
 ```
@@ -339,8 +355,8 @@ influxdb3_image: "docker.io/influxdata/influxdb:3-core"
 influxdb3_port: 8181
 
 # Directory settings
-influxdb3_data_dir: "{{ ansible_user_dir }}/influxdb3-data"
-influxdb3_secrets_dir: "{{ ansible_user_dir }}/.secrets/influxdb3-secrets"
+influxdb3_data_dir: "{{ ansible_facts.user_dir }}/influxdb3-data"
+influxdb3_secrets_dir: "{{ ansible_facts.user_dir }}/.secrets/influxdb3-secrets"
 
 # Server settings
 influxdb3_node_id: "{{ inventory_hostname }}-influxdb3"
@@ -525,7 +541,7 @@ State-driven entry point:
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ influxdb3_port }}:8181"
     quadlet_options:
@@ -543,7 +559,7 @@ State-driven entry point:
     pod: influxdb3.pod
     image: "{{ influxdb3_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume:
       - "{{ influxdb3_data_dir }}/data:/var/lib/influxdb3/data:Z"
       - "{{ influxdb3_data_dir }}/plugins:/var/lib/influxdb3/plugins:Z"
@@ -737,7 +753,7 @@ State-driven entry point:
   ansible.builtin.copy:
     content: |
       # InfluxDB 3 Core Tokens
-      # Generated: {{ ansible_date_time.iso8601 }}
+      # Generated: {{ ansible_facts.date_time.iso8601 }}
       # Host: {{ ansible_hostname }}
 
       {% for result in token_results.results %}
@@ -838,7 +854,7 @@ State-driven entry point:
       podman exec influxdb3-svc
       curl -s -X POST "http://localhost:8181/api/v3/write?db=test-ansible"
       -H "Authorization: Bearer {{ verify_token }}"
-      --data-binary "test_measurement,host={{ ansible_hostname }} value=123,status=\"ok\" {{ ansible_date_time.epoch }}000000000"
+      --data-binary "test_measurement,host={{ ansible_hostname }} value=123,status=\"ok\" {{ ansible_facts.date_time.epoch }}000000000"
   register: write_result
   changed_when: false
   no_log: true
@@ -891,7 +907,7 @@ State-driven entry point:
 
 ```bash
 # InfluxDB 3 Core Environment Variables
-# Generated by Ansible on {{ ansible_date_time.iso8601 }}
+# Generated by Ansible on {{ ansible_facts.date_time.iso8601 }}
 
 # Node identification
 INFLUXDB3_NODE_IDENTIFIER_PREFIX={{ influxdb3_node_id }}
@@ -923,12 +939,12 @@ influxdb3_svc:
 
   vars:
     debug_level: warn
-    influxdb3_data_dir: "{{ ansible_env.HOME }}/influxdb3-data"
+    influxdb3_data_dir: "{{ ansible_facts.user_dir }}/influxdb3-data"
     influxdb3_port: 8181
     influxdb3_delete_data: false
 
     # Secrets directory
-    influxdb3_secrets_dir: "{{ ansible_env.HOME }}/.secrets/influxdb3-secrets"
+    influxdb3_secrets_dir: "{{ ansible_facts.user_dir }}/.secrets/influxdb3-secrets"
 
     # Admin token (loaded from environment or file)
     influxdb3_admin_token: "{{ lookup('env', 'INFLUXDB3_ADMIN_TOKEN', default='') }}"
@@ -1011,6 +1027,7 @@ SUPPORTED_SERVICES=(
 #### 14. README.md
 
 Create `roles/influxdb3/README.md` with:
+
 - Service overview
 - Quick start guide
 - Configuration examples
@@ -1053,6 +1070,7 @@ database:DATABASE_NAME:ACTIONS
 ```
 
 **Examples:**
+
 - `database:telegraf:write` - Write-only to telegraf database
 - `database:metrics:read` - Read-only to metrics database
 - `database:logs:write,read` - Read/write to logs database
@@ -1063,12 +1081,14 @@ database:DATABASE_NAME:ACTIONS
 ## Testing Checklist
 
 ### Preparation Phase
+
 - [ ] `./manage-svc.sh influxdb3 prepare` succeeds
 - [ ] Directory `~/influxdb3-data` created with correct structure
 - [ ] Subdirectories have correct permissions (750/755)
 - [ ] SELinux contexts applied (RHEL systems)
 
 ### Deployment Phase
+
 - [ ] `./manage-svc.sh influxdb3 deploy` succeeds
 - [ ] Container `influxdb3-svc` is running
 - [ ] Pod `influxdb3` is running
@@ -1077,12 +1097,14 @@ database:DATABASE_NAME:ACTIONS
 - [ ] Health check responds: `curl http://127.0.0.1:8181/health`
 
 ### Configuration Phase
+
 - [ ] `./svc-exec.sh influxdb3 configure` succeeds
 - [ ] All databases from inventory created
 - [ ] All resource tokens created
 - [ ] Tokens saved to `./data/influxdb3-tokens-firefly.yml`
 
 ### Verification Phase
+
 - [ ] `./svc-exec.sh influxdb3 verify` succeeds
 - [ ] Test database created
 - [ ] Test data written successfully
@@ -1090,12 +1112,14 @@ database:DATABASE_NAME:ACTIONS
 - [ ] Test database cleaned up
 
 ### Traefik Integration
+
 - [ ] Traefik labels applied to container
 - [ ] Service registered in Traefik dashboard
 - [ ] HTTPS access works: `https://influxdb3.a0a0.org:8080/health`
 - [ ] SSL certificate issued by Let's Encrypt
 
 ### Removal Phase
+
 - [ ] `./manage-svc.sh influxdb3 remove` succeeds
 - [ ] Container stopped and removed
 - [ ] Pod removed
@@ -1103,6 +1127,7 @@ database:DATABASE_NAME:ACTIONS
 - [ ] Data removed (if `influxdb3_delete_data: true`)
 
 ### Edge Cases
+
 - [ ] Re-running `initialize` doesn't create duplicate tokens
 - [ ] Re-running `configure` is idempotent (doesn't fail on existing databases)
 - [ ] Service survives host reboot (systemd auto-start)

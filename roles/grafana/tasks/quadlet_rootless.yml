@@ -2,7 +2,7 @@
 # ..................................................................................
 - name: Ensure required directories exist
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ ansible_facts.user_dir }}/{{ item }}"
     state: directory
     mode: "0750"
   loop:
@@ -14,7 +14,7 @@
 - name: Create environment file for Grafana
   ansible.builtin.template:
     src: grafana.env.j2
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/grafana.env"
+    dest: "{{ ansible_facts.user_dir }}/.config/containers/systemd/env/grafana.env"
     mode: "0600"
 
 # ..................................................................................
@@ -25,7 +25,7 @@
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ grafana_port }}:3000"
     quadlet_options:
@@ -43,7 +43,7 @@
     pod: grafana.pod
     image: "{{ grafana_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume:
       - "{{ grafana_data_dir }}/config/grafana.ini:/etc/grafana/grafana.ini:Z,U,ro"
       - "{{ grafana_data_dir }}/data:/var/lib/grafana:Z,U"
@@ -55,7 +55,7 @@
       GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
       GF_INSTALL_PLUGINS: ""
     quadlet_options:
-      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/grafana.env"
+      - "EnvironmentFile={{ ansible_facts.user_dir }}/.config/containers/systemd/env/grafana.env"
       - "Label=traefik.enable=true"
       - "Label=traefik.http.routers.grafana.rule=Host(`{{ grafana_domain }}`)"
       - "Label=traefik.http.routers.grafana.entrypoints=websecure"

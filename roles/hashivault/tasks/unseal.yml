@@ -31,19 +31,19 @@
     # Check if keys file exists
     - name: Check if keys file exists
       stat:
-        path: "{{ vault_keys_file | default(ansible_env.HOME + '/.secrets/vault-secrets/vault-keys.json') }}"
+        path: "{{ vault_keys_file | default(ansible_facts.user_dir + '/.secrets/vault-secrets/vault-keys.json') }}"
       register: keys_file_stat
 
     - name: Fail if keys file doesn't exist
       fail:
-        msg: "Vault keys file not found. Please check if the file exists at {{ vault_keys_file | default(ansible_env.HOME + '/.secrets/vault-secrets/vault-keys.json') }}"
+        msg: "Vault keys file not found. Please check if the file exists at {{ vault_keys_file | default(ansible_facts.user_dir + '/.secrets/vault-secrets/vault-keys.json') }}"
       when: not keys_file_stat.stat.exists
 
     # .........................................................................
     # Load the unseal keys
     - name: Load unseal keys from file
       slurp:
-        src: "{{ vault_keys_file | default(ansible_env.HOME + '/.secrets/vault-secrets/vault-keys.json') }}"
+        src: "{{ vault_keys_file | default(ansible_facts.user_dir + '/.secrets/vault-secrets/vault-keys.json') }}"
       register: encoded_keys
 
     - name: Parse unseal keys

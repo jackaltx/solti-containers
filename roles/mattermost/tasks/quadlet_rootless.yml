@@ -4,7 +4,7 @@
 # TODO  this should be part of _base
 - name: Ensure required directories exist
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ ansible_facts.user_dir }}/{{ item }}"
     state: directory
     mode: "0750"
   loop:
@@ -17,7 +17,7 @@
 - name: Create environment file for database secrets
   ansible.builtin.template:
     src: mattermost-db.env.j2
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/mattermost-db.env"
+    dest: "{{ ansible_facts.user_dir }}/.config/containers/systemd/env/mattermost-db.env"
     mode: "0600"
 
 # ..................................................................................
@@ -28,7 +28,7 @@
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ mattermost_port }}:8065"
     quadlet_options:
@@ -49,11 +49,11 @@
     pod: mattermost.pod
     image: "{{ mattermost_postgres_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume:
       - "{{ mattermost_data_dir }}/postgres:/var/lib/postgresql/data:Z"
     quadlet_options:
-      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/mattermost-db.env"
+      - "EnvironmentFile={{ ansible_facts.user_dir }}/.config/containers/systemd/env/mattermost-db.env"
       - |
         [Unit]
         Description=Mattermost Database Container
@@ -74,7 +74,7 @@
     pod: mattermost.pod
     image: "{{ mattermost_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume:
       - "{{ mattermost_data_dir }}/config:/mattermost/config:Z,U"
       - "{{ mattermost_data_dir }}/data:/mattermost/data:Z,U"

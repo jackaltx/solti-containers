@@ -9,13 +9,13 @@
     vault_addr: "http://localhost:8200"
     vault_keys_dir: "{{ lookup('env', 'HOME') }}/vault-secrets"
     vault_token_file: "{{ vault_keys_dir }}/vault-admin-credentials.txt"
-  
+
   tasks:
     - name: Check if token file exists
       stat:
         path: "{{ vault_token_file }}"
       register: token_file_stat
-    
+
     - name: Extract token from file if it exists
       when: token_file_stat.stat.exists
       block:
@@ -23,12 +23,12 @@
           slurp:
             src: "{{ vault_token_file }}"
           register: token_file_content
-        
+
         - name: Extract token using regex
           set_fact:
             vault_token: "{{ token_file_content['content'] | b64decode | regex_findall('VAULT_TOKEN=(.*?)($|\\n)') | first | first }}"
           no_log: true
-    
+
     - name: Set VAULT_ADDR and VAULT_TOKEN environment variables
       set_fact:
         ansible_environment:
@@ -44,28 +44,28 @@
     # Use lookup plugin to fetch secrets from HashiVault
     # Requires setting VAULT_ADDR and VAULT_TOKEN env variables
     elasticsearch_password: "{{ lookup('hashi_vault', 'secret=kv/data/services/elasticsearch:elastic_password') }}"
-    
+
     # Lookup with token from previous play
-    es_ro_token: "{{ lookup('hashi_vault', 
-                      'secret=kv/data/services/elasticsearch:es_ro_token 
-                       token=' + hostvars['localhost']['vault_token'] + 
-                       ' url=http://localhost:8200') }}"
-    
-    es_rw_token: "{{ lookup('hashi_vault', 
-                      'secret=kv/data/services/elasticsearch:es_rw_token 
-                       token=' + hostvars['localhost']['vault_token'] + 
-                       ' url=http://localhost:8200') }}"
-    
+    es_ro_token: "{{ lookup('hashi_vault',
+      'secret=kv/data/services/elasticsearch:es_ro_token
+      token=' + hostvars['localhost']['vault_token'] +
+      ' url=http://localhost:8200') }}"
+
+    es_rw_token: "{{ lookup('hashi_vault',
+      'secret=kv/data/services/elasticsearch:es_rw_token
+      token=' + hostvars['localhost']['vault_token'] +
+      ' url=http://localhost:8200') }}"
+
     # Other Elasticsearch settings
     elasticsearch_state: present
-    elasticsearch_data_dir: "{{ ansible_env.HOME }}/elasticsearch-data"
-  
+    elasticsearch_data_dir: "{{ ansible_facts.user_dir }}/elasticsearch-data"
+
   tasks:
     - name: Debug secret retrieval (normally hidden)
       debug:
         msg: "Using secrets from Vault (in production, never show these values)"
-        verbosity: 3  # Only show with -vvv
-    
+        verbosity: 3 # Only show with -vvv
+
     - name: Include Elasticsearch role
       include_role:
         name: elasticsearch
@@ -78,11 +78,11 @@
   vars:
     # Use HashiVault for password
     mattermost_postgres_password: "{{ lookup('hashi_vault', 'secret=kv/data/services/mattermost:mm_db_password') }}"
-    
+
     # Other Mattermost settings
     mattermost_state: present
-    mattermost_data_dir: "{{ ansible_env.HOME }}/mattermost-data"
-  
+    mattermost_data_dir: "{{ ansible_facts.user_dir }}/mattermost-data"
+
   tasks:
     - name: Include Mattermost role
       include_role:
@@ -96,11 +96,11 @@
   vars:
     # Use HashiVault for password
     redis_password: "{{ lookup('hashi_vault', 'secret=kv/data/services/redis:redis_password') }}"
-    
+
     # Other Redis settings
     redis_state: present
-    redis_data_dir: "{{ ansible_env.HOME }}/redis-data"
-  
+    redis_data_dir: "{{ ansible_facts.user_dir }}/redis-data"
+
   tasks:
     - name: Include Redis role
       include_role:

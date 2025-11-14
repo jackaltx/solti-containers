@@ -11,7 +11,7 @@
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ influxdb3_port }}:{{ influxdb3_internal_port }}"
     quadlet_options:
@@ -29,7 +29,7 @@
     pod: influxdb3.pod
     image: "{{ influxdb3_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     volume:
       - "{{ influxdb3_data_dir }}/data:/var/lib/influxdb3/data:z,U"
       - "{{ influxdb3_data_dir }}/plugins:/var/lib/influxdb3/plugins:z,U"

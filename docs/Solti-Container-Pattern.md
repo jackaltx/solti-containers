@@ -33,7 +33,7 @@ service_force_reload: false
 
 # Container settings
 service_image: "docker.io/org/image:tag"
-service_data_dir: "{{ ansible_user_dir }}/service-data"
+service_data_dir: "{{ ansible_facts.user_dir }}/service-data"
 service_port: 8080
 
 # Security settings
@@ -118,7 +118,7 @@ service_delete_data: false
 ```yaml
 - name: Ensure systemd directories exist
   file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ ansible_facts.user_dir }}/{{ item }}"
     state: directory
     mode: "0750"
   loop:
@@ -128,7 +128,7 @@ service_delete_data: false
 - name: Template Quadlet files
   template:
     src: "{{ item.src }}"
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/{{ item.dest }}"
+    dest: "{{ ansible_facts.user_dir }}/.config/containers/systemd/{{ item.dest }}"
     mode: "0644"
   loop:
     - { src: service.pod.j2, dest: service.pod }
@@ -137,7 +137,7 @@ service_delete_data: false
 - name: Generate systemd units
   command:
     cmd: podman generate systemd --name service-pod --files --new
-    chdir: "{{ ansible_env.HOME }}/.config/systemd/user"
+    chdir: "{{ ansible_facts.user_dir }}/.config/systemd/user"
 
 - name: Enable and start services
   systemd:
@@ -167,9 +167,9 @@ service_delete_data: false
     path: "{{ item }}"
     state: absent
   loop:
-    - "{{ ansible_env.HOME }}/.config/systemd/user/pod-service.service"
-    - "{{ ansible_env.HOME }}/.config/containers/systemd/service.pod"
-    - "{{ ansible_env.HOME }}/.config/containers/systemd/service-app.container"
+    - "{{ ansible_facts.user_dir }}/.config/systemd/user/pod-service.service"
+    - "{{ ansible_facts.user_dir }}/.config/containers/systemd/service.pod"
+    - "{{ ansible_facts.user_dir }}/.config/containers/systemd/service-app.container"
 
 - name: Remove data directory
   file:

@@ -71,7 +71,7 @@
     password: "{{ elasticsearch_password }}"
     body_format: json
     body:
-      message: "Verification {{ ansible_date_time.iso8601 }}"
+      message: "Verification {{ ansible_facts.date_time.iso8601 }}"
     force_basic_auth: yes
     status_code: 201
   register: index_result

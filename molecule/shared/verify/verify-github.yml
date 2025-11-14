@@ -45,7 +45,7 @@
 - name: Create common status data structure
   set_fact:
     status_data:
-      timestamp: "{{ ansible_date_time.iso8601 }}"
+      timestamp: "{{ ansible_facts.date_time.iso8601 }}"
       environment:
         os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
         kernel: "{{ ansible_kernel }}"

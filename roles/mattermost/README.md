@@ -103,7 +103,7 @@ mattermost_enable_user_creation: true   # Disabled after initialization
 mattermost_enable_open_server: true     # Disabled after initialization
 
 # Data persistence
-mattermost_data_dir: "{{ ansible_user_dir }}/mattermost-data"
+mattermost_data_dir: "{{ ansible_facts.user_dir }}/mattermost-data"
 ```
 
 ### Optional TLS Configuration

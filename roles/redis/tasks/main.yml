@@ -22,6 +22,18 @@
 #     msg: "Privilege escalation failed - not running as root"
 #   when: become_test.stdout != "root"
 
+# Currently doing rootless, script will set home to /root!!!!!
+- name: Gather facts without become to get real user info
+  setup:
+  become: false
+
+# CLAUDE, this is a potential problem
+- name: Get real user UID (before become takes effect)
+  set_fact:
+    real_user_uid: "{{ ansible_facts['user_uid'] }}"
+    real_user: "{{ ansible_facts['user_id'] }}"
+    real_user_dir: "{{ ansible_facts['user_dir'] }}"
+
 # =======================================================================
 # PREPARATION (one-time setup)
 # =======================================================================

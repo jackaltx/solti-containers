@@ -8,7 +8,7 @@
   set_fact:
     final_report: |
       === Monitoring Stack Test Report ===
-      Timestamp: {{ ansible_date_time.iso8601 }}
+      Timestamp: {{ ansible_facts.date_time.iso8601 }}
 
       Pre-verify Diagnostics:
       {{ all_verify_results.preverify }}
