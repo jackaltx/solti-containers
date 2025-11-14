@@ -87,18 +87,16 @@
 #
 # .......................................................................................
 - name: reload systemd user daemon
-  ansible.builtin.systemd:
-    daemon_reload: yes
-    scope: user
+  ansible.builtin.command: systemctl --user daemon-reload
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ ansible_user_uid }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_user_uid }}/bus"
+  changed_when: false
 
 # .......................................................................................
 - name: Enable and start rootless pod with systemd
-  ansible.builtin.systemd:
-    name: "{{ service_properties.name }}"
-    state: started
-    enabled: yes
-    scope: user
+  ansible.builtin.command: systemctl --user enable --now {{ service_properties.name }}
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ ansible_user_uid }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ ansible_user_uid }}/bus"
+  changed_when: true
