@@ -71,4 +71,4 @@
         path: "{{ item }}"
         state: absent
       with_fileglob:
-        - "~/.config/systemd/user/*{{ service_properties.root }}*"
+        - "{{ real_user_dir }}/.config/systemd/user/*{{ service_properties.root }}*"

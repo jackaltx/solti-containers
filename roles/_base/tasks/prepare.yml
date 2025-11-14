@@ -13,37 +13,19 @@
       - service_properties.dirs: List of required directories
 
 # ....................................................................................
-# Determine if we need root privileges based on the data directory path
-- name: Check if data directory requires root
-  set_fact:
-    needs_root: "{{ service_properties.data_dir.startswith('/opt') or
-      service_properties.data_dir.startswith('/var') or
-      service_properties.data_dir.startswith('/usr') or
-      service_properties.data_dir.startswith('/etc') }}"
-
-# ....................................................................................
-- name: Create service directories (with root ownership)
-  become: true
+# All rootless containers should use user-owned directories
+- name: Create service directories (user ownership for rootless containers)
   ansible.builtin.file:
     path: "{{ service_properties.data_dir }}{{ '/' + item.path if item.path != '' else '' }}"
     state: directory
     mode: "{{ item.mode }}"
-    owner: root
-    group: root
+    owner: "{{ real_user }}"
+    group: "{{ real_user }}"
   loop: "{{ service_properties.dirs }}"
-  when: needs_root | bool
-
-- name: Create service directories (user ownership)
-  ansible.builtin.file:
-    path: "{{ service_properties.data_dir }}{{ '/' + item.path if item.path != '' else '' }}"
-    state: directory
-    mode: "{{ item.mode }}"
-  loop: "{{ service_properties.dirs }}"
-  when: not (needs_root | bool)
 
 # ....................................................................................
 - name: Configure SELinux if enabled
-  become: "{{ needs_root | bool }}"
+  become: true
   when:
     - ansible_facts.selinux.status is defined
     - ansible_facts.selinux.status == 'enabled'

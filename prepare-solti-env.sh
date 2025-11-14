@@ -11,7 +11,7 @@ VENV_DIR="solti-venv"
 
 # Create fresh virtual environment
 echo "Creating virtual environment: $VENV_DIR"
-python3 -m venv "$VENV_DIR"
+python3 -m venv --system-site-packages "$VENV_DIR"
 
 # Activate it
 source "$VENV_DIR/bin/activate"
