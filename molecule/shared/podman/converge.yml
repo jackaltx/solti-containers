@@ -72,6 +72,25 @@
       become: true
 
     # ................................................................
+    # Ensure user runtime directory and D-Bus session exist
+    - name: Check if user runtime directory exists
+      ansible.builtin.stat:
+        path: "/run/user/{{ ansible_user_uid }}"
+      register: runtime_dir_check
+
+    - name: Initialize user session if needed
+      when: not runtime_dir_check.stat.exists
+      block:
+        - name: Create user runtime directory
+          ansible.builtin.file:
+            path: "/run/user/{{ ansible_user_uid }}"
+            state: directory
+            mode: "0700"
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+          become: true
+
+    # ................................................................
     # Roles handle privilege escalation internally via their own become directives
     - name: Include roles to be tested
       include_role:
