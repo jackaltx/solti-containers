@@ -90,6 +90,8 @@
   ansible.builtin.systemd:
     daemon_reload: yes
     scope: user
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ ansible_user_uid }}"
 
 # .......................................................................................
 - name: Enable and start rootless pod with systemd
@@ -98,3 +100,5 @@
     state: started
     enabled: yes
     scope: user
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ ansible_user_uid }}"
