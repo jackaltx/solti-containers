@@ -5,11 +5,12 @@
   ansible.builtin.file:
     path: "~{{ real_user }}/.config/containers/systemd"
     state: directory
-    mode: '0755'
+    mode: "0755"
   become: false
 
 # ....................................................................................
 - name: Create Redis pod Quadlet
+  become: false
   containers.podman.podman_pod:
     name: redis
     state: quadlet
@@ -30,6 +31,7 @@
 
 # ....................................................................................
 - name: Create Redis server container Quadlet
+  become: false
   containers.podman.podman_container:
     name: redis-svc
     pod: redis.pod
@@ -53,20 +55,16 @@
       - |
         [Install]
         WantedBy=default.target
-
-# ....................................................................................
-- name: Wait a moment for quadlet to be written
-  ansible.builtin.wait_for:
-    timeout: 10
 # ....................................................................................
 - name: Create Redis Commander container Quadlet
   when: redis_enable_gui | bool
+  become: false
   containers.podman.podman_container:
     name: redis-gui
     pod: redis.pod
     image: "{{ redis_commander_image }}"
     state: quadlet
-    quadlet_dir: "~{{ real_user }}/.config/containers/systemd"
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     env:
       REDIS_HOSTS: "local:redis-svc:6379:0:{{ redis_password }}"
     quadlet_options:
@@ -92,16 +90,10 @@
         [Install]
         WantedBy=default.target
 
-#
-# .......................................................................................
-- name: Fix quadlet file ownership
-  ansible.builtin.file:
-    path: "~{{ real_user }}/.config/containers/systemd"
-    state: directory
-    owner: "{{ real_user }}"
-    group: "{{ real_user }}"
-    recurse: yes
-  become: true
+# ....................................................................................
+- name: Wait a moment for quadlet to be written
+  ansible.builtin.wait_for:
+    timeout: 10
 
 # .......................................................................................
 - name: reload systemd user daemon

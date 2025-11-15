@@ -13,8 +13,8 @@ influxdb3_port: 8181 # Host port (localhost binding)
 influxdb3_internal_port: 8181 # Container port (can override if needed)
 
 # Directory settings
-influxdb3_data_dir: "{{ ansible_facts.user_dir }}/influxdb3-data"
-influxdb3_secrets_dir: "{{ ansible_facts.user_dir }}/influxdb3-data/secrets"
+influxdb3_data_dir: "{{lookup('env', 'HOME') }}/influxdb3-data"
+influxdb3_secrets_dir: "{{ lookup('env', 'HOME') }}/influxdb3-data/secrets"
 
 # Server settings
 influxdb3_node_id: "{{ inventory_hostname }}-influxdb3"

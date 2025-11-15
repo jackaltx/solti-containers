@@ -9,7 +9,7 @@
     pod: influxdb3.pod
     image: "{{ influxdb3_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
+    quadlet_dir: "{{ lookup('env', 'HOME') }}/.config/containers/systemd"
     volume:
       - "{{ influxdb3_data_dir }}/data:/var/lib/influxdb3/data:z,U"
       - "{{ influxdb3_data_dir }}/plugins:/var/lib/influxdb3/plugins:z,U"

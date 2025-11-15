@@ -1,8 +1,9 @@
 ---
 # ..................................................................................
 - name: Ensure required directories exist
+  become: false
   ansible.builtin.file:
-    path: "{{ ansible_facts.user_dir }}/{{ item }}"
+    path: "{{ real_user_dir }}/{{ item }}"
     state: directory
     mode: "0750"
   loop:
@@ -12,20 +13,22 @@
 
 # ..................................................................................
 - name: Create environment file for Grafana
+  become: false
   ansible.builtin.template:
     src: grafana.env.j2
-    dest: "{{ ansible_facts.user_dir }}/.config/containers/systemd/env/grafana.env"
+    dest: "{{ real_user_dir }}/.config/containers/systemd/env/grafana.env"
     mode: "0600"
 
 # ..................................................................................
 - name: Create Grafana pod Quadlet
+  become: false
   containers.podman.podman_pod:
     name: grafana
     state: quadlet
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ grafana_port }}:3000"
     quadlet_options:
@@ -38,12 +41,13 @@
 
 # ..................................................................................
 - name: Create Grafana container Quadlet
+  become: false
   containers.podman.podman_container:
     name: grafana-svc
     pod: grafana.pod
     image: "{{ grafana_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     volume:
       - "{{ grafana_data_dir }}/config/grafana.ini:/etc/grafana/grafana.ini:Z,U,ro"
       - "{{ grafana_data_dir }}/data:/var/lib/grafana:Z,U"
@@ -55,7 +59,7 @@
       GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
       GF_INSTALL_PLUGINS: ""
     quadlet_options:
-      - "EnvironmentFile={{ ansible_facts.user_dir }}/.config/containers/systemd/env/grafana.env"
+      - "EnvironmentFile={{ real_user_dir }}/.config/containers/systemd/env/grafana.env"
       - "Label=traefik.enable=true"
       - "Label=traefik.http.routers.grafana.rule=Host(`{{ grafana_domain }}`)"
       - "Label=traefik.http.routers.grafana.entrypoints=websecure"
@@ -75,16 +79,23 @@
         [Install]
         WantedBy=default.target
 
-# .......................................................................................
-- name: Reload systemd user daemon
-  ansible.builtin.systemd:
-    daemon_reload: yes
-    scope: user
+# ....................................................................................
+- name: Wait a moment for quadlet to be written
+  ansible.builtin.wait_for:
+    timeout: 10
 
 # .......................................................................................
-- name: Enable and start rootless pod with systemd
-  ansible.builtin.systemd:
-    name: "{{ service_properties.name }}"
-    state: started
-    enabled: yes
-    scope: user
+- name: reload systemd user daemon
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user daemon-reload
+  become: false
+  changed_when: false
+
+# .......................................................................................
+- name: Start rootless pod with systemd
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user start {{ service_properties.name }}
+  become: false
+  changed_when: true

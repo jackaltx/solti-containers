@@ -8,7 +8,7 @@ gitea_port: 3001
 gitea_ssh_port: 2222
 
 # Data directories
-gitea_data_dir: "{{ ansible_facts.user_dir }}/gitea-data"
+gitea_data_dir: "{{ lookup('env', 'HOME') }}/gitea-data"
 
 # Admin credentials
 gitea_admin_user: "gitea_admin"

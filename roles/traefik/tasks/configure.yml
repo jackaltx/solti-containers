@@ -9,7 +9,7 @@
     vault_addr: "http://localhost:8200"
 
     # Load the root token from init file
-    vault_keys_dir: "{{ ansible_facts.user_dir }}/.secrets/vault-secrets"
+    vault_keys_dir: "{{ lookup('env','HOME') }}/.secrets/vault-secrets"
     vault_keys_file: "{{ vault_keys_dir }}/vault-keys.json"
 
     # Configuration options

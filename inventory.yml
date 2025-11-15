@@ -61,7 +61,7 @@ all:
           # mattermost_svc only vars
           vars:
             debug_level: warn
-            mattermost_data_dir: "{{ ansible_facts.user_dir }}/mattermost-data"
+            mattermost_data_dir: "{{ lookup('env', 'HOME') }}/mattermost-data"
 
             test_email: "test-{{ ansible_facts.date_time.epoch }}@example.com"
             test_username: "testuser-{{ ansible_facts.date_time.epoch }}"
@@ -77,7 +77,7 @@ all:
           # _svc only vars
           vars:
             debug_level: warn
-            elasticsearch_data_dir: "{{ ansible_facts.user_dir }}/elasticsearch-data" #
+            elasticsearch_data_dir: "{{ lookup('env', 'HOME') }}/elasticsearch-data" #
             elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
 
             elasticsearch_proxy: "https://es.{{ domain }}:8443"
@@ -92,7 +92,7 @@ all:
           # _svc only vars
           vars:
             debug_level: warn
-            redis_data_dir: "{{ ansible_facts.user_dir }}/redis-data"
+            redis_data_dir: "{{ lookup('env', 'HOME') }}/redis-data"
             redis_password: "{{ lookup('env', 'REDIS_PASSWORD', default='') }}"
 
             test_key: "test:ansible"
@@ -108,7 +108,7 @@ all:
           # _svc only vars
           vars:
             debug_level: warn
-            vault_data_dir: "{{ ansible_facts.user_dir }}/vault-data"
+            vault_data_dir: "{{ lookup('env', 'HOME') }}/vault-data"
 
             # .......................................
             # Initialize vars
@@ -120,7 +120,7 @@ all:
             vault_key_threshold: 3 # Number of key shares needed to reconstruct the master key
 
             # Secure storage options
-            vault_keys_output_dir: "{{ ansible_facts.user_dir }}/.secrets/vault-secrets"
+            vault_keys_output_dir: "{{ lookup('env', 'HOME') }}/.secrets/vault-secrets"
             vault_keys_backup: true # Whether to create a backup copy
 
             # For demonstration only - in production use ansible-vault or a secrets manager
@@ -184,7 +184,7 @@ all:
             # .......................................
 
             # Load the root token from init file
-            vault_keys_dir: "{{ ansible_facts.user_dir }}/.secrets/vault-secrets"
+            vault_keys_dir: "{{ lookup('env', 'HOME') }}/.secrets/vault-secrets"
             vault_keys_file: "{{ vault_keys_dir }}/vault-keys.json"
 
             # Configuration options
@@ -235,7 +235,7 @@ all:
           vars:
             debug_level: warn
             traefik_dashboard_enabled: true
-            traefik_data_dir: "{{ ansible_facts.user_dir }}/traefik-data"
+            traefik_data_dir: "{{ lookup('env', 'HOME') }}/traefik-data"
 
             traefik_force_reload: false
 
@@ -252,7 +252,7 @@ all:
           vars:
             debug_level: warn
             minio_dashboard_enabled: true
-            minio_data_dir: "{{ ansible_facts.user_dir }}/minio-data"
+            minio_data_dir: "{{ lookup('env', 'HOME') }}/minio-data"
 
             # MinIO credentials
             # NOTE: These would be read from HashiVault in production
@@ -315,7 +315,7 @@ all:
           # _svc only vars
           vars:
             debug_level: warn
-            grafana_data_dir: "{{ ansible_facts.user_dir }}/grafana-data"
+            grafana_data_dir: "{{ lookup('env', 'HOME') }}/grafana-data"
             grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD', default='') }}"
 
         # ========================================
@@ -327,7 +327,7 @@ all:
           # gitea_svc only vars
           vars:
             debug_level: warn
-            gitea_data_dir: "{{ ansible_facts.user_dir }}/gitea-data"
+            gitea_data_dir: "{{ lookup('env', 'HOME') }}/gitea-data"
             gitea_admin_password: "{{ lookup('env', 'GITEA_ADMIN_PASSWORD', default='') }}"
             gitea_port: 3001
             gitea_ssh_port: 2222
@@ -351,11 +351,11 @@ all:
           # influxdb3_svc only vars
           vars:
             debug_level: warn
-            influxdb3_data_dir: "{{ ansible_facts.user_dir }}/influxdb3-data"
+            influxdb3_data_dir: "{{ lookup('env', 'HOME') }}/influxdb3-data"
             influxdb3_port: 8181
 
             # Secrets directory (under data dir for proper permissions)
-            influxdb3_secrets_dir: "{{ ansible_facts.user_dir }}/influxdb3-data/secrets"
+            influxdb3_secrets_dir: "{{ lookup('env', 'HOME') }}/influxdb3-data/secrets"
 
             # Admin token (loaded from environment or file)
             influxdb3_admin_token: "{{ lookup('env', 'INFLUXDB3_AUTH_TOKEN', default='') }}"

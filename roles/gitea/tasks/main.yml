@@ -14,6 +14,13 @@
   register: become_test
   changed_when: false
 
+# Get real user info using environment variables (immune to become)
+- name: Get real user info from environment
+  set_fact:
+    real_user: "{{ lookup('env', 'USER') }}"
+    real_user_dir: "{{ lookup('env', 'HOME') }}"
+    real_user_uid: "{{ lookup('pipe', 'id -u') }}"
+
 # =======================================================================
 # PREPARATION (one-time setup)
 # =======================================================================
@@ -38,7 +45,7 @@
           ansible.builtin.file:
             path: "{{ gitea_data_dir }}/.prepared"
             state: touch
-            mode: '0644'
+            mode: "0644"
 
 # =======================================================================
 # DEPLOYMENT (present state)

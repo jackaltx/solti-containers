@@ -6,6 +6,7 @@
 
 # ...................................................................................
 - name: Verify InfluxDB3 pod is running
+  become: false
   command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
   register: pod_status
   failed_when: "'influxdb3' not in pod_status.stdout"
@@ -27,6 +28,7 @@
 
 # ...................................................................................
 - name: Wait for InfluxDB3 to be ready
+  become: false
   command: >
     podman exec influxdb3-svc
     curl -s http://localhost:{{ influxdb3_internal_port }}/health

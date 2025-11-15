@@ -15,7 +15,7 @@ elasticsearch_image: "docker.io/elasticsearch:8.12.1"
 elasticsearch_elasticvue_image: "docker.io/cars10/elasticvue:latest"
 
 # Directory settings
-elasticsearch_data_dir: "{{ ansible_facts.user_dir }}/elasticsearch-data"
+elasticsearch_data_dir: "{{ lookup('env', 'HOME') }}/elasticsearch-data"
 
 # Elasticsearch settings
 elasticsearch_port: 9200
@@ -46,8 +46,6 @@ service_dns_servers:
   - "1.1.1.1"
   - "8.8.8.8"
 service_dns_search: "example.com"
-
-service_quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
 
 # =======================================================================
 service_properties:

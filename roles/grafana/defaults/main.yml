@@ -7,7 +7,7 @@ grafana_force_reload: false
 grafana_image: "docker.io/grafana/grafana:latest"
 
 # Directory settings
-grafana_data_dir: "{{ ansible_facts.user_dir }}/grafana-data"
+grafana_data_dir: "{{ lookup('env', 'HOME') }}/grafana-data"
 
 # Grafana settings
 grafana_port: 3000
