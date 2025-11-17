@@ -2,11 +2,12 @@
 #
 # manage-svc - Manage services using dynamically generated Ansible playbooks
 #
-# Usage: manage-svc [-h HOST] <service> <action>
+# Usage: manage-svc [-i INVENTORY] [-h HOST] <service> <action>
 #
 # Example:
 #   manage-svc elasticsearch prepare
 #   manage-svc -h firefly hashivault deploy
+#   manage-svc -i inventory/podma.yml redis deploy
 #   manage-svc redis remove
 
 # Exit on error
@@ -14,7 +15,7 @@ set -e
 
 # Configuration
 ANSIBLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INVENTORY="${ANSIBLE_DIR}/inventory.yml"
+INVENTORY="${SOLTI_INVENTORY:-${ANSIBLE_DIR}/inventory.yml}"
 TEMP_DIR="${ANSIBLE_DIR}/tmp"
 HOST=""
 
@@ -50,9 +51,10 @@ STATE_MAP["remove"]="absent"
 
 # Display usage information
 usage() {
-    echo "Usage: $(basename $0) [-h HOST] <service> <action> [options]"
+    echo "Usage: $(basename $0) [-i INVENTORY] [-h HOST] <service> <action> [options]"
     echo ""
     echo "Options:"
+    echo "  -i INVENTORY     - Path to inventory file (default: \$SOLTI_INVENTORY or inventory.yml)"
     echo "  -h HOST          - Target specific host from inventory (default: uses all hosts in service group)"
     echo "  -e VAR=VALUE     - Set extra variables (can be used multiple times)"
     echo ""
@@ -69,6 +71,7 @@ usage() {
     echo "Examples:"
     echo "  $(basename $0) elasticsearch prepare"
     echo "  $(basename $0) -h firefly hashivault deploy"
+    echo "  $(basename $0) -i inventory/podma.yml redis deploy"
     echo "  $(basename $0) redis remove"
     echo "  $(basename $0) mattermost deploy -e mattermost_version=8.1.0"
     echo "  $(basename $0) -h firefly elasticsearch prepare -e elasticsearch_memory=2g"
@@ -130,8 +133,11 @@ EOF
 }
 
 # Parse command line arguments
-while getopts "h:" opt; do
+while getopts "i:h:" opt; do
     case ${opt} in
+        i)
+            INVENTORY=$OPTARG
+            ;;
         h)
             HOST=$OPTARG
             ;;
@@ -175,6 +181,12 @@ if ! is_action_supported "$ACTION"; then
     usage
 fi
 
+# Validate inventory file exists
+if [[ ! -f "$INVENTORY" ]]; then
+    echo "Error: Inventory file not found: $INVENTORY"
+    exit 1
+fi
+
 # Generate timestamp for files
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 TEMP_PLAYBOOK="${TEMP_DIR}/${SERVICE}-${ACTION}-${TIMESTAMP}.yml"
@@ -185,6 +197,7 @@ generate_playbook "$SERVICE" "$ACTION"
 # Display execution info
 echo "Managing service: $SERVICE"
 echo "Action: $ACTION"
+echo "Inventory: $INVENTORY"
 if [[ -n "$HOST" ]]; then
     echo "Target host: $HOST"
 else

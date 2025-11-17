@@ -45,10 +45,6 @@ all:
           ansible_host: "localhost"
           ansible_connection: local
 
-        podma:
-          ansible_host: "podma.{{ domain }}"
-          ansible_user: lavender
-
       # .........................................
       # mylab vars
       vars:
@@ -91,7 +87,6 @@ all:
           hosts:
             firefly:
               # host_vars
-            podma:
 
           # .......................................
           # _svc only vars

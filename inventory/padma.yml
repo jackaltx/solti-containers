@@ -41,9 +41,7 @@ all:
       # .........................................
       # mylab hosts
       hosts:
-        firefly:
-          ansible_host: "localhost"
-          ansible_connection: local
+        #  For this example there is one and only one test host.
 
         podma:
           ansible_host: "podma.{{ domain }}"
@@ -58,7 +56,7 @@ all:
         # ========================================
         mattermost_svc:
           hosts:
-            firefly:
+            podma:
               # host_vars
 
           # .......................................
@@ -74,7 +72,7 @@ all:
         # ========================================
         elasticsearch_svc:
           hosts:
-            firefly:
+            podma:
               # host_vars
 
           # .......................................
@@ -89,9 +87,8 @@ all:
         # ========================================
         redis_svc:
           hosts:
-            firefly:
-              # host_vars
             podma:
+              # host_vars
 
           # .......................................
           # _svc only vars
@@ -106,7 +103,7 @@ all:
         # ========================================
         hashivault_svc:
           hosts:
-            firefly:
+            podma:
               # host_vars
 
           # .......................................
@@ -232,7 +229,7 @@ all:
         # ========================================
         traefik_svc:
           hosts:
-            firefly:
+            podma:
               # host_vars
 
           # .......................................
@@ -247,7 +244,7 @@ all:
         # ========================================
         minio_svc:
           hosts:
-            firefly:
+            podma:
               # Optional host-specific minio vars can go here
               minio_api_port: 9000
               minio_console_port: 9001
@@ -304,7 +301,7 @@ all:
         # ========================================
         wazuh_svc:
           hosts:
-            firefly:
+            podma:
 
           # .......................................
           # _svc only vars
@@ -314,7 +311,7 @@ all:
         # ========================================
         grafana_svc:
           hosts:
-            firefly:
+            podma:
 
           # .......................................
           # _svc only vars
@@ -326,7 +323,7 @@ all:
         # ========================================
         gitea_svc:
           hosts:
-            firefly:
+            podma:
 
           # .......................................
           # gitea_svc only vars
@@ -350,7 +347,7 @@ all:
         # ========================================
         influxdb3_svc:
           hosts:
-            firefly:
+            podma:
 
           # .......................................
           # influxdb3_svc only vars
