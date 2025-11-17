@@ -316,9 +316,8 @@ all:
           hosts:
             firefly:
 
-            padma:
-              vars:
-                grafana_svc_name: "tickytacky"
+            podma:
+              grafana_svc_name: "tickytacky"
 
           # .......................................
           # _svc only vars
