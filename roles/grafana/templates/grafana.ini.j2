@@ -11,11 +11,11 @@ plugins = /var/lib/grafana/plugins
 provisioning = /etc/grafana/provisioning
 
 [server]
-protocol = http
+protocol = https
 http_addr = 0.0.0.0
 http_port = 3000
 domain = {{ grafana_domain }}
-root_url = %(protocol)s://%(domain)s:%(http_port)s/
+root_url = %(protocol)s://%(domain)s:{{ grafana_external_port }}/
 
 [database]
 type = {{ grafana_database_type }}

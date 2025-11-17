@@ -12,6 +12,7 @@ grafana_data_dir: "{{ lookup('env', 'HOME') }}/grafana-data"
 # Grafana settings
 grafana_port: 3000
 grafana_domain: "grafana.{{ domain }}"
+grafana_external_port: 8080  # Port users access through Traefik (or 443 for standard HTTPS)
 
 # Security settings
 grafana_admin_user: "admin"
