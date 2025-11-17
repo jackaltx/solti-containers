@@ -61,7 +61,7 @@
     quadlet_options:
       - "EnvironmentFile={{ real_user_dir }}/.config/containers/systemd/env/grafana.env"
       - "Label=traefik.enable=true"
-      - "Label=traefik.http.routers.grafana.rule=Host(`{{ grafana_domain }}`)"
+      - "Label=traefik.http.routers.grafana.rule=Host(`{{ grafana_fqdn }}`)"
       - "Label=traefik.http.routers.grafana.entrypoints=websecure"
       - "Label=traefik.http.routers.grafana.service=grafana"
       - "Label=traefik.http.services.grafana.loadbalancer.server.port=3000"

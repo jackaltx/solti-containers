@@ -22,6 +22,11 @@
     real_user_dir: "{{ lookup('env', 'HOME') }}"
     real_user_uid: "{{ lookup('pipe', 'id -u') }}"
 
+# Calculate FQDN from service name (after inventory vars are merged)
+- name: Calculate grafana_fqdn from service name
+  set_fact:
+    grafana_fqdn: "{{ grafana_svc_name }}.{{ domain }}"
+
 # =======================================================================
 # PREPARATION (one-time setup)
 # =======================================================================
@@ -70,6 +75,9 @@
     - name: Ensure network setup
       ansible.builtin.include_tasks:
         file: "../_base/tasks/networks.yml"
+
+    - debug:
+        var: grafana_svc_name
 
     - name: Include container tasks
       ansible.builtin.include_tasks: quadlet_rootless.yml

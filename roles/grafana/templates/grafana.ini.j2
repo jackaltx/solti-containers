@@ -14,7 +14,7 @@ provisioning = /etc/grafana/provisioning
 protocol = https
 http_addr = 0.0.0.0
 http_port = 3000
-domain = {{ grafana_domain }}
+domain = {{ grafana_fqdn }}
 root_url = %(protocol)s://%(domain)s:{{ grafana_external_port }}/
 
 [database]
