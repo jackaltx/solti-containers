@@ -76,9 +76,6 @@
       ansible.builtin.include_tasks:
         file: "../_base/tasks/networks.yml"
 
-    - debug:
-        var: grafana_svc_name
-
     - name: Include container tasks
       ansible.builtin.include_tasks: quadlet_rootless.yml
 
