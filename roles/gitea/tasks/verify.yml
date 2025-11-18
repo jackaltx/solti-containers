@@ -3,12 +3,14 @@
 # Health checks and functionality tests
 
 - name: Verify gitea pod is running
+  become: false
   ansible.builtin.command: podman pod ps --filter "name=gitea" --format "{{ '{{' }}.Status{{ '}}' }}"
   register: pod_status
   changed_when: false
   failed_when: "'Running' not in pod_status.stdout"
 
 - name: Verify gitea container is running
+  become: false
   ansible.builtin.command: podman ps --filter "pod=gitea" --filter "name=gitea-svc" --format "{{ '{{' }}.Status{{ '}}' }}"
   register: container_status
   changed_when: false
@@ -74,6 +76,7 @@
   when: api_check.json.version is defined
 
 - name: Check container logs for errors
+  become: false
   ansible.builtin.command: podman logs --tail 50 gitea-svc
   register: container_logs
   changed_when: false
@@ -83,12 +86,14 @@
     msg: "{{ container_logs.stdout_lines[-10:] }}"
 
 - name: Verify gitea configuration
+  become: false
   ansible.builtin.command: podman exec gitea-svc ls -la /data/gitea/conf/app.ini
   register: config_check
   changed_when: false
   failed_when: config_check.rc != 0
 
 - name: Check gitea database
+  become: false
   ansible.builtin.command: podman exec gitea-svc ls -la /data/gitea/gitea.db
   register: db_check
   changed_when: false
@@ -99,6 +104,7 @@
     msg: "{{ 'Database initialized' if db_check.rc == 0 else 'Database will be created on first access' }}"
 
 - name: Display resource usage
+  become: false
   ansible.builtin.command: podman stats --no-stream --format "table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.CPUPerc{{ '}}' }}\t{{ '{{' }}.MemUsage{{ '}}' }}" gitea-svc
   register: stats
   changed_when: false
