@@ -13,7 +13,7 @@ mattermost_tls_min_version: "1.2"
 
 # Container settings
 mattermost_image: "docker.io/mattermost/mattermost-team-edition:latest"
-mattermost_postgres_image: "docker.io/library/postgres:13-alpine"
+mattermost_postgres_image: "docker.io/library/postgres:16-alpine"
 
 # Directory settings
 mattermost_data_dir: "{{ lookup('env', 'HOME') }}/mattermost-data"
