@@ -59,12 +59,15 @@ all:
         mattermost_svc:
           hosts:
             firefly:
-              # host_vars
+              mattermost_svc_name: "mattermost"
+            podma:
+              mattermost_svc_name: "mattermost-test"
 
           # .......................................
           # mattermost_svc only vars
           vars:
             debug_level: warn
+            mattermost_external_port: 8080
 
             test_email: "test-{{ ansible_facts.date_time.epoch }}@example.com"
             test_username: "testuser-{{ ansible_facts.date_time.epoch }}"

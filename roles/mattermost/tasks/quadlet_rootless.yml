@@ -97,7 +97,7 @@
       - "Label=traefik.enable=true"
 
       # API router (port 8065) - Explicit service binding
-      - "Label=traefik.http.routers.mattermost.rule=Host(`mattermost.{{ domain }}`)"
+      - "Label=traefik.http.routers.mattermost.rule=Host(`{{ mattermost_fqdn }}`)"
       - "Label=traefik.http.routers.mattermost.entrypoints=websecure"
       - "Label=traefik.http.routers.mattermost.service=mattermost"
       - "Label=traefik.http.services.mattermost.loadbalancer.server.port=8065"
