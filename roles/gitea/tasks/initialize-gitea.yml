@@ -66,15 +66,15 @@
 #   3. Our admin user exists -> skip (already initialized)
 - name: Create admin user via gitea CLI
   become: false
-  ansible.builtin.command:
-    cmd: >
-      podman exec --user git gitea-svc
-      gitea admin user create
-      --admin
-      --username "{{ gitea_admin_user }}"
-      --password "{{ gitea_admin_password }}"
-      --email "{{ gitea_admin_email }}"
-      --must-change-password=false
+  ansible.builtin.shell:
+    cmd: |
+      podman exec --user git gitea-svc \
+        gitea admin user create \
+        --admin \
+        --username "{{ gitea_admin_user }}" \
+        --password '{{ gitea_admin_password }}' \
+        --email "{{ gitea_admin_email }}" \
+        --must-change-password=false
   register: admin_create
   when:
     - admin_check.status == 401
@@ -84,6 +84,21 @@
     - "'user already exists' not in admin_create.stderr"
     - "'user already exists' not in admin_create.stdout"
   changed_when: admin_create.rc == 0
+
+- name: Fix password for existing admin user (if creation was skipped)
+  become: false
+  ansible.builtin.shell:
+    cmd: |
+      podman exec --user git gitea-svc \
+        gitea admin user change-password \
+        --username "{{ gitea_admin_user }}" \
+        --password '{{ gitea_admin_password }}'
+  register: password_change
+  when:
+    - admin_check.status == 401
+    - has_users
+  failed_when: false
+  changed_when: password_change.rc == 0
 
 - name: Display admin creation result
   ansible.builtin.debug:
