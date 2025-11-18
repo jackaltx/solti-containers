@@ -61,6 +61,7 @@
         verbosity: 0
 
     - name: Restart InfluxDB3 to load new token
+      become: false
       ansible.builtin.systemd:
         name: "{{ service_properties.name }}"
         state: restarted
