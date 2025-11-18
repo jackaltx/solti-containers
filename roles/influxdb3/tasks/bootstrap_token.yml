@@ -5,14 +5,17 @@
 #
 
 # ....................................................................................
-- name: Check if admin token file exists on host
-  ansible.builtin.stat:
-    path: "{{ influxdb3_secrets_dir }}/admin-token"
-  register: token_file
+- name: Check if admin token file exists inside container
+  become: false
+  ansible.builtin.command:
+    cmd: podman exec influxdb3-svc test -f /var/lib/influxdb3/secrets/admin-token
+  register: token_check
+  failed_when: false
+  changed_when: false
 
 # ....................................................................................
 - name: Bootstrap admin token
-  when: not token_file.stat.exists
+  when: token_check.rc != 0
   block:
     - name: Generate admin token from container
       become: false
@@ -74,11 +77,11 @@
 
 # ....................................................................................
 - name: Display token location
-  when: not token_file.stat.exists
+  when: token_check.rc != 0
   ansible.builtin.debug:
     msg: |
       Admin token saved to:
-      - Host (persisted): {{ influxdb3_secrets_dir }}/admin-token
+      - Inside container: /var/lib/influxdb3/secrets/admin-token
       - Reference copy: {{ influxdb3_data_dir }}/config/admin-token.txt
-      - Container sees: /var/lib/influxdb3/secrets/admin-token (via volume mount)
+      - Container volume mount: {{ influxdb3_secrets_dir }}/admin-token
     verbosity: 0
