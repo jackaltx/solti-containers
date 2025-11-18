@@ -15,6 +15,7 @@
   when: not token_file.stat.exists
   block:
     - name: Generate admin token from container
+      become: false
       ansible.builtin.command:
         cmd: podman exec influxdb3-svc influxdb3 create token --admin
       register: token_output
@@ -45,6 +46,7 @@
         mode: '0600'
 
     - name: Verify token is valid (query token list)
+      become: false
       ansible.builtin.command:
         cmd: >
           podman exec influxdb3-svc

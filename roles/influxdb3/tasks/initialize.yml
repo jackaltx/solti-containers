@@ -25,6 +25,7 @@
   when: not admin_token_file.stat.exists
   block:
     - name: Generate operator token offline to temp file
+      become: false
       ansible.builtin.command:
         cmd: podman exec influxdb3-svc influxdb3 create token --admin --format json --offline --output-file /tmp/admin-token.json
       register: token_result
@@ -32,6 +33,7 @@
       changed_when: true
 
     - name: Read token from container
+      become: false
       ansible.builtin.command:
         cmd: podman exec influxdb3-svc cat /tmp/admin-token.json
       register: token_content

@@ -29,6 +29,7 @@
 # ..............................................
 # List existing databases
 - name: List existing databases
+  become: false
   ansible.builtin.command:
     cmd: >
       podman exec
@@ -42,6 +43,7 @@
 # ..............................................
 # Create databases
 - name: Create databases
+  become: false
   ansible.builtin.command:
     cmd: >
       podman exec
@@ -58,6 +60,7 @@
 # ..............................................
 # Create resource tokens
 - name: Create resource tokens
+  become: false
   ansible.builtin.command:
     cmd: >
       podman exec

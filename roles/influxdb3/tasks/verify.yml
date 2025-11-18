@@ -18,6 +18,7 @@
 
 # ...................................................................................
 - name: Verify InfluxDB3 containers are running
+  become: false
   command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=influxdb3"
   register: container_status
   changed_when: false
@@ -71,6 +72,7 @@
 # ...................................................................................
 # Create test database
 - name: Create test database
+  become: false
   command: >
     podman exec
     -e INFLUXDB3_AUTH_TOKEN={{ verify_token }}
@@ -85,6 +87,7 @@
 # ...................................................................................
 # Write test data
 - name: Write test data point
+  become: false
   command: >
     podman exec influxdb3-svc
     curl -s -X POST "http://localhost:{{ influxdb3_internal_port }}/api/v3/write?db=test-ansible"
@@ -102,6 +105,7 @@
 # ...................................................................................
 # Query test data
 - name: Query test data
+  become: false
   command: >
     podman exec influxdb3-svc
     curl -s "http://localhost:{{ influxdb3_internal_port }}/api/v3/query?db=test-ansible&q=SELECT%20*%20FROM%20test_measurement"
@@ -117,6 +121,7 @@
 # ...................................................................................
 # Cleanup test database
 - name: Delete test database
+  become: false
   command: >
     podman exec
     -e INFLUXDB3_AUTH_TOKEN={{ verify_token }}
