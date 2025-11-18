@@ -30,12 +30,12 @@
         msg: "Failed to extract valid token from output"
       when: admin_token is not defined or admin_token == "" or not admin_token.startswith('apiv3_')
 
-    - name: Save token to secrets directory (volume-mounted)
+    - name: Save token to secrets directory inside container
       become: false
-      ansible.builtin.copy:
-        content: "{{ admin_token }}"
-        dest: "{{ influxdb3_secrets_dir }}/admin-token"
-        mode: '0600'
+      ansible.builtin.shell:
+        cmd: |
+          echo "{{ admin_token }}" | podman exec -i influxdb3-svc tee /var/lib/influxdb3/secrets/admin-token > /dev/null
+      changed_when: true
 
     - name: Save token to config directory for reference
       become: false
