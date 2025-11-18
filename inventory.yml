@@ -329,15 +329,12 @@ all:
             grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD', default='') }}"
 
         # ========================================
-        # SMELL,  review how this the domain stuff is used.
         gitea_svc:
           hosts:
             firefly:
-              gitea_domain: "gitea.{{ domain }}"
-              gitea_root_url: "https://gitea.{{ domain }}:8080"
+              gitea_svc_name: "gitea"
             podma:
-              gitea_domain: "gitea1.{{ domain }}"
-              gitea_root_url: "https://gitea-test.{{ domain }}:8080"
+              gitea_svc_name: "gitea-test"
 
           # .......................................
           # gitea_svc only vars
@@ -346,6 +343,7 @@ all:
             gitea_admin_password: "{{ lookup('env', 'GITEA_ADMIN_PASSWORD', default='') }}"
             gitea_port: 3001
             gitea_ssh_port: 2222
+            gitea_external_port: 8080
             gitea_image: "docker.io/gitea/gitea:latest"
             gitea_app_name: "Gitea"
             gitea_disable_registration: false

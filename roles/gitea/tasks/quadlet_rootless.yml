@@ -4,10 +4,13 @@
 
 # ....................................................
 - name: Ensure systemd user directories exist
+  become: false
   ansible.builtin.file:
     path: "{{ real_user_dir }}/{{ item }}"
     state: directory
     mode: "0755"
+    owner: "{{ real_user }}"
+    group: "{{ real_user }}"
   loop:
     - .config/systemd/user
     - .config/containers/systemd
@@ -15,10 +18,13 @@
 
 # ....................................................
 - name: Copy gitea environment file
+  become: false
   ansible.builtin.copy:
     src: "{{ gitea_data_dir }}/config/gitea.env"
     dest: "{{ real_user_dir }}/.config/containers/systemd/env/gitea.env"
     mode: "0640"
+    owner: "{{ real_user }}"
+    group: "{{ real_user }}"
     remote_src: true
 
 # ....................................................
@@ -86,7 +92,7 @@
       USER_GID: "1000"
     label:
       traefik.enable: "true"
-      traefik.http.routers.gitea.rule: "Host(`{{ gitea_domain }}`)"
+      traefik.http.routers.gitea.rule: "Host(`{{ gitea_fqdn }}`)"
       traefik.http.routers.gitea.entrypoints: "websecure"
       traefik.http.routers.gitea.service: "gitea"
       traefik.http.services.gitea.loadbalancer.server.port: "3000"

@@ -115,6 +115,6 @@
       - "===================================="
       - "HTTP: http://127.0.0.1:{{ gitea_port }}"
       - "SSH: ssh://git@127.0.0.1:{{ gitea_ssh_port }}"
-      - "Traefik: https://{{ gitea_domain }}"
+      - "Traefik: {{ gitea_external_url }}"
       - "Pod Status: {{ pod_status.stdout }}"
       - "===================================="

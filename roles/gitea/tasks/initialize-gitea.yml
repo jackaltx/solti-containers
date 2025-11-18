@@ -15,6 +15,7 @@
   delay: 5
 
 - name: Wait for database to be writable
+  become: false
   ansible.builtin.command:
     cmd: podman exec --user git gitea-svc test -w /data/gitea/gitea.db
   register: db_writable
@@ -31,6 +32,7 @@
 # ....................................................................................
 # Check if any users exist in the database (not just our specific admin)
 - name: Check if Gitea has any users
+  become: false
   ansible.builtin.command:
     cmd: >
       podman exec --user git gitea-svc
@@ -63,6 +65,7 @@
 #   2. No users exist -> create our admin user (fresh install)
 #   3. Our admin user exists -> skip (already initialized)
 - name: Create admin user via gitea CLI
+  become: false
   ansible.builtin.command:
     cmd: >
       podman exec --user git gitea-svc

@@ -33,10 +33,6 @@
         path: "{{ gitea_data_dir }}/.prepared"
       register: gitea_prepared
 
-    - name: debug prior to call of base prepare
-      debug:
-        var: service_properties
-
     - name: Run preparation tasks
       when: not gitea_prepared.stat.exists
       block:

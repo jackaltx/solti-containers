@@ -1,8 +1,4 @@
 ---
-- name: debug inside of base prepare
-  debug:
-    var: service_properties
-
 # ....................................................................................
 - name: Validate required variables in _base
   assert:
