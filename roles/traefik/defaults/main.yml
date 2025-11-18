@@ -20,7 +20,7 @@ traefik_dashboard_enabled: true # For development debugging
 traefik_dashboard_port: 9999 # Accessible at localhost:9999
 
 # Directory settings
-traefik_data_dir: "{{ ansible_facts.HOME }}/traefik-data"
+traefik_data_dir: "{{ lookup('env', 'HOME') }}/traefik-data"
 
 # Container settings
 traefik_image: "docker.io/library/traefik:v3"

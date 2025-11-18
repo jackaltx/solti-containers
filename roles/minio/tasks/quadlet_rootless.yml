@@ -92,36 +92,8 @@
         [Install]
         WantedBy=default.target
 
-# If we're using a separate console
-# ..................................................................................
-- name: Create MinIO console container Quadlet
-  become: false
-  containers.podman.podman_container:
-    name: minio-console
-    pod: minio.pod
-    image: "{{ minio_console_image }}"
-    state: quadlet
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
-    volume:
-      - "{{ minio_data_dir }}/tls:/certs:Z,ro"
-    env:
-      MINIO_SERVER_URL: "http://minio-svc:9000"
-      MINIO_SERVER_API_URL: "http://minio-svc:9000"
-    quadlet_options:
-      - "EnvironmentFile={{ real_user_dir }}/.config/containers/systemd/env/minio.env"
-      - |
-        [Unit]
-        Description=MinIO Console Container
-        After=network-online.target
-      - |
-        [Service]
-        Restart=always
-        TimeoutStartSec=300
-        TimeoutStopSec=70
-      - |
-        [Install]
-        WantedBy=default.target
-  when: minio_enable_console | bool
+# Console is built into the main MinIO container (via --console-address :9001)
+# No separate container needed since MinIO RELEASE.2021-07-27+
 
 # .......................................................................................
 - name: reload systemd user daemon

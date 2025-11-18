@@ -30,7 +30,7 @@ SUPPORTED_SERVICES=(
     "mattermost"
     "traefik"
     "minio"
-    "wazuh"
+    "wazuh"       # DEPRECATED - only 'remove' action supported
     "grafana"
     "gitea"
     "influxdb3"

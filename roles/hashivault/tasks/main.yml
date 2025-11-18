@@ -16,11 +16,12 @@
   register: become_test
   changed_when: false
 
-# # This task will only run if the previous one succeeded
-# - name: Verify become user is root
-#   ansible.builtin.fail:
-#     msg: "Privilege escalation failed - not running as root"
-#   when: become_test.stdout != "root"
+# Get real user info using environment variables (immune to become)
+- name: Get real user info from environment
+  set_fact:
+    real_user: "{{ lookup('env', 'USER') }}"
+    real_user_dir: "{{ lookup('env', 'HOME') }}"
+    real_user_uid: "{{ lookup('pipe', 'id -u') }}"
 
 # =======================================================================
 # PREPARATION (one-time setup)

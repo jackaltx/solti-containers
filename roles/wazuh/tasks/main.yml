@@ -1,20 +1,28 @@
 ---
 #
-# wazuh role - supports prepare, present, and absent states
-# States:
-#   prepare: First-time setup of directories and system configuration
-#   present: Deploy and configure wazuh containers
-#   absent: Remove containers (optionally remove data)
+# wazuh role - DEPRECATED
+# Only 'absent' state is supported for cleanup
+# This role is no longer maintained or tested
 
-- name: Validate state parameter
+- name: Validate state parameter (deprecated - only absent allowed)
   ansible.builtin.fail:
-    msg: "wazuh_state must be one of: prepare, present, absent. Current value: {{ wazuh_state }}"
-  when: wazuh_state not in ['prepare', 'present', 'absent']
+    msg: |
+      DEPRECATED: wazuh role is no longer maintained.
+      Only 'absent' state is supported for cleanup.
+      Current value: {{ wazuh_state }}
+  when: wazuh_state != 'absent'
 
 - name: Test become capability
   ansible.builtin.command: whoami
   register: become_test
   changed_when: false
+
+# Get real user info using environment variables (immune to become)
+- name: Get real user info from environment
+  set_fact:
+    real_user: "{{ lookup('env', 'USER') }}"
+    real_user_dir: "{{ lookup('env', 'HOME') }}"
+    real_user_uid: "{{ lookup('pipe', 'id -u') }}"
 
 # =======================================================================
 # PREPARATION (one-time setup)

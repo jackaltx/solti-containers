@@ -33,19 +33,25 @@
         path: "{{ gitea_data_dir }}/.prepared"
       register: gitea_prepared
 
+    - name: debug prior to call of base prepare
+      debug:
+        var: service_properties
+
     - name: Run preparation tasks
       when: not gitea_prepared.stat.exists
       block:
         - name: Include base preparation
-          ansible.builtin.include_role:
-            name: _base
-            tasks_from: prepare
+          ansible.builtin.include_tasks:
+            file: ../_base/tasks/prepare.yml
 
         - name: Mark gitea as prepared
+          become: false
           ansible.builtin.file:
             path: "{{ gitea_data_dir }}/.prepared"
             state: touch
             mode: "0644"
+            owner: "{{ real_user }}"
+            group: "{{ real_user }}"
 
 # =======================================================================
 # DEPLOYMENT (present state)
@@ -62,9 +68,8 @@
       when: gitea_enable_tls | bool
 
     - name: Ensure container network exists
-      ansible.builtin.include_role:
-        name: _base
-        tasks_from: networks
+      ansible.builtin.include_tasks:
+        file: ../_base/tasks/networks.yml
 
     - name: Deploy gitea container
       ansible.builtin.include_tasks: quadlet_rootless.yml
@@ -96,8 +101,5 @@
   when: gitea_state == 'absent'
   block:
     - name: Include cleanup tasks
-      ansible.builtin.include_role:
-        name: _base
-        tasks_from: cleanup
-      vars:
-        service_state: absent
+      ansible.builtin.include_tasks:
+        file: ../_base/tasks/cleanup.yml

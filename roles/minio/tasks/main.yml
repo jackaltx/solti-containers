@@ -34,6 +34,9 @@
         path: "{{ real_user_dir }}/{{ minio_data_dir }}"
       register: data_dir_check
 
+    - debug:
+        var: data_dir_check
+
     - name: Fail if already prepared
       ansible.builtin.fail:
         msg: "MinIO appears to be already prepared. Directory {{ minio_data_dir }} exists."

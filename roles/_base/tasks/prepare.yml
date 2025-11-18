@@ -1,4 +1,8 @@
 ---
+- name: debug inside of base prepare
+  debug:
+    var: service_properties
+
 # ....................................................................................
 - name: Validate required variables in _base
   assert:
@@ -15,6 +19,7 @@
 # ....................................................................................
 # All rootless containers should use user-owned directories
 - name: Create service directories (user ownership for rootless containers)
+  become: false
   ansible.builtin.file:
     path: "{{ service_properties.data_dir }}{{ '/' + item.path if item.path != '' else '' }}"
     state: directory
