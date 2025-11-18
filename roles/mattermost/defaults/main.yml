@@ -25,7 +25,7 @@ mattermost_external_port: 8080  # Port users access through Traefik
 mattermost_external_url: "https://{{ mattermost_fqdn }}:{{ mattermost_external_port }}"
 
 # Database settings
-mattermost_postgres_password: "{{ lookup('env', 'MM_DB_PASSWORD') | default('changemeplease') }}"
+mattermost_postgres_password: "{{ lookup('env', 'MM_DB_PASSWORD', default='changemeplease') }}"
 mattermost_db_name: "mattermost"
 mattermost_db_user: "mmuser"
 
@@ -33,8 +33,8 @@ mattermost_db_user: "mmuser"
 mattermost_enable_user_creation: true
 mattermost_enable_open_server: true
 mattermost_admin_email: "admin@{{ domain }}"
-mattermost_admin_username: "{{ lookup('env', 'MM_USER') | default('admin') }}"
-mattermost_admin_password: "{{ lookup('env', 'MM_PASSWORD') | default('changemeplease') }}"
+mattermost_admin_username: "{{ lookup('env', 'MM_USER', default='admin') }}"
+mattermost_admin_password: "{{ lookup('env', 'MM_PASSWORD', default='changemeplease') }}"
 
 # Application settings
 mattermost_port: 8065
