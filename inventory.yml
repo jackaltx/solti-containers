@@ -77,15 +77,15 @@ all:
         elasticsearch_svc:
           hosts:
             firefly:
-              # host_vars
+              elasticsearch_svc_name: "elasticsearch"
+              elasticsearch_svc_name_short: "es"
 
           # .......................................
           # _svc only vars
           vars:
+            elasticsearch_external_port: 8080
             debug_level: warn
             elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
-
-            elasticsearch_proxy: "https://es.{{ domain }}:8443"
 
         # ========================================
         redis_svc:
