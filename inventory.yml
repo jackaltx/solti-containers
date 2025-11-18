@@ -362,11 +362,14 @@ all:
         influxdb3_svc:
           hosts:
             firefly:
+              influxdb3_svc_name: "influxdb3"
             podma:
+              influxdb3_svc_name: "influxdb3-test"
 
           # .......................................
           # influxdb3_svc only vars
           vars:
+            influxdb3_external_port: 8080
             debug_level: warn
             influxdb3_port: 8181
 

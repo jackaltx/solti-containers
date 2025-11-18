@@ -25,7 +25,7 @@
     quadlet_options:
       # Traefik labels (if enabled)
       - "Label=traefik.enable={{ influxdb3_enable_traefik | lower }}"
-      - "Label=traefik.http.routers.influxdb3.rule=Host(`influxdb3.{{ domain }}`)"
+      - "Label=traefik.http.routers.influxdb3.rule=Host(`{{ influxdb3_fqdn }}`)"
       - "Label=traefik.http.routers.influxdb3.entrypoints=websecure"
       - "Label=traefik.http.services.influxdb3.loadbalancer.server.port={{ influxdb3_internal_port }}"
       - "Label=traefik.http.routers.influxdb3.middlewares=secHeaders@file"
