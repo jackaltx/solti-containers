@@ -107,11 +107,13 @@ all:
         hashivault_svc:
           hosts:
             firefly:
-              # host_vars
+              hashivault_svc_name: "vault"
+              hashivault_svc_name_alt: "hashivault"
 
           # .......................................
           # _svc only vars
           vars:
+            hashivault_external_port: 8080
             debug_level: warn
 
             # .......................................
