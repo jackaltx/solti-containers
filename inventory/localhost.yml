@@ -56,7 +56,7 @@ all:
           hosts:
             firefly:
               # host_vars
-
+              mattermost_svc_name: "mattermost"
           # .......................................
           # mattermost_svc only vars
           vars:
@@ -72,7 +72,8 @@ all:
           hosts:
             firefly:
               # host_vars
-
+              elasticsearch_svc_name: "elasticsearch"
+              elasticsearch_svc_name_short: "es"
           # .......................................
           # _svc only vars
           vars:
@@ -104,7 +105,8 @@ all:
           hosts:
             firefly:
               # host_vars
-
+              hashivault_svc_name: "vault"
+              hashivault_svc_name_alt: "hashivault"
           # .......................................
           # _svc only vars
           vars:
@@ -230,7 +232,7 @@ all:
           hosts:
             firefly:
               # host_vars
-
+              traefik_svc_name: "traefik"
           # .......................................
           # _svc only vars
           vars:

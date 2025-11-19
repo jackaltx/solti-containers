@@ -58,7 +58,7 @@ all:
           hosts:
             podma:
               # host_vars
-
+              mattermost_svc_name: "mattermost-test"
           # .......................................
           # mattermost_svc only vars
           vars:
@@ -71,6 +71,7 @@ all:
 
         # ========================================
         elasticsearch_svc:
+          hosts:
           hosts:
             podma:
               # host_vars
@@ -106,7 +107,8 @@ all:
           hosts:
             podma:
               # host_vars
-
+              hashivault_svc_name: "vault-test"
+              hashivault_svc_name_alt: "hashivault-test"
           # .......................................
           # _svc only vars
           vars:
@@ -232,7 +234,7 @@ all:
           hosts:
             podma:
               # host_vars
-
+              traefik_svc_name: "traefik-test"
           # .......................................
           # _svc only vars
           vars:
