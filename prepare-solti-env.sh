@@ -30,6 +30,7 @@ pip install proxmoxer                 # For proxmox testing
 pip install requests
 pip install dnspython
 pip install jmespath
+pip install yq                        # For inventory parsing in DNS automation
 
 # Ansible collections
 echo "Installing Ansible collections..."
@@ -40,4 +41,9 @@ echo "=========================================="
 echo "Environment ready!"
 echo "Activate with: source $VENV_DIR/bin/activate"
 echo "Test with: ./run-podman-tests.sh"
+echo ""
+echo "DNS Automation (requires LINODE_TOKEN):"
+echo "  ./update-dns.sh                 # Update hardcoded service list"
+echo "  ./update-dns-auto.sh podma      # Auto-detect from inventory"
+echo "  ./update-dns-auto.sh -h         # Show help"
 echo "=========================================="
