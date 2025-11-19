@@ -109,6 +109,9 @@ all:
             firefly:
               hashivault_svc_name: "vault"
               hashivault_svc_name_alt: "hashivault"
+            podma:
+              hashivault_svc_name: "vault-test"
+              hashivault_svc_name_alt: "hashivault-test"
 
           # .......................................
           # _svc only vars
@@ -234,7 +237,9 @@ all:
         traefik_svc:
           hosts:
             firefly:
-              # host_vars
+              traefik_svc_name: "traefik"
+            podma:
+              traefik_svc_name: "traefik-test"
 
           # .......................................
           # _svc only vars

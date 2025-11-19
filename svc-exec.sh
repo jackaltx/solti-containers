@@ -111,7 +111,6 @@ generate_exec_playbook() {
       ansible.builtin.include_role:
         name: ${service}
         tasks_from: ${entry}
-        vars_from: main
 EOF
 
     echo "Generated ${entry} playbook for ${service}"
