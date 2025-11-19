@@ -144,6 +144,17 @@ prompt_user() {
         return 0
     fi
 
+    # Skip if both inventory and host explicitly specified and they match
+    # (User knows what they're doing - explicit configuration)
+    if [[ "$EXPLICIT_INVENTORY" == "true" ]] && [[ -n "$host" ]]; then
+        # Check if inventory and host are consistent
+        if [[ "$inventory" =~ podma ]] && [[ "$host" == "podma" ]]; then
+            return 0  # Explicit podma inventory + podma host = no warning
+        elif [[ "$inventory" =~ localhost ]] && [[ "$host" == "firefly" ]]; then
+            return 0  # Explicit localhost inventory + firefly host = no warning
+        fi
+    fi
+
     # Determine target display name
     local target_name="${host:-all hosts in ${service}_svc}"
     if [[ -z "$host" ]]; then
@@ -157,7 +168,7 @@ prompt_user() {
     # Prompt based on context
     case "$context" in
         localhost)
-            # Soft prompt only if explicit targeting
+            # Soft prompt only if explicit targeting (and not skipped above)
             if [[ "$EXPLICIT_INVENTORY" == "true" ]] || [[ -n "$host" ]]; then
                 echo ""
                 read -p "Installing ${service} locally on ${target_name}. Continue? [Y/n] " response
@@ -168,7 +179,7 @@ prompt_user() {
             fi
             ;;
         remote)
-            # Hard prompt for remote
+            # Hard prompt for remote (only if not already skipped above)
             echo ""
             echo "⚠ WARNING: Remote deployment detected"
             echo "Target: ${target_name}"
