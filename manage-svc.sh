@@ -109,15 +109,26 @@ get_target_context() {
     local inventory="$1"
     local host="$2"
 
-    # Check if targeting localhost explicitly
+    # If host is explicitly podma, always remote
+    if [[ "$host" == "podma" ]]; then
+        echo "remote"
+        return 0
+    fi
+
+    # If inventory contains padma, always remote
+    if [[ "$inventory" =~ padma ]]; then
+        echo "remote"
+        return 0
+    fi
+
+    # If host is firefly or inventory is localhost, consider localhost
     if [[ "$host" == "firefly" ]] || [[ "$inventory" =~ localhost ]]; then
         echo "localhost"
-    # Check if using default inventory without explicit targeting
-    elif [[ -z "$host" ]] && [[ "$inventory" == "${ANSIBLE_DIR}/inventory/localhost.yml" ]] && [[ -z "$SOLTI_INVENTORY" ]]; then
-        echo "localhost"
-    else
-        echo "remote"
+        return 0
     fi
+
+    # Default to remote for safety
+    echo "remote"
 }
 
 # Safety prompt function
