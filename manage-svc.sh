@@ -18,6 +18,8 @@ ANSIBLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INVENTORY="${SOLTI_INVENTORY:-${ANSIBLE_DIR}/inventory.yml}"
 TEMP_DIR="${ANSIBLE_DIR}/tmp"
 HOST=""
+YES_FLAG=false
+EXPLICIT_INVENTORY=false
 
 # Ensure temp directory exists
 mkdir -p "${TEMP_DIR}"
@@ -51,11 +53,12 @@ STATE_MAP["remove"]="absent"
 
 # Display usage information
 usage() {
-    echo "Usage: $(basename $0) [-i INVENTORY] [-h HOST] <service> <action> [options]"
+    echo "Usage: $(basename $0) [-i INVENTORY] [-h HOST] [-y] <service> <action> [options]"
     echo ""
     echo "Options:"
     echo "  -i INVENTORY     - Path to inventory file (default: \$SOLTI_INVENTORY or inventory.yml)"
     echo "  -h HOST          - Target specific host from inventory (default: uses all hosts in service group)"
+    echo "  -y, --yes        - Skip safety prompts (for automation)"
     echo "  -e VAR=VALUE     - Set extra variables (can be used multiple times)"
     echo ""
     echo "Services:"
@@ -73,6 +76,7 @@ usage() {
     echo "  $(basename $0) -h firefly hashivault deploy"
     echo "  $(basename $0) -i inventory/podma.yml redis deploy"
     echo "  $(basename $0) redis remove"
+    echo "  $(basename $0) -y redis deploy                              # Skip prompts"
     echo "  $(basename $0) mattermost deploy -e mattermost_version=8.1.0"
     echo "  $(basename $0) -h firefly elasticsearch prepare -e elasticsearch_memory=2g"
     exit 1
@@ -100,6 +104,75 @@ is_action_supported() {
     return 1
 }
 
+# Determine target context (localhost vs remote)
+get_target_context() {
+    local inventory="$1"
+    local host="$2"
+
+    # Check if targeting localhost explicitly
+    if [[ "$host" == "firefly" ]] || [[ "$inventory" =~ localhost ]]; then
+        echo "localhost"
+    # Check if using default inventory without explicit targeting
+    elif [[ -z "$host" ]] && [[ "$inventory" == "${ANSIBLE_DIR}/inventory.yml" ]] && [[ -z "$SOLTI_INVENTORY" ]]; then
+        echo "localhost"
+    else
+        echo "remote"
+    fi
+}
+
+# Safety prompt function
+prompt_user() {
+    local context="$1"
+    local service="$2"
+    local action="$3"
+    local inventory="$4"
+    local host="$5"
+
+    # Skip if --yes flag set
+    if [[ "$YES_FLAG" == "true" ]]; then
+        return 0
+    fi
+
+    # Determine target display name
+    local target_name="${host:-all hosts in ${service}_svc}"
+    if [[ -z "$host" ]]; then
+        if [[ "$inventory" =~ localhost ]]; then
+            target_name="firefly"
+        elif [[ "$inventory" =~ padma ]]; then
+            target_name="podma"
+        fi
+    fi
+
+    # Prompt based on context
+    case "$context" in
+        localhost)
+            # Soft prompt only if explicit targeting
+            if [[ "$EXPLICIT_INVENTORY" == "true" ]] || [[ -n "$host" ]]; then
+                echo ""
+                read -p "Installing ${service} locally on ${target_name}. Continue? [Y/n] " response
+                if [[ "$response" =~ ^[Nn] ]]; then
+                    echo "Operation cancelled by user"
+                    return 1
+                fi
+            fi
+            ;;
+        remote)
+            # Hard prompt for remote
+            echo ""
+            echo "⚠ WARNING: Remote deployment detected"
+            echo "Target: ${target_name}"
+            echo "Service: ${service}"
+            echo "Action: ${action}"
+            read -p "Proceed? [y/N] " response
+            if [[ ! "$response" =~ ^[Yy] ]]; then
+                echo "Operation cancelled by user"
+                return 1
+            fi
+            ;;
+    esac
+
+    return 0
+}
 
 # Generate playbook from template
 generate_playbook() {
@@ -133,13 +206,17 @@ EOF
 }
 
 # Parse command line arguments
-while getopts "i:h:" opt; do
+while getopts "i:h:y" opt; do
     case ${opt} in
         i)
             INVENTORY=$OPTARG
+            EXPLICIT_INVENTORY=true
             ;;
         h)
             HOST=$OPTARG
+            ;;
+        y)
+            YES_FLAG=true
             ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
@@ -216,10 +293,9 @@ cat "${TEMP_PLAYBOOK}"
 echo "----------------"
 echo ""
 
-# Ask for confirmation
-read -p "Execute this playbook? [Y/n]: " confirm
-if [[ "$confirm" =~ ^[Nn] ]]; then
-    echo "Operation cancelled"
+# Determine target context and prompt user
+TARGET_CONTEXT=$(get_target_context "$INVENTORY" "$HOST")
+if ! prompt_user "$TARGET_CONTEXT" "$SERVICE" "$ACTION" "$INVENTORY" "$HOST"; then
     exit 0
 fi
 

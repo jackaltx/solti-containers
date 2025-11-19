@@ -45,15 +45,18 @@ USE_SUDO=false
 HOST=""
 SERVICE=""
 ENTRY=""
+YES_FLAG=false
+EXPLICIT_INVENTORY=false
 
 # Display usage information
 usage() {
-    echo "Usage: $(basename $0) [-i INVENTORY] [-h HOST] [-K] <service> [entry] [options]"
+    echo "Usage: $(basename $0) [-i INVENTORY] [-h HOST] [-K] [-y] <service> [entry] [options]"
     echo ""
     echo "Options:"
     echo "  -i INVENTORY     - Path to inventory file (default: \$SOLTI_INVENTORY or inventory.yml)"
     echo "  -h HOST          - Target specific host from inventory (default: uses all hosts in service group)"
     echo "  -K               - Prompt for sudo password (needed for some operations)"
+    echo "  -y, --yes        - Skip safety prompts (for automation)"
     echo ""
     echo "Parameters:"
     echo "  service          - The service to manage"
@@ -68,6 +71,7 @@ usage() {
     echo "Examples:"
     echo "  $(basename $0) elasticsearch verify     # No sudo prompt"
     echo "  $(basename $0) -K redis configure       # With sudo prompt"
+    echo "  $(basename $0) -y elasticsearch verify  # Skip safety prompts"
     echo "  $(basename $0) -h firefly mattermost    # Run on specific host"
     echo "  $(basename $0) -i inventory/podma.yml redis verify  # Use specific inventory"
     echo "  $(basename $0) mattermost               # Default entry, no sudo"
@@ -85,6 +89,81 @@ is_service_supported() {
         fi
     done
     return 1
+}
+
+# Determine target context (localhost vs remote)
+get_target_context() {
+    local inventory="$1"
+    local host="$2"
+
+    # Check if targeting localhost explicitly
+    if [[ "$host" == "firefly" ]] || [[ "$inventory" =~ localhost ]]; then
+        echo "localhost"
+    # Check if using default inventory without explicit targeting
+    elif [[ -z "$host" ]] && [[ "$inventory" == "${ANSIBLE_DIR}/inventory.yml" ]] && [[ -z "$SOLTI_INVENTORY" ]]; then
+        echo "localhost"
+    else
+        echo "remote"
+    fi
+}
+
+# Safety prompt function (skip for read-only operations like verify)
+prompt_user() {
+    local context="$1"
+    local service="$2"
+    local entry="$3"
+    local inventory="$4"
+    local host="$5"
+
+    # Skip if --yes flag set
+    if [[ "$YES_FLAG" == "true" ]]; then
+        return 0
+    fi
+
+    # Skip for read-only operations
+    if [[ "$entry" == "verify" ]]; then
+        return 0
+    fi
+
+    # Determine target display name
+    local target_name="${host:-all hosts in ${service}_svc}"
+    if [[ -z "$host" ]]; then
+        if [[ "$inventory" =~ localhost ]]; then
+            target_name="firefly"
+        elif [[ "$inventory" =~ padma ]]; then
+            target_name="podma"
+        fi
+    fi
+
+    # Prompt based on context
+    case "$context" in
+        localhost)
+            # Soft prompt only if explicit targeting
+            if [[ "$EXPLICIT_INVENTORY" == "true" ]] || [[ -n "$host" ]]; then
+                echo ""
+                read -p "Execute ${entry} for ${service} on ${target_name}. Continue? [Y/n] " response
+                if [[ "$response" =~ ^[Nn] ]]; then
+                    echo "Operation cancelled by user"
+                    return 1
+                fi
+            fi
+            ;;
+        remote)
+            # Hard prompt for remote
+            echo ""
+            echo "⚠ WARNING: Remote operation detected"
+            echo "Target: ${target_name}"
+            echo "Service: ${service}"
+            echo "Task: ${entry}"
+            read -p "Proceed? [y/N] " response
+            if [[ ! "$response" =~ ^[Yy] ]]; then
+                echo "Operation cancelled by user"
+                return 1
+            fi
+            ;;
+    esac
+
+    return 0
 }
 
 # Generate task execution playbook
@@ -117,16 +196,20 @@ EOF
 }
 
 # Parse command line options
-while getopts "i:h:K" opt; do
+while getopts "i:h:Ky" opt; do
     case ${opt} in
         i)
             INVENTORY=$OPTARG
+            EXPLICIT_INVENTORY=true
             ;;
         h)
             HOST=$OPTARG
             ;;
         K)
             USE_SUDO=true
+            ;;
+        y)
+            YES_FLAG=true
             ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
@@ -210,6 +293,12 @@ echo "----------------"
 cat "${TEMP_PLAYBOOK}"
 echo "----------------"
 echo ""
+
+# Determine target context and prompt user (skip for verify)
+TARGET_CONTEXT=$(get_target_context "$INVENTORY" "$HOST")
+if ! prompt_user "$TARGET_CONTEXT" "$SERVICE" "$ENTRY" "$INVENTORY" "$HOST"; then
+    exit 0
+fi
 
 # Execute the playbook with or without sudo prompt
 if $USE_SUDO; then
