@@ -89,6 +89,7 @@ all:
           hosts:
             podma:
               # host_vars
+              redis_svc_name: "redis-ui-test"
 
           # .......................................
           # _svc only vars

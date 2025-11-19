@@ -87,6 +87,7 @@ all:
           hosts:
             firefly:
               # host_vars
+              redis_svc_name: "redis-ui"
 
           # .......................................
           # _svc only vars
