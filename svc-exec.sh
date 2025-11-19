@@ -17,7 +17,7 @@ set -e
 
 # Configuration
 ANSIBLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INVENTORY="${SOLTI_INVENTORY:-${ANSIBLE_DIR}/inventory.yml}"
+INVENTORY="${SOLTI_INVENTORY:-${ANSIBLE_DIR}/inventory/localhost.yml}"
 TEMP_DIR="${ANSIBLE_DIR}/tmp"
 
 # Ensure temp directory exists
@@ -100,7 +100,7 @@ get_target_context() {
     if [[ "$host" == "firefly" ]] || [[ "$inventory" =~ localhost ]]; then
         echo "localhost"
     # Check if using default inventory without explicit targeting
-    elif [[ -z "$host" ]] && [[ "$inventory" == "${ANSIBLE_DIR}/inventory.yml" ]] && [[ -z "$SOLTI_INVENTORY" ]]; then
+    elif [[ -z "$host" ]] && [[ "$inventory" == "${ANSIBLE_DIR}/inventory/localhost.yml" ]] && [[ -z "$SOLTI_INVENTORY" ]]; then
         echo "localhost"
     else
         echo "remote"
