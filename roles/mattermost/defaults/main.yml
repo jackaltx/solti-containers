@@ -11,6 +11,9 @@ mattermost_force_tls: false # Force all connections to use HTTPS
 mattermost_tls_strict_transport: false # Enable strict transport security
 mattermost_tls_min_version: "1.2"
 
+# Traefik integration
+mattermost_enable_traefik: true
+
 # Container settings
 mattermost_image: "docker.io/mattermost/mattermost-team-edition:latest"
 mattermost_postgres_image: "docker.io/library/postgres:16-alpine"

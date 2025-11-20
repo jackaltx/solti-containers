@@ -31,6 +31,9 @@ minio_api_domain: "{{ minio_api_svc_name }}.{{ domain }}"
 minio_console_domain: "{{ minio_console_svc_name }}.{{ domain }}"
 minio_browser_redirect_url: "https://{{ minio_console_domain }}:{{ traefik_http_port }}"
 
+# Traefik integration
+minio_enable_traefik: true
+
 # =======================================================================
 service_network: "example-net"
 service_dns_servers:

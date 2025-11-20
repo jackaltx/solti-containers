@@ -77,6 +77,22 @@
   debug:
     msg: "Token received: {{ 'Yes' if auth_token != '' else 'No' }}"
 
+- name: Save auth token to file for future use
+  copy:
+    content: |
+      # Mattermost Admin Authentication Token
+      # Generated: {{ ansible_date_time.iso8601 }}
+      # User: {{ mattermost_admin_username }}
+      # Email: {{ mattermost_admin_email }}
+
+      MATTERMOST_TOKEN={{ auth_token }}
+      MATTERMOST_URL={{ mattermost_site_url }}
+      MATTERMOST_ADMIN_USER={{ mattermost_admin_username }}
+    dest: "{{ mattermost_data_dir }}/.mattermost_token"
+    mode: "0600"
+  when: auth_token is defined
+  no_log: true
+
 # ....................................................................................
 # Lock down registration by updating config in database
 - name: Disable user creation and open server

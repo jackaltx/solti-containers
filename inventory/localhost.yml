@@ -81,7 +81,7 @@ all:
             elasticsearch_data_dir: "{{ lookup('env', 'HOME') }}/elasticsearch-data" #
             elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
 
-            elasticsearch_proxy: "https://es.{{ domain }}:8443"
+            elasticsearch_proxy: "https://es.{{ domain }}:8443" # CLAUDE this feels wrong
 
         # ========================================
         redis_svc:
@@ -298,16 +298,6 @@ all:
                 status: "enable"
               - bucket: "config"
                 status: "enable"
-
-        # ========================================
-        wazuh_svc:
-          hosts:
-            firefly:
-
-          # .......................................
-          # _svc only vars
-          vars:
-            debug_level: warn
 
         # ========================================
         grafana_svc:

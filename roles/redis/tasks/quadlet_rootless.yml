@@ -67,16 +67,14 @@
     quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     env:
       REDIS_HOSTS: "local:redis-svc:6379:0:{{ redis_password }}"
+    label:
+      traefik.enable: "{{ redis_enable_traefik | lower }}"
+      traefik.http.routers.redis.rule: "Host(`{{ redis_svc_name }}.{{ domain }}`)"
+      traefik.http.routers.redis.entrypoints: "websecure"
+      traefik.http.routers.redis.service: "redis"
+      traefik.http.services.redis.loadbalancer.server.port: "8081"
+      traefik.http.routers.redis.middlewares: "secHeaders@file"
     quadlet_options:
-      - "Label=traefik.enable=true"
-
-      # API router (port 8081) - Explicit service binding
-      - "Label=traefik.http.routers.redis.rule=Host(`{{ redis_svc_name }}.{{ domain }}`)"
-      - "Label=traefik.http.routers.redis.entrypoints=websecure"
-      - "Label=traefik.http.routers.redis.service=redis"
-      - "Label=traefik.http.services.redis.loadbalancer.server.port=8081"
-      - "Label=traefik.http.routers.redis.middlewares=secHeaders@file,redirect-to-https@file"
-
       - |
         [Unit]
         Description=Redis Commander GUI Container

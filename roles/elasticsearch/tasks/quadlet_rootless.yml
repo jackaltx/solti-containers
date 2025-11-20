@@ -69,25 +69,18 @@
       ELASTIC_PASSWORD: "{{ elasticsearch_password }}"
       xpack.security.enabled: "{{ elasticsearch_enable_security | string }}"
       bootstrap.memory_lock: "true"
+    label:
+      traefik.enable: "{{ elasticsearch_enable_traefik | lower }}"
+      traefik.http.routers.elasticsearch0.rule: "Host(`{{ elasticsearch_fqdn }}`)"
+      traefik.http.routers.elasticsearch0.entrypoints: "websecure"
+      traefik.http.routers.elasticsearch0.service: "elasticsearch0"
+      traefik.http.services.elasticsearch0.loadbalancer.server.port: "9200"
+      traefik.http.routers.elasticsearch0.middlewares: "secHeaders@file"
+      traefik.http.routers.elasticsearch1.rule: "Host(`{{ elasticsearch_fqdn_short }}`)"
+      traefik.http.routers.elasticsearch1.entrypoints: "websecure"
+      traefik.http.routers.elasticsearch1.service: "elasticsearch0"
     quadlet_options:
       - "EnvironmentFile={{ real_user_dir }}/.config/containers/systemd/env/elasticsearch.env"
-      - "Label=traefik.enable=true"
-
-      # API router (port 9200) - Explicit service binding
-      # Primary hostname
-      - "Label=traefik.http.routers.elasticsearch0.rule=Host(`{{ elasticsearch_fqdn }}`)"
-      - "Label=traefik.http.routers.elasticsearch0.entrypoints=websecure"
-      - "Label=traefik.http.routers.elasticsearch0.service=elasticsearch0"
-      - "Label=traefik.http.services.elasticsearch0.loadbalancer.server.port=9200"
-      - "Label=traefik.http.routers.elasticsearch0.middlewares=secHeaders@file,redirect-to-https@file"
-
-      # Secondary hostname (completely separate router)
-      - "Label=traefik.http.routers.elasticsearch1.rule=Host(`{{ elasticsearch_fqdn_short }}`)"
-      - "Label=traefik.http.routers.elasticsearch1.entrypoints=websecure"
-      - "Label=traefik.http.routers.elasticsearch1.service=elasticsearch0" # Use the same service
-      # - "Label=traefik.http.services.elasticsearch1.loadbalancer.server.port=9200"
-      # - "Label=traefik.http.routers.elasticsearch1.middlewares=secHeaders@file"
-
       - "Ulimit=memlock=-1:-1"
       - "Ulimit=nofile=65535:65535"
       - |

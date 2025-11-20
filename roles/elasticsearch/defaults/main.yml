@@ -26,6 +26,9 @@ elasticsearch_external_port: 8080  # Port users access through Traefik
 elasticsearch_external_url: "https://{{ elasticsearch_fqdn }}:{{ elasticsearch_external_port }}"
 elasticsearch_external_url_short: "https://{{ elasticsearch_fqdn_short }}:{{ elasticsearch_external_port }}"
 
+# Traefik integration
+elasticsearch_enable_traefik: true
+
 # Elasticsearch settings
 elasticsearch_port: 9200
 elasticsearch_memory: "1g"

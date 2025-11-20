@@ -67,89 +67,28 @@
     test_team_description: "{{ test_team_description | default('Team for testing purposes') }}"
 
 # ....................................................................................
-# Create System Admin User (first user is automatically an admin)
-- name: Check if admin user exists
-  uri:
-    url: "{{ mattermost_site_url }}/api/v4/users"
-    method: GET
-    status_code: [200, 401, 403]
-  register: users_check
-  failed_when: false
-  no_log: true
-
-- name: Create admin user if no users exist
-  uri:
-    url: "{{ mattermost_site_url }}/api/v4/users"
-    method: POST
-    body_format: json
-    body:
-      email: "admin@example.com"
-      username: "admin"
-      password: "{{ test_password }}"
-      first_name: "System"
-      last_name: "Admin"
-    status_code: [200, 201, 400]
-  register: admin_create
-  # Only attempt to create admin if unauthorized/no users exist yet
-  when: users_check.status == 401
-  failed_when:
-    - admin_create.status != 201
-    - admin_create.status != 200
-    - "'already exists' not in (admin_create.json.message | default(''))"
-  changed_when: admin_create.status in [200, 201]
-  no_log: true
-
-# ....................................................................................
-# Login to get authentication token
+# Login to get authentication token using actual admin credentials
 - name: Login to get authentication token
   uri:
     url: "{{ mattermost_site_url }}/api/v4/users/login"
     method: POST
     body_format: json
     body:
-      login_id: "admin@example.com"
-      password: "{{ test_password }}"
-    status_code: [200, 201, 400, 401]
+      login_id: "{{ mattermost_admin_email }}"
+      password: "{{ mattermost_admin_password }}"
+    status_code: [200, 201]
     return_content: true
   register: login_response
-  failed_when: false
-  no_log: false # Temporarily set to false for debugging
+  no_log: true
 
-- name: Display login response information for debugging
-  debug:
-    msg:
-      - "Status: {{ login_response.status }}"
-      - "Headers available: {{ login_response | dict2items | selectattr('key', 'match', 'header|x_header') | list }}"
-      - "Response keys: {{ login_response | dict2items | map(attribute='key') | list }}"
-  when: login_response is defined
-
-- name: Set auth token directly from response
+- name: Set auth token from login response
   set_fact:
-    auth_token: "{{ login_response.token | default('') }}"
-  when: login_response.status in [200, 201]
-  no_log: false # Temporarily set to false for debugging
+    auth_token: "{{ login_response.token }}"
+  no_log: true
 
-- name: Print the token if found
+- name: Confirm authentication
   debug:
-    msg: "Token found: {{ 'Yes' if auth_token is defined and auth_token != '' else 'No' }}"
-
-# If the token approach doesn't work, we'll try a simpler approach:
-# Create a test user directly without authentication first
-- name: Create test user directly (no authentication)
-  uri:
-    url: "{{ mattermost_site_url }}/api/v4/users"
-    method: POST
-    body_format: json
-    body:
-      email: "{{ test_email }}"
-      username: "{{ test_username }}"
-      password: "{{ test_password }}"
-      first_name: "Test"
-      last_name: "User"
-    status_code: [201, 400, 403]
-  register: direct_user_create
-  failed_when: false
-  no_log: false # Temporarily set to false for debugging
+    msg: "Successfully authenticated as {{ mattermost_admin_username }}"
 
 # ....................................................................................
 # Create Test Team if needed

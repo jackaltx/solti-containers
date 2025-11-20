@@ -51,25 +51,18 @@
       VAULT_ADDR: "http://127.0.0.1:8200"
       VAULT_API_ADDR: "http://127.0.0.1:8200"
       VAULT_CLUSTER_ADDR: "http://127.0.0.1:8201"
+    label:
+      traefik.enable: "{{ hashivault_enable_traefik | lower }}"
+      traefik.http.routers.vault-primary.rule: "Host(`{{ hashivault_fqdn }}`)"
+      traefik.http.routers.vault-primary.entrypoints: "websecure"
+      traefik.http.routers.vault-primary.service: "vault-primary"
+      traefik.http.services.vault-primary.loadbalancer.server.port: "8200"
+      traefik.http.routers.vault-primary.middlewares: "secHeaders@file"
+      traefik.http.routers.vault-secondary.rule: "Host(`{{ hashivault_fqdn_alt }}`)"
+      traefik.http.routers.vault-secondary.entrypoints: "websecure"
+      traefik.http.routers.vault-secondary.service: "vault-primary"
+      traefik.http.routers.vault-secondary.middlewares: "secHeaders@file"
     quadlet_options:
-      - "Label=traefik.enable=true"
-      # Define a single service
-
-      # API router (port 8200) - Explicit service binding
-      # Primary hostname
-      - "Label=traefik.http.routers.vault-primary.rule=Host(`{{ hashivault_fqdn }}`)"
-      - "Label=traefik.http.routers.vault-primary.entrypoints=websecure"
-      - "Label=traefik.http.routers.vault-primary.service=vault-primary"
-      - "Label=traefik.http.services.vault-primary.loadbalancer.server.port=8200"
-      - "Label=traefik.http.routers.vault-primary.middlewares=secHeaders@file,redirect-to-https@file"
-
-      # Secondary hostname (completely separate router)
-      - "Label=traefik.http.routers.vault-secondary.rule=Host(`{{ hashivault_fqdn_alt }}`)"
-      - "Label=traefik.http.routers.vault-secondary.entrypoints=websecure"
-      - "Label=traefik.http.routers.vault-secondary.service=vault-primary" # Use the same service
-      - "Label=traefik.http.routers.vault-secondary.middlewares=secHeaders@file,redirect-to-https@file"
-
-      # Other settings
       - "AddCapability=IPC_LOCK"
       - |
         [Unit]
