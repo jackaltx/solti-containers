@@ -29,6 +29,52 @@ export GITEA_ADMIN_PASSWORD="your-secure-password"
 
 > **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
 
+## Full Redeploy
+
+Complete removal and fresh installation with latest container images. Useful for testing, upgrades, or recovering from corruption.
+
+```bash
+# Set admin password
+export GITEA_ADMIN_PASSWORD="your-secure-password"
+
+# Step 1: Complete removal (data + images)
+DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.yml gitea remove
+
+# Step 2: Prepare system
+./manage-svc.sh -h podma -i inventory/podma.yml gitea prepare
+
+# Step 3: Deploy with fresh image
+./manage-svc.sh -h podma -i inventory/podma.yml gitea deploy
+
+# Step 4: Verify deployment
+./svc-exec.sh -h podma -i inventory/podma.yml gitea verify
+```
+
+**What this does**:
+
+- **Step 1**: Removes service, data directories, AND container images
+- **Step 2**: Creates fresh directory structure with proper permissions
+- **Step 3**: Pulls latest container image and deploys service
+- **Step 4**: Validates deployment (17 health checks)
+
+**Expected results**:
+
+- Fresh `docker.io/gitea/gitea:latest` image pulled
+- Clean database with no existing data
+- All verification tests pass
+- Service accessible at `http://127.0.0.1:3001`
+
+**Localhost variant** (replace `-h podma -i inventory/podma.yml` with no flags):
+
+```bash
+DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh gitea remove
+./manage-svc.sh gitea prepare
+./manage-svc.sh gitea deploy
+./svc-exec.sh gitea verify
+```
+
+> **Warning**: `DELETE_DATA=true` permanently destroys all repositories, users, and configuration. Only use for testing or fresh installations.
+
 ## Architecture
 
 ### Single Container Design
