@@ -3,13 +3,13 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, test]
     paths:
       - 'roles/**'
       - 'molecule/**'
       - '.github/**'
   pull_request:
-    branches: [main]
+    branches: [main, test]
     paths:
       - 'roles/**'
       - 'molecule/**'
