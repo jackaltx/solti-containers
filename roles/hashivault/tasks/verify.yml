@@ -1,0 +1,82 @@
+---
+# ....................................................................................
+- name: Verify Vault pod is running
+  command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
+  register: pod_status
+  failed_when: "'vault' not in pod_status.stdout"
+  changed_when: false
+
+- name: Show pod status
+  debug:
+    var: pod_status.stdout_lines
+
+# ....................................................................................
+# quadlets
+#        "vault-infra",
+#        "vault-svc"
+
+- name: Verify Vault container is running
+  command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=vault"
+  register: container_status
+  changed_when: false
+
+- name: Show container status
+  debug:
+    var: container_status.stdout_lines
+
+# ....................................................................................
+- name: Check Vault seal status
+  uri:
+    url: "http://localhost:{{ vault_api_port }}/v1/sys/seal-status"
+    method: GET
+    return_content: yes
+  register: seal_status
+  changed_when: false
+  failed_when: false
+
+- name: Show Vault seal status
+  debug:
+    msg:
+      - "Version: {{ seal_status.json.version | default('unknown') }}"
+      - "Initialized: {{ seal_status.json.initialized | default('unknown') }}"
+      - "Sealed: {{ seal_status.json.sealed | default('unknown') }}"
+      - "Storage: {{ seal_status.json.storage_type | default('unknown') }}"
+  when: seal_status.status == 200
+
+- name: Warn if Vault API not accessible
+  debug:
+    msg: "WARNING: Vault API not accessible (HTTP {{ seal_status.status }})"
+  when: seal_status.status != 200
+
+# ....................................................................................
+- name: Check Vault health
+  uri:
+    url: "http://localhost:{{ vault_api_port }}/v1/sys/health"
+    method: GET
+    return_content: yes
+    status_code: [200, 429, 473, 501, 503]  # All valid Vault health responses
+  register: health_status
+  changed_when: false
+  failed_when: false
+
+- name: Show Vault health status
+  debug:
+    msg:
+      - "Initialized: {{ health_status.json.initialized | default('unknown') }}"
+      - "Sealed: {{ health_status.json.sealed | default('unknown') }}"
+      - "Standby: {{ health_status.json.standby | default('unknown') }}"
+      - "Replication Perf Standby: {{ health_status.json.replication_perf_mode | default('unknown') }}"
+      - "Replication DR Standby: {{ health_status.json.replication_dr_mode | default('unknown') }}"
+  when: health_status.status in [200, 429, 473, 501, 503]
+
+# ....................................................................................
+- name: Check systemd service status
+  command: systemctl --user status vault-pod
+  register: systemd_status
+  changed_when: false
+  failed_when: false
+
+- name: Show systemd service uptime
+  debug:
+    msg: "{{ systemd_status.stdout_lines | select('match', '^\\s*(Active|Memory|CPU)') | list }}"
+  when: systemd_status.rc == 0

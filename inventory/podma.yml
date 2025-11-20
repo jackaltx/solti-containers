@@ -72,7 +72,6 @@ all:
         # ========================================
         elasticsearch_svc:
           hosts:
-          hosts:
             podma:
               # host_vars
 
