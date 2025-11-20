@@ -30,6 +30,9 @@ redis_tls_auth_clients: "no"
 # SMELL false will mess up _base/tasks/cleanup.yml
 redis_enable_gui: true
 
+# Traefik integration (for GUI container)
+redis_enable_traefik: true
+
 # =======================================================================
 service_network: "example-net"
 service_dns_servers:

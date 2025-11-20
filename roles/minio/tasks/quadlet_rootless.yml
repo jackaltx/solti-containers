@@ -61,24 +61,20 @@
       - "{{ minio_data_dir }}/config:/root/.minio:Z"
       - "{{ minio_data_dir }}/tls:/root/.minio/certs:Z"
     command: ["server", "/data", "--console-address", ":9001"]
+    label:
+      traefik.enable: "{{ minio_enable_traefik | lower }}"
+      traefik.http.routers.minio-api.rule: "Host(`{{ minio_api_domain }}`)"
+      traefik.http.routers.minio-api.entrypoints: "websecure"
+      traefik.http.routers.minio-api.service: "minio-api"
+      traefik.http.services.minio-api.loadbalancer.server.port: "9000"
+      traefik.http.routers.minio-api.middlewares: "secHeaders@file"
+      traefik.http.routers.minio-console.rule: "Host(`{{ minio_console_domain }}`)"
+      traefik.http.routers.minio-console.entrypoints: "websecure"
+      traefik.http.routers.minio-console.service: "minio-console"
+      traefik.http.services.minio-console.loadbalancer.server.port: "9001"
+      traefik.http.routers.minio-console.middlewares: "secHeaders@file"
     quadlet_options:
       - "EnvironmentFile={{ real_user_dir }}/.config/containers/systemd/env/minio.env"
-      - "Label=traefik.enable=true"
-
-      # API router (port 9000) - Explicit service binding
-      - "Label=traefik.http.routers.minio-api.rule=Host(`{{ minio_api_domain }}`)"
-      - "Label=traefik.http.routers.minio-api.entrypoints=websecure"
-      - "Label=traefik.http.routers.minio-api.service=minio-api"
-      - "Label=traefik.http.services.minio-api.loadbalancer.server.port=9000"
-      - "Label=traefik.http.routers.minio-api.middlewares=secHeaders@file"
-
-      # Console router (port 9001) - Explicit service binding
-      - "Label=traefik.http.routers.minio-console.rule=Host(`{{ minio_console_domain }}`)"
-      - "Label=traefik.http.routers.minio-console.entrypoints=websecure"
-      - "Label=traefik.http.routers.minio-console.service=minio-console"
-      - "Label=traefik.http.services.minio-console.loadbalancer.server.port=9001"
-      - "Label=traefik.http.routers.minio-console.middlewares=secHeaders@file"
-
       - |
         [Unit]
         Description=MinIO S3 Server Container

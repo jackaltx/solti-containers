@@ -43,13 +43,13 @@
       - "--http-bind=0.0.0.0:{{ influxdb3_internal_port }}"
       - "--object-store={{ influxdb3_object_store }}"
       - "--data-dir=/var/lib/influxdb3/data"
+    label:
+      traefik.enable: "{{ influxdb3_enable_traefik | lower }}"
+      traefik.http.routers.influxdb3.rule: "Host(`{{ influxdb3_fqdn }}`)"
+      traefik.http.routers.influxdb3.entrypoints: "websecure"
+      traefik.http.services.influxdb3.loadbalancer.server.port: "{{ influxdb3_internal_port }}"
+      traefik.http.routers.influxdb3.middlewares: "secHeaders@file"
     quadlet_options:
-      # Traefik labels (if enabled)
-      - "Label=traefik.enable={{ influxdb3_enable_traefik | lower }}"
-      - "Label=traefik.http.routers.influxdb3.rule=Host(`{{ influxdb3_fqdn }}`)"
-      - "Label=traefik.http.routers.influxdb3.entrypoints=websecure"
-      - "Label=traefik.http.services.influxdb3.loadbalancer.server.port={{ influxdb3_internal_port }}"
-      - "Label=traefik.http.routers.influxdb3.middlewares=secHeaders@file"
       - |
         [Unit]
         Description=InfluxDB 3 Core Container

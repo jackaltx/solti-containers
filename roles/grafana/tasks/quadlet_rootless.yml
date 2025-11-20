@@ -58,14 +58,15 @@
       GF_SECURITY_ADMIN_USER: "{{ grafana_admin_user }}"
       GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
       GF_INSTALL_PLUGINS: ""
+    label:
+      traefik.enable: "{{ grafana_enable_traefik | lower }}"
+      traefik.http.routers.grafana.rule: "Host(`{{ grafana_fqdn }}`)"
+      traefik.http.routers.grafana.entrypoints: "websecure"
+      traefik.http.routers.grafana.service: "grafana"
+      traefik.http.services.grafana.loadbalancer.server.port: "3000"
+      traefik.http.routers.grafana.middlewares: "secHeaders@file"
     quadlet_options:
       - "EnvironmentFile={{ real_user_dir }}/.config/containers/systemd/env/grafana.env"
-      - "Label=traefik.enable=true"
-      - "Label=traefik.http.routers.grafana.rule=Host(`{{ grafana_fqdn }}`)"
-      - "Label=traefik.http.routers.grafana.entrypoints=websecure"
-      - "Label=traefik.http.routers.grafana.service=grafana"
-      - "Label=traefik.http.services.grafana.loadbalancer.server.port=3000"
-      - "Label=traefik.http.routers.grafana.middlewares=secHeaders@file,redirect-to-https@file"
       - |
         [Unit]
         Description=Grafana Container

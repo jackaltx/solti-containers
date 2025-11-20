@@ -58,9 +58,8 @@
     network: "{{ service_network }}"
     quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     ports:
-      - "0.0.0.0:{{ traefik_http_port }}:8080" # Maps to internal 8000
-      - "0.0.0.0:{{ traefik_https_port }}:8443" # Maps to internal 8443
-      - "127.0.0.1:{{ traefik_dashboard_port }}:9000" # Maps to internal 9000
+      - "0.0.0.0:{{ traefik_http_port }}:8080" # HTTPS websecure entrypoint
+      - "127.0.0.1:{{ traefik_dashboard_port }}:9000" # Dashboard API
     quadlet_options:
       - |
         [Service]
@@ -85,7 +84,7 @@
     env:
       LINODE_TOKEN: "{{ lookup('env', 'LINODE_TOKEN') }}"
     label:
-      traefik.enable: "true"
+      traefik.enable: "{{ traefik_enable_traefik | lower }}"
       traefik.http.routers.traefik-dashboard.rule: "Host(`{{ traefik_fqdn }}`)"
       traefik.http.routers.traefik-dashboard.entrypoints: "websecure"
       traefik.http.routers.traefik-dashboard.tls.certresolver: "letsencrypt"

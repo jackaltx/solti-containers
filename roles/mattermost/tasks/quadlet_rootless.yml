@@ -12,7 +12,6 @@
     - .config/containers/systemd/env
 
 # ..................................................................................
-# TODO  is this part of prerequisites??
 - name: Create environment file for database secrets
   become: false
   ansible.builtin.template:
@@ -93,16 +92,14 @@
       MM_SQLSETTINGS_DATASOURCE: "postgres://{{ mattermost_db_user }}:{{ mattermost_postgres_password }}@mattermost-db:5432/{{ mattermost_db_name }}?sslmode=disable"
     security_opt:
       - label=disable
+    label:
+      traefik.enable: "{{ mattermost_enable_traefik | lower }}"
+      traefik.http.routers.mattermost.rule: "Host(`{{ mattermost_fqdn }}`)"
+      traefik.http.routers.mattermost.entrypoints: "websecure"
+      traefik.http.routers.mattermost.service: "mattermost"
+      traefik.http.services.mattermost.loadbalancer.server.port: "8065"
+      traefik.http.routers.mattermost.middlewares: "secHeaders@file"
     quadlet_options:
-      - "Label=traefik.enable=true"
-
-      # API router (port 8065) - Explicit service binding
-      - "Label=traefik.http.routers.mattermost.rule=Host(`{{ mattermost_fqdn }}`)"
-      - "Label=traefik.http.routers.mattermost.entrypoints=websecure"
-      - "Label=traefik.http.routers.mattermost.service=mattermost"
-      - "Label=traefik.http.services.mattermost.loadbalancer.server.port=8065"
-      - "Label=traefik.http.routers.mattermost.middlewares=secHeaders@file,redirect-to-https@file"
-
       - "User=2000:2000"
       - |
         [Unit]

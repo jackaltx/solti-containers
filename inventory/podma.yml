@@ -74,6 +74,8 @@ all:
           hosts:
             podma:
               # host_vars
+              elasticsearch_svc_name: "elasticsearch-test"
+              elasticsearch_svc_name_short: "es-test"
 
           # .......................................
           # _svc only vars
@@ -82,7 +84,7 @@ all:
             elasticsearch_data_dir: "{{ lookup('env', 'HOME') }}/elasticsearch-data" #
             elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
 
-            elasticsearch_proxy: "https://es.{{ domain }}:8443"
+            elasticsearch_proxy: "https://es.{{ domain }}:8443" # CLAUDE this feels wrong, explain what it does
 
         # ========================================
         redis_svc:
@@ -247,6 +249,7 @@ all:
         minio_svc:
           hosts:
             podma:
+              minio_svc_name: "minio-test"
               # Optional host-specific minio vars can go here
               minio_api_port: 9000
               minio_console_port: 9001
@@ -301,19 +304,10 @@ all:
                 status: "enable"
 
         # ========================================
-        wazuh_svc:
-          hosts:
-            podma:
-
-          # .......................................
-          # _svc only vars
-          vars:
-            debug_level: warn
-
-        # ========================================
         grafana_svc:
           hosts:
             podma:
+              grafana_svc_name: "grafana-test"
 
           # .......................................
           # _svc only vars
@@ -350,6 +344,7 @@ all:
         influxdb3_svc:
           hosts:
             podma:
+              influxdb3_svc_name: "influxdb3-test"
 
           # .......................................
           # influxdb3_svc only vars

@@ -91,12 +91,12 @@
       USER_UID: "1000"
       USER_GID: "1000"
     label:
-      traefik.enable: "true"
+      traefik.enable: "{{ gitea_enable_traefik | lower }}"
       traefik.http.routers.gitea.rule: "Host(`{{ gitea_fqdn }}`)"
       traefik.http.routers.gitea.entrypoints: "websecure"
       traefik.http.routers.gitea.service: "gitea"
       traefik.http.services.gitea.loadbalancer.server.port: "3000"
-      traefik.http.routers.gitea.middlewares: "secHeaders@file,redirect-to-https@file"
+      traefik.http.routers.gitea.middlewares: "secHeaders@file"
     quadlet_options:
       - "[Unit]"
       - "Description=Gitea Service Container"
