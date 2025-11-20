@@ -27,9 +27,18 @@ As container images evolve (e.g., Mattermost v11 removing shell access), traditi
 
 ## Implementation Pattern
 
-The pattern uses **two files** that work together:
+The pattern is implemented in the **`_base` role** and inherited by all service roles.
 
-### File 1: `check_upgrade.yml` - Main orchestrator
+### Architecture
+
+**Common implementation in `_base` role:**
+- `roles/_base/tasks/check_upgrade.yml` - Main orchestrator
+- `roles/_base/tasks/check_upgrade_container.yml` - Per-container checker
+
+**Service role wrapper:**
+- `roles/<service>/tasks/check_upgrade.yml` - Simple include of `_base` implementation
+
+### File 1: `_base/tasks/check_upgrade.yml` - Main orchestrator
 
 Discovers all containers in the pod and coordinates checking each one:
 
@@ -73,7 +82,7 @@ Discovers all containers in the pod and coordinates checking each one:
       {%- endif -%}
 ```
 
-### File 2: `check_upgrade_container.yml` - Per-container checker
+### File 2: `_base/tasks/check_upgrade_container.yml` - Per-container checker
 
 Performs the actual check for a single container:
 
@@ -137,13 +146,31 @@ Performs the actual check for a single container:
       latest_image_id: "{{ latest_image_id.stdout }}"
 ```
 
+### File 3: Service role wrapper - `<service>/tasks/check_upgrade.yml`
+
+Each service role has a simple wrapper that includes the `_base` implementation:
+
+```yaml
+---
+# check_upgrade.yml - Check if container image updates are available
+# This role uses the common implementation from _base
+
+- name: Include _base check_upgrade implementation
+  ansible.builtin.include_tasks:
+    file: ../_base/tasks/check_upgrade.yml
+```
+
+This preserves the service's variables (like `service_properties`) while using the common code.
+
 ### Key Design Elements
 
-1. **Auto-discovery**: Uses `service_properties.root` to find pod, then lists all containers
-2. **Skip infra**: Filters out pause/infra containers automatically
-3. **Per-container output**: Shows status for each container individually
-4. **Aggregate facts**: Collects all results in `container_checks` list
-5. **Summary**: Final task provides overall upgrade status
+1. **Centralized in `_base`**: Common implementation written once, inherited by all services
+2. **Auto-discovery**: Uses `service_properties.root` to find pod, then lists all containers
+3. **Skip infra**: Filters out pause/infra containers automatically
+4. **Per-container output**: Shows status for each container individually
+5. **Aggregate facts**: Collects all results in `container_checks` list
+6. **Summary**: Final task provides overall upgrade status
+7. **Variable preservation**: Uses `include_tasks` to maintain service context
 
 ## Example Output
 
@@ -256,26 +283,27 @@ Each entry in the `container_checks` list contains:
 
 ## Key Design Decisions
 
-1. **Auto-discovery**: No hardcoded container names - discovers all containers in pod dynamically
-2. **No shell access required**: Uses only podman inspect/pull commands on the host
-3. **Multi-container aware**: Handles services with 1 or N containers automatically
-4. **Skip infra containers**: Filters out pause/infra containers that don't need checking
-5. **Actual pull vs metadata**: Performs real pull to ensure accurate comparison (lightweight for already-cached images)
-6. **Changed detection**: Only marks as changed if new image data was downloaded
-7. **Aggregate facts**: Collects all results in `container_checks` list for programmatic use
-8. **Short IDs in output**: Displays first 12 chars of image IDs for readability
+1. **Centralized in `_base` role**: Common implementation written once, bugs fixed once, benefits all services
+2. **Auto-discovery**: No hardcoded container names - discovers all containers in pod dynamically
+3. **No shell access required**: Uses only podman inspect/pull commands on the host
+4. **Multi-container aware**: Handles services with 1 or N containers automatically
+5. **Skip infra containers**: Filters out pause/infra containers that don't need checking
+6. **Actual pull vs metadata**: Performs real pull to ensure accurate comparison (lightweight for already-cached images)
+7. **Changed detection**: Only marks as changed if new image data was downloaded
+8. **Aggregate facts**: Collects all results in `container_checks` list for programmatic use
+9. **Short IDs in output**: Displays first 12 chars of image IDs for readability
+10. **Variable preservation**: Uses `include_tasks` (not `include_role`) to preserve service context
 
 ## Applying to Other Services
 
 To add check_upgrade to another service:
 
-1. Copy **both files** to the target role:
+1. Copy the simple wrapper file:
    ```bash
    cp roles/mattermost/tasks/check_upgrade.yml roles/<service>/tasks/
-   cp roles/mattermost/tasks/check_upgrade_container.yml roles/<service>/tasks/
    ```
 
-2. **No modifications needed** - the pattern is fully generic and uses `service_properties.root` from defaults/main.yml
+2. **No modifications needed** - the wrapper is identical for all services
 
 3. Test with: `./svc-exec.sh <service> check_upgrade`
 
@@ -283,16 +311,23 @@ To add check_upgrade to another service:
 
 ```bash
 cp roles/mattermost/tasks/check_upgrade.yml roles/grafana/tasks/
-cp roles/mattermost/tasks/check_upgrade_container.yml roles/grafana/tasks/
 ./svc-exec.sh grafana check_upgrade
 ```
 
-That's it! The pattern automatically discovers all containers in the grafana pod and checks each one.
+That's it! The `_base` implementation automatically discovers all containers in the grafana pod and checks each one.
+
+### Why This Works
+
+- Common implementation lives in `roles/_base/tasks/`
+- Service wrapper uses `include_tasks` with relative path `../_base/tasks/check_upgrade.yml`
+- This preserves the service's `service_properties` variable
+- Pattern works identically for all services
 
 ## See Also
 
-- [roles/mattermost/tasks/check_upgrade.yml](../roles/mattermost/tasks/check_upgrade.yml) - Main orchestrator (generic, reusable)
-- [roles/mattermost/tasks/check_upgrade_container.yml](../roles/mattermost/tasks/check_upgrade_container.yml) - Per-container checker (generic, reusable)
-- [roles/redis/tasks/check_upgrade.yml](../roles/redis/tasks/check_upgrade.yml) - Example of pattern in another service
+- [roles/_base/tasks/check_upgrade.yml](../roles/_base/tasks/check_upgrade.yml) - Main orchestrator (centralized implementation)
+- [roles/_base/tasks/check_upgrade_container.yml](../roles/_base/tasks/check_upgrade_container.yml) - Per-container checker (centralized implementation)
+- [roles/mattermost/tasks/check_upgrade.yml](../roles/mattermost/tasks/check_upgrade.yml) - Service wrapper example
+- [roles/redis/tasks/check_upgrade.yml](../roles/redis/tasks/check_upgrade.yml) - Another service wrapper example
 - [Solti Container Pattern](Solti-Container-Pattern.md) - Overall role structure
 - [Service Management Scripts](../manage-svc.sh) - Lifecycle management
