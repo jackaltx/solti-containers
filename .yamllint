@@ -1,0 +1,14 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 160
+    level: warning
+  comments:
+    min-spaces-from-content: 2
+
+ignore: |
+  delete-me-inventory.yml
+  node_modules/
+  .git/

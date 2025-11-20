@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+      - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Python
@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+      - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Install markdownlint-cli
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+      - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Python
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+      - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Python
