@@ -72,3 +72,26 @@
         state: absent
       with_fileglob:
         - "{{ real_user_dir }}/.config/systemd/user/*{{ service_properties.root }}*"
+
+# .................................................................
+# Remove container images if DELETE_IMAGES=true
+
+- name: Remove container images
+  when:
+    - service_state == 'absent'
+    - service_properties.delete_images | default(false) | bool
+    - service_properties.container_image is defined
+  become: false
+  block:
+    - name: Remove container image
+      command: podman rmi {{ service_properties.container_image }}
+      register: image_removal
+      failed_when:
+        - image_removal.rc != 0
+        - "'image not known' not in image_removal.stderr"
+      changed_when: image_removal.rc == 0
+
+    - name: Debug image removal
+      debug:
+        msg: "Removed image: {{ service_properties.container_image }}"
+      when: image_removal.rc == 0
