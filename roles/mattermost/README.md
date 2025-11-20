@@ -7,8 +7,10 @@ Mattermost provides a private team communication platform ideal for collecting n
 ## Quick Start
 
 ```bash
-# Set required database password
+# Set required environment variables
 export MM_DB_PASSWORD="your_secure_db_password"
+export MM_USER="admin"
+export MM_PASSWORD="your_admin_password"
 
 # Prepare system directories and configuration
 ./manage-svc.sh mattermost prepare
@@ -33,6 +35,60 @@ export MM_DB_PASSWORD="your_secure_db_password"
 ```
 
 > **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
+
+## Full Redeploy
+
+Complete removal and fresh installation with latest container images. Useful for testing, upgrades, or recovering from corruption.
+
+```bash
+# Set required environment variables
+export MM_DB_PASSWORD="your_secure_db_password"
+export MM_USER="admin"
+export MM_PASSWORD="your_admin_password"
+
+# Step 1: Complete removal (data + images)
+DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.yml mattermost remove
+
+# Step 2: Prepare system
+./manage-svc.sh -h podma -i inventory/podma.yml mattermost prepare
+
+# Step 3: Deploy with fresh images
+./manage-svc.sh -h podma -i inventory/podma.yml mattermost deploy
+
+# Step 4: Initialize admin user and lock down registration
+./svc-exec.sh -h podma -i inventory/podma.yml mattermost initialize-mattermost
+
+# Step 5: Verify deployment
+./svc-exec.sh -h podma -i inventory/podma.yml mattermost verify
+```
+
+**What this does**:
+
+- **Step 1**: Removes service, data directories, AND container images (Mattermost + PostgreSQL)
+- **Step 2**: Creates fresh directory structure with proper permissions
+- **Step 3**: Pulls latest container images and deploys service
+- **Step 4**: Creates admin user and disables public registration
+- **Step 5**: Validates deployment (health checks, security settings)
+
+**Expected results**:
+
+- Fresh `docker.io/mattermost/mattermost-team-edition:latest` and `postgres:16-alpine` images pulled
+- Clean database with no existing channels or users
+- Admin user created and registration disabled
+- All verification tests pass
+- Service accessible at `http://127.0.0.1:8065`
+
+**Localhost variant** (replace `-h podma -i inventory/podma.yml` with no flags):
+
+```bash
+DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh mattermost remove
+./manage-svc.sh mattermost prepare
+./manage-svc.sh mattermost deploy
+./svc-exec.sh mattermost initialize-mattermost
+./svc-exec.sh mattermost verify
+```
+
+> **Warning**: `DELETE_DATA=true` permanently destroys all channels, messages, users, and configuration. Only use for testing or fresh installations.
 
 ## Features
 
@@ -75,13 +131,15 @@ export MM_DB_PASSWORD="your_secure_db_password"
 ### Required Environment Variables
 
 ```bash
-# Database password (required)
+# Database password (required for deploy)
 export MM_DB_PASSWORD="your_secure_database_password"
 
-# Optional: Admin user configuration
+# Admin user configuration (required for initialize-mattermost task)
 export MM_USER="admin"
 export MM_PASSWORD="your_admin_password"
 ```
+
+> **Note**: All three variables should be set before running `initialize-mattermost`. Defaults (admin/changemeplease) are insecure and not recommended.
 
 ### Key Configuration Options
 
