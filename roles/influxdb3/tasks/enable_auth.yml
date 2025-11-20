@@ -9,7 +9,7 @@
     pod: influxdb3.pod
     image: "{{ influxdb3_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ lookup('env', 'HOME') }}/.config/containers/systemd"
     volume:
       - "{{ influxdb3_data_dir }}/data:/var/lib/influxdb3/data:z,U"
       - "{{ influxdb3_data_dir }}/plugins:/var/lib/influxdb3/plugins:z,U"
@@ -25,7 +25,7 @@
     quadlet_options:
       # Traefik labels (if enabled)
       - "Label=traefik.enable={{ influxdb3_enable_traefik | lower }}"
-      - "Label=traefik.http.routers.influxdb3.rule=Host(`influxdb3.{{ domain }}`)"
+      - "Label=traefik.http.routers.influxdb3.rule=Host(`{{ influxdb3_fqdn }}`)"
       - "Label=traefik.http.routers.influxdb3.entrypoints=websecure"
       - "Label=traefik.http.services.influxdb3.loadbalancer.server.port={{ influxdb3_internal_port }}"
       - "Label=traefik.http.routers.influxdb3.middlewares=secHeaders@file"

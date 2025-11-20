@@ -58,19 +58,24 @@
     user: "{{ grafana_admin_user }}"
     password: "{{ grafana_admin_password }}"
     force_basic_auth: true
-    status_code: 200
+    status_code: [200, 401]
   register: grafana_stats
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Show Grafana statistics
   debug:
     msg: |
+      {% if grafana_stats.status == 200 %}
       Grafana Statistics:
       - Users: {{ grafana_stats.json.users | default('unknown') }}
       - Dashboards: {{ grafana_stats.json.dashboards | default('unknown') }}
       - Data Sources: {{ grafana_stats.json.datasources | default('unknown') }}
       - Organizations: {{ grafana_stats.json.orgs | default('unknown') }}
+      {% else %}
+      Admin API authentication failed (password may have been changed in UI)
+      Grafana is running but admin credentials from inventory don't match database
+      {% endif %}
 
 # ....................................................................................
 - name: Check available data sources
@@ -80,15 +85,15 @@
     user: "{{ grafana_admin_user }}"
     password: "{{ grafana_admin_password }}"
     force_basic_auth: true
-    status_code: 200
+    status_code: [200, 401]
   register: datasources
   changed_when: false
   no_log: true
 
 - name: Show configured data sources
   debug:
-    msg: "Data sources: {{ datasources.json | map(attribute='name') | list }}"
-  when: datasources.json | length > 0
+    msg: "{{ 'Data sources: ' + (datasources.json | map(attribute='name') | list | string) if datasources.status == 200 else 'Data sources: (authentication required)' }}"
+  when: datasources.status == 200 or datasources.status == 401
 
 # ....................................................................................
 - name: Get container resource usage

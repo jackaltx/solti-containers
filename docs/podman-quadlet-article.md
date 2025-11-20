@@ -8,6 +8,7 @@ System administrators and DevOps engineers often need to manage containerized ap
 2. Generate systemd unit files using `podman generate systemd`
 
 This approach has several drawbacks:
+
 - Complex naming requirements between containers and generated services
 - Difficult to maintain synchronization between Podman configurations and systemd units
 - No single source of truth for the service definition
@@ -18,6 +19,7 @@ This approach has several drawbacks:
 Podman Quadlets provide a new approach to defining containerized services managed by systemd. Instead of generating systemd unit files separately, Quadlets allow you to define both the container configuration and systemd service aspects in a single, declarative file.
 
 ### Key Benefits
+
 - Single source of truth for service definition
 - Declarative configuration
 - Automatic systemd unit generation
@@ -97,6 +99,7 @@ Pod=elasticsearch.pod
 ## Best Practices
 
 1. File Organization:
+
    ```
    ~/.config/containers/systemd/
    ├── app.pod
@@ -141,15 +144,17 @@ When moving from traditional Podman/systemd setups to Quadlets:
 When automating Quadlet deployments (e.g., with Ansible):
 
 1. Choose deployment method:
+
 ```yaml
 # Variable to control deployment method
 elasticsearch_use_quadlet: true
 
 # Dynamic directory path
-elasticsearch_systemd_dir: "{{ ansible_env.HOME }}/.config/{{ 'containers' if elasticsearch_use_quadlet else 'systemd' }}/{{ 'systemd' if elasticsearch_use_quadlet else 'user' }}"
+elasticsearch_systemd_dir: "{{ ansible_facts.user_dir }}/.config/{{ 'containers' if elasticsearch_use_quadlet else 'systemd' }}/{{ 'systemd' if elasticsearch_use_quadlet else 'user' }}"
 ```
 
 2. Handle both methods:
+
 ```yaml
 - name: Template service files
   template:
@@ -178,6 +183,7 @@ elasticsearch_systemd_dir: "{{ ansible_env.HOME }}/.config/{{ 'containers' if el
 ## Conclusion
 
 Podman Quadlets represent a significant improvement in managing containerized services with systemd. They provide:
+
 - Better integration between containers and system services
 - More maintainable configurations
 - Clearer relationships between components

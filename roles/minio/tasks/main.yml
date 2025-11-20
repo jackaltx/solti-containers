@@ -15,6 +15,13 @@
   register: become_test
   changed_when: false
 
+# Get real user info using environment variables (immune to become)
+- name: Get real user info from environment
+  set_fact:
+    real_user: "{{ lookup('env', 'USER') }}"
+    real_user_dir: "{{ lookup('env', 'HOME') }}"
+    real_user_uid: "{{ lookup('pipe', 'id -u') }}"
+
 # =======================================================================
 # PREPARATION (one-time setup)
 # =======================================================================
@@ -24,8 +31,11 @@
   block:
     - name: Check if already prepared
       ansible.builtin.stat:
-        path: "{{ minio_data_dir }}"
+        path: "{{ real_user_dir }}/{{ minio_data_dir }}"
       register: data_dir_check
+
+    - debug:
+        var: data_dir_check
 
     - name: Fail if already prepared
       ansible.builtin.fail:
@@ -50,13 +60,19 @@
       when: >
         minio_root_password == 'changeme'
 
-    - name: Verify required directories exist
-      become: true
+    - debug:
+        msg: "{{ real_user_dir }}/{{ minio_data_dir }}/config"
+
+    - name: Check if directories exist
       ansible.builtin.stat:
-        path: "{{ minio_data_dir }}/{{ service_properties.config_dir }}"
+        path: "{{ real_user_dir }}/{{ minio_data_dir }}/{{ service_properties.config_dir }}"
       register: config_dir_check
-      failed_when: not config_dir_check.stat.exists
       changed_when: false
+
+    # Claude, we need to verify this. if feels wrong.
+    - name: Auto-prepare if directories don't exist (for molecule/testing)
+      ansible.builtin.include_tasks: prepare.yml
+      when: not config_dir_check.stat.exists
 
     - name: Include prerequisites tasks
       ansible.builtin.include_tasks: prerequisites.yml

@@ -1,0 +1,131 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ${MOLECULE_EPHEMERAL_DIRECTORY}/requirements.yml
+    ignore-errors: true
+
+driver:
+  name: podman
+  options:
+    managed: true
+    platform_name: ${MOLECULE_PLATFORM_NAME:-all}
+
+# Testing containers for solti-containers collection
+# These images have systemd, SSH, and necessary tooling
+# Containers will install podman inside themselves for nested container testing
+platforms:
+  - name: "uut-ct0"
+    image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/debian-ssh:12"
+    network: "containers-net"
+    command: "/sbin/init"
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    ssh_host: "127.0.0.1"
+    ssh_port: 2223
+    ssh_user: "jackaltx"
+    connection: ssh
+
+  - name: "uut-ct1"
+    image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/rocky-ssh:9"
+    network: "containers-net"
+    command: "/sbin/init"
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    ssh_host: "127.0.0.1"
+    ssh_port: 2224
+    ssh_user: "jackaltx"
+    connection: ssh
+
+  - name: "uut-ct2"
+    image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/ubuntu-ssh:24"
+    network: "containers-net"
+    command: "/sbin/init"
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    ssh_host: "127.0.0.1"
+    ssh_port: 2225
+    ssh_user: "jackaltx"
+    connection: ssh
+
+provisioner:
+  name: ansible
+  log: true
+  env:
+    ANSIBLE_SSH_ARGS: "-o IdentityFile=~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+    ANSIBLE_DEPRECATION_WARNINGS: "False"
+  config_options:
+    defaults:
+      roles_path: roles
+      interpreter_python: auto_silent
+      host_key_checking: false
+      ansible_managed: "Ansible managed"
+  playbooks:
+    create: "../shared/podman/create.yml"
+    prepare: "../shared/podman/prepare.yml"
+    converge: "../shared/podman/converge.yml"
+    verify: "../shared/verify/main.yml"
+    destroy: "../shared/podman/destroy.yml"
+  inventory:
+    group_vars:
+      all:
+        ansible_managed: "Ansible managed"
+        project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+        report_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/verify_output"
+        ansible_connection: ssh
+        ansible_user: "jackaltx"
+
+        # Secure logging control (set to false for debugging credential issues)
+        secure_logging: "{{ lookup('env', 'MOLECULE_SECURE_LOGGING', default='true') | bool }}"
+
+        # Service testing control - comma-separated list
+        testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
+
+        # Domain for container registry (from secrets)
+        domain: "{{ lookup('env', 'LAB_DOMAIN', default='example.com') }}"
+
+        # Container network settings (inside test containers)
+        service_network: "ct-net"
+        service_dns_servers:
+          - 1.1.1.1
+          - 8.8.8.8
+        service_dns_search:
+          - "{{ domain }}"
+
+        # Service state for all services (present/absent)
+        redis_state: present
+        traefik_state: present
+        hashivault_state: present
+        elasticsearch_state: present
+        minio_state: present
+        mattermost_state: present
+        grafana_state: present
+
+        # Service data directories (inside test containers)
+        redis_data_dir: "~/redis-data"
+        traefik_data_dir: "~/traefik-data"
+        hashivault_data_dir: "~/hashivault-data"
+        elasticsearch_data_dir: "~/elasticsearch-data"
+        minio_data_dir: "~/minio-data"
+        mattermost_data_dir: "~/mattermost-data"
+        grafana_data_dir: "~/grafana-data"
+
+scenario:
+  name: podman
+  test_sequence:
+    - destroy
+    - create
+    - prepare
+    - converge
+    # - idempotence
+    - verify
+    - destroy
+
+verifier:
+  name: ansible

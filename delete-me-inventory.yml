@@ -1,0 +1,403 @@
+---
+# Container services inventory for solti-containers collection
+# Used by manage-svc.sh
+#
+# Pattern: Central host registry + capability groups
+# - Top level 'mylab' group = central host registry (all known service hosts)
+# - Children groups = service capabilities (mattermost_svc, redis_svc, etc.)
+# - Hosts can belong to multiple capability groups
+# - When targeting specific host with -h, it inherits all group vars from its capability groups
+
+all:
+  vars:
+    # ============================================
+    # Shared Core Variables (sync with solti-platforms)
+    # These vars are consistent across all SOLTI collections
+    # ============================================
+    domain: a0a0.org
+    mylab_nolog: "{{ cluster_secure_log | bool | default(true) }}" # Controls debug output
+    ansible_user: lavender # SSH user
+    ansible_ssh_private_key_file: ~/.ssh/id_ed25519 # SSH key
+    mylab_non_ssh: false # LXC container flag
+
+    # ============================================
+    # Container-Specific Variables
+    # These vars are specific to solti-containers
+    # ============================================
+    # Container networking overrides
+    service_network: "ct-net"
+    service_dns_servers:
+      - "1.1.1.1"
+      - "8.8.8.8"
+    service_dns_search: "{{ domain }}"
+
+    # Test/verification variables
+    test_index: "test-ansible"
+    test_doc: '{"message": "Verification {{ ansible_facts.date_time.iso8601 }}"}'
+
+  children:
+    # ................................................
+    mylab:
+      # .........................................
+      # mylab hosts
+      hosts:
+        firefly:
+          ansible_host: "localhost"
+          ansible_connection: local
+
+        podma:
+          ansible_host: "podma.{{ domain }}"
+          ansible_user: lavender
+
+      # .........................................
+      # mylab vars
+      vars:
+        mylab_results: []
+
+      children:
+        # ========================================
+        mattermost_svc:
+          hosts:
+            firefly:
+              mattermost_svc_name: "mattermost"
+            podma:
+              mattermost_svc_name: "mattermost-test"
+
+          # .......................................
+          # mattermost_svc only vars
+          vars:
+            debug_level: warn
+            mattermost_external_port: 8080
+
+            test_email: "test-{{ ansible_facts.date_time.epoch }}@example.com"
+            test_username: "testuser-{{ ansible_facts.date_time.epoch }}"
+            test_password: "Test123!"
+
+        # ========================================
+        elasticsearch_svc:
+          hosts:
+            firefly:
+              elasticsearch_svc_name: "elasticsearch"
+              elasticsearch_svc_name_short: "es"
+
+          # .......................................
+          # _svc only vars
+          vars:
+            elasticsearch_external_port: 8080
+            debug_level: warn
+            elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"
+
+        # ========================================
+        redis_svc:
+          hosts:
+            firefly:
+              redis_svc_name: "redis-ui"
+            podma:
+              redis_svc_name: "redis-ui-test"
+          # .......................................
+          # _svc only vars
+          vars:
+            debug_level: warn
+            redis_password: "{{ lookup('env', 'REDIS_PASSWORD', default='') }}"
+
+            test_key: "test:ansible"
+            test_value: "Verification {{ ansible_facts.date_time.iso8601 }}"
+
+        # ========================================
+        hashivault_svc:
+          hosts:
+            firefly:
+              hashivault_svc_name: "vault"
+              hashivault_svc_name_alt: "hashivault"
+            podma:
+              hashivault_svc_name: "vault-test"
+              hashivault_svc_name_alt: "hashivault-test"
+
+          # .......................................
+          # _svc only vars
+          vars:
+            hashivault_external_port: 8080
+            debug_level: warn
+
+            # .......................................
+            # Initialize vars
+            # .......................................
+
+            # Initialization parameters
+            vault_init_required: true # Set to false to skip initialization if already done
+            vault_key_shares: 5 # Number of key shares to split the master key into
+            vault_key_threshold: 3 # Number of key shares needed to reconstruct the master key
+
+            # Secure storage options
+            vault_keys_output_dir: "{{ lookup('env', 'HOME') }}/.secrets/vault-secrets"
+            vault_keys_backup: true # Whether to create a backup copy
+
+            # For demonstration only - in production use ansible-vault or a secrets manager
+            vault_unseal_now: true # Whether to unseal the vault immediately
+
+            # Vault connection details
+            vault_addr: "http://localhost:8200"
+
+            # Secret engines to enable
+            vault_enable_transit: true # Encryption as a service
+            vault_enable_pki: true # Certificate authority
+            vault_enable_ssh: true # SSH key signing
+
+            # .......................................
+            # Setup secrets
+            # .......................................
+
+            # Environment variable secrets to store in Vault
+            # If these variables are not set, use dummy values (for development only)
+            vault_initial_secrets:
+              - path: "kv/ansible/vault"
+                data:
+                  provision_vault_password: "{{ lookup('env', 'PROVISION_VAULT_PASSWORD') | default('changeme_in_production') }}"
+
+              - path: "kv/services/elasticsearch"
+                data:
+                  elastic_password: "{{ lookup('env', 'ELASTIC_PASSWORD') | default('changeme_in_production') }}"
+                  es_ro_token: "{{ lookup('env', 'ES_RO_TOKEN') | default('changeme_in_production') }}"
+                  es_rw_token: "{{ lookup('env', 'ES_RW_TOKEN') | default('changeme_in_production') }}"
+
+              - path: "kv/services/mattermost"
+                data:
+                  mm_db_password: "{{ lookup('env', 'MM_DB_PASSWORD') | default('changeme_in_production') }}"
+
+              - path: "kv/services/redis"
+                data:
+                  redis_password: "{{ lookup('env', 'REDIS_PASSWORD') | default('changeme_in_production') }}"
+
+              - path: "kv/providers/linode"
+                data:
+                  linode_token: "{{ lookup('env', 'LINODE_TOKEN') | default('changeme_in_production') }}"
+
+              - path: "kv/providers/proxmox"
+                data:
+                  proxmox_url: "{{ lookup('env', 'PROXMOX_URL') | default('https://proxmox.example.com:8006/api2/json') }}"
+                  proxmox_user: "{{ lookup('env', 'PROXMOX_USER') | default('root@pam') }}"
+                  proxmox_node: "{{ lookup('env', 'PROXMOX_NODE') | default('proxmox') }}"
+                  proxmox_token_id: "{{ lookup('env', 'PROXMOX_TOKEN_ID') | default('changeme_in_production') }}"
+                  proxmox_token_secret: "{{ lookup('env', 'PROXMOX_TOKEN_SECRET') | default('changeme_in_production') }}"
+
+              - path: "kv/providers/gitea"
+                data:
+                  gitea_token: "{{ lookup('env', 'GITEA_TOKEN') | default('changeme_in_production') }}"
+
+            # PKI settings (if enabled)
+            vault_pki_common_name: "solti.local"
+            vault_pki_max_ttl: "87600h" # 10 years
+
+            # .......................................
+            # Configure vars
+            # .......................................
+
+            # Load the root token from init file
+            vault_keys_dir: "{{ lookup('env', 'HOME') }}/.secrets/vault-secrets"
+            vault_keys_file: "{{ vault_keys_dir }}/vault-keys.json"
+
+            # Configuration options
+            vault_enable_approle: true
+            vault_enable_userpass: true
+            vault_admin_username: "admin"
+            vault_admin_password: "{{ lookup('password', '/dev/null length=24 chars=ascii_letters,digits,!@#%^&*()_-+=') }}"
+
+            vault_policies:
+              - name: "admin"
+                rules: |
+                  # Admin policy
+                  path "auth/*" {
+                    capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+                  }
+
+                  path "sys/*" {
+                    capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+                  }
+
+                  path "identity/*" {
+                    capabilities = ["create", "read", "update", "delete", "list"]
+                  }
+
+                  path "*" {
+                    capabilities = ["create", "read", "update", "delete", "list"]
+                  }
+
+              - name: "readonly"
+                rules: |
+                  # Read-only policy
+                  path "secret/*" {
+                    capabilities = ["read", "list"]
+                  }
+
+                  path "kv/*" {
+                    capabilities = ["read", "list"]
+                  }
+
+        # ========================================
+        traefik_svc:
+          hosts:
+            firefly:
+              traefik_svc_name: "traefik"
+            podma:
+              traefik_svc_name: "traefik-test"
+
+          # .......................................
+          # _svc only vars
+          vars:
+            debug_level: warn
+            traefik_dashboard_enabled: true
+
+            traefik_force_reload: false
+
+        # ========================================
+        minio_svc:
+          hosts:
+            firefly:
+              # Optional host-specific minio vars can go here
+              minio_api_port: 9000
+              minio_console_port: 9001
+              minio_api_svc_name: "minio"
+              minio_console_svc_name: "minio-console" # Console is built-in, this is just for Traefik routing
+
+            podma:
+              # Optional host-specific minio vars can go here
+              minio_api_port: 9000
+              minio_console_port: 9001
+              minio_api_svc_name: "minio-test"
+              minio_console_svc_name: "minio-console-test" # Console is built-in, this is just for Traefik routing
+
+          # .......................................
+          # _svc only vars
+          vars:
+            debug_level: warn
+            minio_dashboard_enabled: true
+
+            # MinIO credentials
+            # NOTE: These would be read from HashiVault in production
+            # minio_root_user: "minio_admin"
+            # minio_root_password: "secure_password_changeme"
+
+            # MinIO bucket configuration
+            minio_buckets:
+              - name: "app-data"
+                policy: "download"
+              - name: "backups"
+                policy: "none"
+              - name: "logs"
+                policy: "download"
+              - name: "config"
+                policy: "none"
+              - name: "media"
+                policy: "download"
+
+            # MinIO user configuration
+            minio_users:
+              - username: "app-user"
+                password: "app-password-changeme"
+                policy: "readwrite"
+                comment: "Application service user"
+              - username: "backup-user"
+                password: "backup-password-changeme"
+                policy: "readonly"
+                comment: "Backup automation user"
+              - username: "ci-user"
+                password: "ci-password-changeme"
+                policy: "readwrite"
+                comment: "CI/CD pipeline user"
+
+            # Enable versioning on these buckets
+            minio_enable_versioning:
+              - bucket: "app-data"
+                status: "enable"
+              - bucket: "backups"
+                status: "enable"
+              - bucket: "config"
+                status: "enable"
+
+        # ========================================
+        wazuh_svc:
+          hosts:
+            firefly:
+
+          # .......................................
+          # _svc only vars
+          vars:
+            debug_level: warn
+
+        # ========================================
+        grafana_svc:
+          hosts:
+            firefly:
+              grafana_svc_name: "grafana"
+            podma:
+              grafana_svc_name: "grafana-test"
+
+          # .......................................
+          # _svc only vars
+          vars:
+            debug_level: warn
+            grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD', default='') }}"
+
+        # ========================================
+        gitea_svc:
+          hosts:
+            firefly:
+              gitea_svc_name: "gitea"
+            podma:
+              gitea_svc_name: "gitea-test"
+
+          # .......................................
+          # gitea_svc only vars
+          vars:
+            debug_level: warn
+            gitea_admin_password: "{{ lookup('env', 'GITEA_ADMIN_PASSWORD', default='') }}"
+            gitea_port: 3001
+            gitea_ssh_port: 2222
+            gitea_external_port: 8080
+            gitea_image: "docker.io/gitea/gitea:latest"
+            gitea_app_name: "Gitea"
+            gitea_disable_registration: false
+            gitea_require_signin: true
+            gitea_enable_ssh: true
+            gitea_enable_actions: true
+            gitea_enable_lfs: true
+            gitea_enable_tls: true
+
+        # ========================================
+        influxdb3_svc:
+          hosts:
+            firefly:
+              influxdb3_svc_name: "influxdb3"
+            podma:
+              influxdb3_svc_name: "influxdb3-test"
+
+          # .......................................
+          # influxdb3_svc only vars
+          vars:
+            influxdb3_external_port: 8080
+            debug_level: warn
+            influxdb3_port: 8181
+
+            # Admin token (loaded from environment or file)
+            influxdb3_admin_token: "{{ lookup('env', 'INFLUXDB3_AUTH_TOKEN', default='') }}"
+
+            # Databases to create during configure
+            influxdb3_databases:
+              - name: "telegraf"
+              - name: "metrics"
+              - name: "logs"
+              - name: "traces"
+
+            # Resource tokens to create during configure
+            influxdb3_tokens:
+              - description: "telegraf-writer"
+                permissions: "database:telegraf:write"
+              - description: "metrics-reader"
+                permissions: "database:metrics:read"
+              - description: "grafana-reader"
+                permissions: "database:*:read"
+              - description: "logs-writer"
+                permissions: "database:logs:write,read"
+
+            # Traefik integration
+            influxdb3_enable_traefik: true

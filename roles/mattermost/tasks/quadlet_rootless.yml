@@ -1,10 +1,9 @@
 ---
 #
 # ..................................................................................
-# TODO  this should be part of _base
 - name: Ensure required directories exist
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "~{{ real_user_dir }}/{{ item }}"
     state: directory
     mode: "0750"
   loop:
@@ -13,22 +12,24 @@
     - .config/containers/systemd/env
 
 # ..................................................................................
-# TODO  is thos part of prerequisites??
+# TODO  is this part of prerequisites??
 - name: Create environment file for database secrets
+  become: false
   ansible.builtin.template:
     src: mattermost-db.env.j2
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/mattermost-db.env"
+    dest: "{{ real_user_dir }}/.config/containers/systemd/env/mattermost-db.env"
     mode: "0600"
 
 # ..................................................................................
 - name: Create Mattermost pod Quadlet
+  become: false
   containers.podman.podman_pod:
     name: mattermost
     state: quadlet
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ mattermost_port }}:8065"
     quadlet_options:
@@ -44,16 +45,17 @@
 
 # ..................................................................................
 - name: Create PostgreSQL container Quadlet
+  become: false
   containers.podman.podman_container:
     name: mattermost-db
     pod: mattermost.pod
     image: "{{ mattermost_postgres_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     volume:
       - "{{ mattermost_data_dir }}/postgres:/var/lib/postgresql/data:Z"
     quadlet_options:
-      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/mattermost-db.env"
+      - "EnvironmentFile={{ real_user_dir }}/.config/containers/systemd/env/mattermost-db.env"
       - |
         [Unit]
         Description=Mattermost Database Container
@@ -69,12 +71,13 @@
 
 # ..................................................................................
 - name: Create Mattermost container Quadlet
+  become: false
   containers.podman.podman_container:
     name: mattermost-svc
     pod: mattermost.pod
     image: "{{ mattermost_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     volume:
       - "{{ mattermost_data_dir }}/config:/mattermost/config:Z,U"
       - "{{ mattermost_data_dir }}/data:/mattermost/data:Z,U"
@@ -94,7 +97,7 @@
       - "Label=traefik.enable=true"
 
       # API router (port 8065) - Explicit service binding
-      - "Label=traefik.http.routers.mattermost.rule=Host(`mattermost.{{ domain }}`)"
+      - "Label=traefik.http.routers.mattermost.rule=Host(`{{ mattermost_fqdn }}`)"
       - "Label=traefik.http.routers.mattermost.entrypoints=websecure"
       - "Label=traefik.http.routers.mattermost.service=mattermost"
       - "Label=traefik.http.services.mattermost.loadbalancer.server.port=8065"
@@ -114,16 +117,23 @@
         [Install]
         WantedBy=default.target
 
-# .......................................................................................
-- name: reload systemd user daemon
-  ansible.builtin.systemd:
-    daemon_reload: yes
-    scope: user
+# ....................................................................................
+- name: Wait a moment for quadlet to be written
+  ansible.builtin.wait_for:
+    timeout: 10
 
 # .......................................................................................
-- name: Enable and start rootless pod with systemd
-  ansible.builtin.systemd:
-    name: "{{ service_properties.name }}"
-    state: started
-    enabled: yes
-    scope: user
+- name: reload systemd user daemon
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user daemon-reload
+  become: false
+  changed_when: false
+
+# .......................................................................................
+- name: Start rootless pod with systemd
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user start {{ service_properties.name }}
+  become: false
+  changed_when: true

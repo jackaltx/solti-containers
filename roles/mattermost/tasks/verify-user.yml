@@ -59,10 +59,10 @@
 # Set test user variables if not defined
 - name: Set default test user variables if not defined
   set_fact:
-    test_email: "{{ test_email | default('test-' + ansible_date_time.epoch + '@example.com') }}"
-    test_username: "{{ test_username | default('testuser-' + ansible_date_time.epoch) }}"
+    test_email: "{{ test_email | default('test-' + ansible_facts.date_time.epoch + '@example.com') }}"
+    test_username: "{{ test_username | default('testuser-' + ansible_facts.date_time.epoch) }}"
     test_password: "{{ test_password | default('Test123!') }}"
-    test_team_name: "{{ test_team_name | default('testteam-' + ansible_date_time.epoch) }}"
+    test_team_name: "{{ test_team_name | default('testteam-' + ansible_facts.date_time.epoch) }}"
     test_team_display_name: "{{ test_team_display_name | default('Test Team') }}"
     test_team_description: "{{ test_team_description | default('Team for testing purposes') }}"
 

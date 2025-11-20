@@ -1,10 +1,12 @@
 ---
 - name: reload systemd
+  become: false
   ansible.builtin.systemd:
     daemon_reload: yes
     scope: user
 
 - name: restart traefik
+  become: false
   ansible.builtin.systemd:
     name: "traefik-pod"
     state: restarted
@@ -19,6 +21,7 @@
   listen: "restart privileged traefik"
 
 - name: reload systemd user daemon
+  become: false
   ansible.builtin.systemd:
     daemon_reload: yes
     scope: user

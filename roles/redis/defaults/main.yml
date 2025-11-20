@@ -11,7 +11,7 @@ redis_image: "docker.io/library/redis:7.2-alpine"
 redis_commander_image: "docker.io/rediscommander/redis-commander:latest"
 
 # Directory settings
-redis_data_dir: "{{ ansible_user_dir }}/redis-data"
+redis_data_dir: "{{ lookup('env', 'HOME')}}/redis-data"
 
 # Redis settings
 redis_port: 6379
@@ -30,7 +30,6 @@ redis_tls_auth_clients: "no"
 # SMELL false will mess up _base/tasks/cleanup.yml
 redis_enable_gui: true
 
-
 # =======================================================================
 service_network: "example-net"
 service_dns_servers:
@@ -41,7 +40,7 @@ service_dns_search: "example.com"
 # =======================================================================
 service_properties:
   root: "redis"
-  name: "redis-pod"
+  name: "redis-pod.service"
   pod_key: "redis.pod"
   quadlets:
     - "redis-svc.container"

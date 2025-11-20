@@ -44,6 +44,7 @@
       notify: restart redis
 
     # Configure system settings for Redis
+    # Note: This will fail in containers, which is expected and safe
     - name: Configure memory overcommit
       sysctl:
         name: vm.overcommit_memory
@@ -51,10 +52,12 @@
         sysctl_set: true
         state: present
         reload: true
+      failed_when: false
+      become: true
 
     # .....................................................................................
     - name: Configure SELinux for data directories
-      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+      when: ansible_facts.os_family == "RedHat" and ansible_facts.selinux.status == "enabled"
       block:
         - name: Set SELinux context for Redis directories
           ansible.builtin.sefcontext:

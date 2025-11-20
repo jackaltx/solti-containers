@@ -5,16 +5,20 @@
 #
 
 # ....................................................................................
-- name: Check if admin token file exists on host
-  ansible.builtin.stat:
-    path: "{{ influxdb3_secrets_dir }}/admin-token"
-  register: token_file
+- name: Check if admin token file exists inside container
+  become: false
+  ansible.builtin.command:
+    cmd: podman exec influxdb3-svc test -f /var/lib/influxdb3/secrets/admin-token
+  register: token_check
+  failed_when: false
+  changed_when: false
 
 # ....................................................................................
 - name: Bootstrap admin token
-  when: not token_file.stat.exists
+  when: token_check.rc != 0
   block:
     - name: Generate admin token from container
+      become: false
       ansible.builtin.command:
         cmd: podman exec influxdb3-svc influxdb3 create token --admin
       register: token_output
@@ -29,22 +33,22 @@
         msg: "Failed to extract valid token from output"
       when: admin_token is not defined or admin_token == "" or not admin_token.startswith('apiv3_')
 
-    - name: Save token to secrets directory (volume-mounted)
-      become: true
-      ansible.builtin.copy:
-        content: "{{ admin_token }}"
-        dest: "{{ influxdb3_secrets_dir }}/admin-token"
-        mode: '0600'
-        owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_id }}"
+    - name: Save token to secrets directory inside container
+      become: false
+      ansible.builtin.shell:
+        cmd: |
+          echo "{{ admin_token }}" | podman exec -i influxdb3-svc tee /var/lib/influxdb3/secrets/admin-token > /dev/null
+      changed_when: true
 
     - name: Save token to config directory for reference
+      become: false
       ansible.builtin.copy:
         content: "{{ admin_token }}"
         dest: "{{ influxdb3_data_dir }}/config/admin-token.txt"
         mode: '0600'
 
     - name: Verify token is valid (query token list)
+      become: false
       ansible.builtin.command:
         cmd: >
           podman exec influxdb3-svc
@@ -59,6 +63,7 @@
         verbosity: 0
 
     - name: Restart InfluxDB3 to load new token
+      become: false
       ansible.builtin.systemd:
         name: "{{ service_properties.name }}"
         state: restarted
@@ -72,11 +77,11 @@
 
 # ....................................................................................
 - name: Display token location
-  when: not token_file.stat.exists
+  when: token_check.rc != 0
   ansible.builtin.debug:
     msg: |
       Admin token saved to:
-      - Host (persisted): {{ influxdb3_secrets_dir }}/admin-token
+      - Inside container: /var/lib/influxdb3/secrets/admin-token
       - Reference copy: {{ influxdb3_data_dir }}/config/admin-token.txt
-      - Container sees: /var/lib/influxdb3/secrets/admin-token (via volume mount)
+      - Container volume mount: {{ influxdb3_secrets_dir }}/admin-token
     verbosity: 0

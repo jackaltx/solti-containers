@@ -5,7 +5,7 @@ service_dns_servers:
   - "8.8.8.8"
 service_dns_search: "example.com"
 
-service_quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+service_quadlet_dir: "{{ lookup('env', 'HOME') }}/.config/containers/systemd"
 
 # _base/defaults/main.yml
 service_properties:

@@ -1,0 +1,129 @@
+---
+# Service definitions for solti-containers molecule testing
+# Maps service names to roles and their dependencies
+# Pattern follows solti-monitoring capabilities.yml
+
+container_services:
+  traefik:
+    roles:
+      - traefik
+    required_packages:
+      Debian: &debian_container_deps
+        - podman
+        - podman-compose
+        - crun
+        - systemd
+        - systemd-container
+      Ubuntu: *debian_container_deps
+      RedHat: &redhat_container_deps
+        - podman
+        - crun
+        - systemd
+        - systemd-container
+      Rocky: *redhat_container_deps
+    verify_role_tasks:
+      traefik:
+        - verify.yml
+    service_names:
+      - traefik-pod
+    service_ports:
+      - 8080  # dashboard
+      - 443   # https
+
+  hashivault:
+    roles:
+      - hashivault
+    required_packages:
+      Debian: *debian_container_deps
+      Ubuntu: *debian_container_deps
+      RedHat: *redhat_container_deps
+      Rocky: *redhat_container_deps
+    verify_role_tasks:
+      hashivault:
+        - verify.yml
+    service_names:
+      - hashivault-pod
+    service_ports:
+      - 8200
+
+  redis:
+    roles:
+      - redis
+    required_packages:
+      Debian: *debian_container_deps
+      Ubuntu: *debian_container_deps
+      RedHat: *redhat_container_deps
+      Rocky: *redhat_container_deps
+    verify_role_tasks:
+      redis:
+        - verify.yml
+    service_names:
+      - redis-pod
+    service_ports:
+      - 6379
+
+  elasticsearch:
+    roles:
+      - elasticsearch
+    required_packages:
+      Debian: *debian_container_deps
+      Ubuntu: *debian_container_deps
+      RedHat: *redhat_container_deps
+      Rocky: *redhat_container_deps
+    verify_role_tasks:
+      elasticsearch:
+        - verify.yml
+    service_names:
+      - elasticsearch-pod
+    service_ports:
+      - 9200
+      - 9300
+
+  minio:
+    roles:
+      - minio
+    required_packages:
+      Debian: *debian_container_deps
+      Ubuntu: *debian_container_deps
+      RedHat: *redhat_container_deps
+      Rocky: *redhat_container_deps
+    verify_role_tasks:
+      minio:
+        - verify.yml
+    service_names:
+      - minio-pod
+    service_ports:
+      - 9000  # API
+      - 9001  # Console
+
+  mattermost:
+    roles:
+      - mattermost
+    required_packages:
+      Debian: *debian_container_deps
+      Ubuntu: *debian_container_deps
+      RedHat: *redhat_container_deps
+      Rocky: *redhat_container_deps
+    verify_role_tasks:
+      mattermost:
+        - verify.yml
+    service_names:
+      - mattermost-pod
+    service_ports:
+      - 8065
+
+  grafana:
+    roles:
+      - grafana
+    required_packages:
+      Debian: *debian_container_deps
+      Ubuntu: *debian_container_deps
+      RedHat: *redhat_container_deps
+      Rocky: *redhat_container_deps
+    verify_role_tasks:
+      grafana:
+        - verify.yml
+    service_names:
+      - grafana-pod
+    service_ports:
+      - 3000

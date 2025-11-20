@@ -2,11 +2,13 @@
 #
 # svc-exec - Execute specific tasks for services using dynamically generated Ansible playbooks
 #
-# Usage: svc-exec [-K] <service> [entry] [options]
+# Usage: svc-exec [-i INVENTORY] [-h HOST] [-K] <service> [entry] [options]
 #
 # Example:
 #   svc-exec elasticsearch verify     # No sudo prompt
 #   svc-exec -K redis configure       # With sudo prompt
+#   svc-exec -h firefly mattermost    # Run on specific host
+#   svc-exec -i inventory/podma.yml redis verify  # Use specific inventory
 #   svc-exec mattermost               # Default entry point, no sudo
 #   svc-exec redis verify -e redis_password=newpass
 
@@ -15,7 +17,7 @@ set -e
 
 # Configuration
 ANSIBLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INVENTORY="${ANSIBLE_DIR}/inventory.yml"
+INVENTORY="${SOLTI_INVENTORY:-${ANSIBLE_DIR}/inventory/localhost.yml}"
 TEMP_DIR="${ANSIBLE_DIR}/tmp"
 
 # Ensure temp directory exists
@@ -40,15 +42,21 @@ DEFAULT_ENTRY="verify"
 
 # Initialize variables
 USE_SUDO=false
+HOST=""
 SERVICE=""
 ENTRY=""
+YES_FLAG=false
+EXPLICIT_INVENTORY=false
 
 # Display usage information
 usage() {
-    echo "Usage: $(basename $0) [-K] <service> [entry] [options]"
+    echo "Usage: $(basename $0) [-i INVENTORY] [-h HOST] [-K] [-y] <service> [entry] [options]"
     echo ""
     echo "Options:"
+    echo "  -i INVENTORY     - Path to inventory file (default: \$SOLTI_INVENTORY or inventory.yml)"
+    echo "  -h HOST          - Target specific host from inventory (default: uses all hosts in service group)"
     echo "  -K               - Prompt for sudo password (needed for some operations)"
+    echo "  -y, --yes        - Skip safety prompts (for automation)"
     echo ""
     echo "Parameters:"
     echo "  service          - The service to manage"
@@ -63,9 +71,12 @@ usage() {
     echo "Examples:"
     echo "  $(basename $0) elasticsearch verify     # No sudo prompt"
     echo "  $(basename $0) -K redis configure       # With sudo prompt"
+    echo "  $(basename $0) -y elasticsearch verify  # Skip safety prompts"
+    echo "  $(basename $0) -h firefly mattermost    # Run on specific host"
+    echo "  $(basename $0) -i inventory/podma.yml redis verify  # Use specific inventory"
     echo "  $(basename $0) mattermost               # Default entry, no sudo"
     echo "  $(basename $0) redis verify -e redis_password=newpass"
-    echo "  $(basename $0) -K elasticsearch configure -e elasticsearch_memory=4g"
+    echo "  $(basename $0) -h firefly -K elasticsearch configure -e elasticsearch_memory=4g"
     exit 1
 }
 
@@ -80,33 +91,155 @@ is_service_supported() {
     return 1
 }
 
-# Generate task execution playbook 
+# Determine target context (localhost vs remote)
+get_target_context() {
+    local inventory="$1"
+    local host="$2"
+
+    # If host is explicitly podma, always remote
+    if [[ "$host" == "podma" ]]; then
+        echo "remote"
+        return 0
+    fi
+
+    # If inventory contains padma, always remote
+    if [[ "$inventory" =~ padma ]]; then
+        echo "remote"
+        return 0
+    fi
+
+    # If host is firefly or inventory is localhost, consider localhost
+    if [[ "$host" == "firefly" ]] || [[ "$inventory" =~ localhost ]]; then
+        echo "localhost"
+        return 0
+    fi
+
+    # Default to remote for safety
+    echo "remote"
+}
+
+# Safety prompt function (skip for read-only operations like verify)
+prompt_user() {
+    local context="$1"
+    local service="$2"
+    local entry="$3"
+    local inventory="$4"
+    local host="$5"
+
+    # Skip if --yes flag set
+    if [[ "$YES_FLAG" == "true" ]]; then
+        return 0
+    fi
+
+    # Skip for read-only operations
+    if [[ "$entry" == "verify" ]]; then
+        return 0
+    fi
+
+    # Skip if both inventory and host explicitly specified and they match
+    # (User knows what they're doing - explicit configuration)
+    if [[ "$EXPLICIT_INVENTORY" == "true" ]] && [[ -n "$host" ]]; then
+        # Check if inventory and host are consistent
+        if [[ "$inventory" =~ podma ]] && [[ "$host" == "podma" ]]; then
+            return 0  # Explicit podma inventory + podma host = no warning
+        elif [[ "$inventory" =~ localhost ]] && [[ "$host" == "firefly" ]]; then
+            return 0  # Explicit localhost inventory + firefly host = no warning
+        fi
+    fi
+
+    # Determine target display name
+    local target_name="${host:-all hosts in ${service}_svc}"
+    if [[ -z "$host" ]]; then
+        if [[ "$inventory" =~ localhost ]]; then
+            target_name="firefly"
+        elif [[ "$inventory" =~ padma ]]; then
+            target_name="podma"
+        fi
+    fi
+
+    # Prompt based on context
+    case "$context" in
+        localhost)
+            # Soft prompt only if explicit targeting (and not skipped above)
+            if [[ "$EXPLICIT_INVENTORY" == "true" ]] || [[ -n "$host" ]]; then
+                echo ""
+                read -p "Execute ${entry} for ${service} on ${target_name}. Continue? [Y/n] " response
+                if [[ "$response" =~ ^[Nn] ]]; then
+                    echo "Operation cancelled by user"
+                    return 1
+                fi
+            fi
+            ;;
+        remote)
+            # Hard prompt for remote (only if not already skipped above)
+            echo ""
+            echo "⚠ WARNING: Remote operation detected"
+            echo "Target: ${target_name}"
+            echo "Service: ${service}"
+            echo "Task: ${entry}"
+            read -p "Proceed? [y/N] " response
+            if [[ ! "$response" =~ ^[Yy] ]]; then
+                echo "Operation cancelled by user"
+                return 1
+            fi
+            ;;
+    esac
+
+    return 0
+}
+
+# Generate task execution playbook
 generate_exec_playbook() {
     local service="$1"
     local entry="$2"
-    
+    local host_param=""
+
+    # Add host specification if provided
+    if [[ -n "$HOST" ]]; then
+        host_param="hosts: $HOST"
+    else
+        host_param="hosts: ${service}_svc"
+    fi
+
     # Create playbook directly with proper substitutions
     cat > "$TEMP_PLAYBOOK" << EOF
 ---
 # Dynamic execution playbook
 - name: Execute ${entry} for ${service} Service
-  hosts: ${service}_svc
+  $host_param
   tasks:
     - name: Include roles tasks
       ansible.builtin.include_role:
         name: ${service}
         tasks_from: ${entry}
-        vars_from: main
 EOF
-    
+
     echo "Generated ${entry} playbook for ${service}"
 }
 
 # Parse command line options
-while getopts "K" opt; do
+while getopts "i:h:Ky" opt; do
     case ${opt} in
+        i)
+            INVENTORY=$OPTARG
+            EXPLICIT_INVENTORY=true
+            ;;
+        h)
+            HOST=$OPTARG
+            ;;
         K)
             USE_SUDO=true
+            ;;
+        y)
+            YES_FLAG=true
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            usage
+            ;;
+        :)
+            echo "Option -$OPTARG requires an argument." >&2
+            usage
             ;;
         *)
             usage
@@ -144,6 +277,12 @@ if ! is_service_supported "$SERVICE"; then
     usage
 fi
 
+# Validate inventory file exists
+if [[ ! -f "$INVENTORY" ]]; then
+    echo "Error: Inventory file not found: $INVENTORY"
+    exit 1
+fi
+
 # Generate timestamp for files
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 TEMP_PLAYBOOK="${TEMP_DIR}/${SERVICE}-${ENTRY}-${TIMESTAMP}.yml"
@@ -153,6 +292,12 @@ generate_exec_playbook "$SERVICE" "$ENTRY"
 
 # Display execution info
 echo "Executing task: ${ENTRY} for service: ${SERVICE}"
+echo "Inventory: $INVENTORY"
+if [[ -n "$HOST" ]]; then
+    echo "Target host: $HOST"
+else
+    echo "Target hosts: ${SERVICE}_svc (from inventory)"
+fi
 echo "Using generated playbook: $TEMP_PLAYBOOK"
 if $USE_SUDO; then
     echo "Using sudo: Yes (will prompt for password)"
@@ -170,6 +315,12 @@ echo "----------------"
 cat "${TEMP_PLAYBOOK}"
 echo "----------------"
 echo ""
+
+# Determine target context and prompt user (skip for verify)
+TARGET_CONTEXT=$(get_target_context "$INVENTORY" "$HOST")
+if ! prompt_user "$TARGET_CONTEXT" "$SERVICE" "$ENTRY" "$INVENTORY" "$HOST"; then
+    exit 0
+fi
 
 # Execute the playbook with or without sudo prompt
 if $USE_SUDO; then

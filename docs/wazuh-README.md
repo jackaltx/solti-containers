@@ -39,7 +39,7 @@ wazuh_dashboard_image: "docker.io/wazuh/wazuh-dashboard:4.7.2"
 ### Directory Settings
 
 ```yaml
-wazuh_data_dir: "{{ ansible_user_dir }}/wazuh-data"
+wazuh_data_dir: "{{ ansible_facts.user_dir }}/wazuh-data"
 ```
 
 ### Port Settings

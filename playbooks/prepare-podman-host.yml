@@ -1,0 +1,79 @@
+---
+# Prepare a remote host for rootless Podman container deployment
+# Usage: ansible-playbook -K -i inventory.yml prepare-podman-host.yml --limit podma
+- name: Prepare host for rootless Podman
+  hosts: podma
+  become: true
+
+  vars:
+    target_user: "{{ ansible_user }}"
+
+  tasks:
+    # Install podman packages directly (skip solti-ensemble role due to v1 registries bug)
+    - name: Update package cache (Debian)
+      ansible.builtin.apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install podman packages
+      ansible.builtin.package:
+        name:
+          - podman
+          - crun
+        state: present
+
+    - name: Install podman-compose (Debian only)
+      ansible.builtin.package:
+        name: podman-compose
+        state: present
+      when: ansible_os_family == "Debian"
+
+    # Rocky9/RHEL specific - ensure container-tools are available
+    - name: Install additional container tools (RHEL/Rocky)
+      when: ansible_os_family == "RedHat"
+      ansible.builtin.dnf:
+        name:
+          - container-selinux
+          - slirp4netns
+          - fuse-overlayfs
+        state: present
+
+    # Remove broken v1 registries config if present
+    - name: Remove broken site-registries.conf (v1 format bug)
+      ansible.builtin.file:
+        path: /etc/containers/registries.conf.d/site-registries.conf
+        state: absent
+
+    - name: Enable lingering for target user
+      ansible.builtin.command: "loginctl enable-linger {{ target_user }}"
+      register: linger_result
+      changed_when: linger_result.rc == 0
+      failed_when: false
+
+    - name: Verify linger is enabled
+      ansible.builtin.command: "loginctl show-user {{ target_user }} --property=Linger"
+      register: linger_check
+      changed_when: false
+
+    - name: Display linger status
+      ansible.builtin.debug:
+        msg: "Linger status: {{ linger_check.stdout }}"
+
+    # Enable user systemd services (run as target user)
+    - name: Enable podman socket for user
+      become: false
+      ansible.builtin.systemd:
+        name: podman.socket
+        state: started
+        enabled: true
+        scope: user
+
+    - name: Verify podman is working for user
+      become: false
+      ansible.builtin.command: podman info --format json
+      register: podman_info
+      changed_when: false
+
+    - name: Display podman version
+      ansible.builtin.debug:
+        msg: "Podman version: {{ (podman_info.stdout | from_json).version.Version }}"

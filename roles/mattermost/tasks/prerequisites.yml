@@ -49,7 +49,7 @@
 
     # ...................................................
     - name: Configure SELinux for data directories
-      when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+      when: ansible_facts.os_family == "RedHat" and ansible_facts.selinux.status == "enabled"
       block:
         - name: Set SELinux context for data directories
           ansible.builtin.sefcontext:

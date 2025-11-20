@@ -10,10 +10,9 @@ minio_tls_key_file: "" # Path relative to config dir
 
 # Container settings
 minio_image: "docker.io/minio/minio:latest"
-minio_console_image: "docker.io/minio/console:latest"
 
 # Directory settings
-minio_data_dir: "{{ ansible_user_dir }}/minio-data"
+minio_data_dir: "{{ lookup('env', 'HOME') }}/minio-data"
 
 # MinIO settings
 minio_api_port: 9000
@@ -22,15 +21,14 @@ minio_root_user: "{{ lookup('env', 'MINIO_ROOT_USER') | default('minioadmin') }}
 minio_root_password: "{{ lookup('env', 'MINIO_ROOT_PASSWORD') | default('changeme') }}"
 minio_browser: "on"
 minio_volumes: "data"
-minio_enable_console: true
 
 # This handles the application redirects behind the traefik router
 # TODO traefik port needs to come in from inventory
 # SMELL DNS names are hardcoded.  I need to set them up on linode to make this work
 #
 traefik_http_port: 8080
-minio_api_domain: "minio.{{ domain }}"
-minio_console_domain: "minio-console.{{ domain }}"
+minio_api_domain: "{{ minio_api_svc_name }}.{{ domain }}"
+minio_console_domain: "{{ minio_console_svc_name }}.{{ domain }}"
 minio_browser_redirect_url: "https://{{ minio_console_domain }}:{{ traefik_http_port }}"
 
 # =======================================================================
@@ -47,7 +45,6 @@ service_properties:
   pod_key: "minio.pod"
   quadlets:
     - "minio-svc.container"
-    - "minio-console.container"
     - "minio.pod"
   data_dir: "{{ minio_data_dir }}" # override in playbook
   config_dir: "config"

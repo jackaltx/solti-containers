@@ -4,8 +4,9 @@
 # ..................................................................................
 # TODO this should be part of _base
 - name: Ensure required directories exist
+  become: false
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ real_user_dir }}/{{ item }}"
     state: directory
     mode: "0750"
   loop:
@@ -15,20 +16,22 @@
 
 # ..................................................................................
 - name: Create environment file for Elasticsearch
+  become: false
   ansible.builtin.template:
     src: elasticsearch.env.j2
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/elasticsearch.env"
+    dest: "{{ real_user_dir }}/.config/containers/systemd/env/elasticsearch.env"
     mode: "0600"
 
 # ....................................................................................
 - name: Create Elasticsearch pod Quadlet
+  become: false
   containers.podman.podman_pod:
     name: elasticsearch
     state: quadlet
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ elasticsearch_port }}:9200"
       - "127.0.0.1:{{ elasticsearch_gui_port }}:8080"
@@ -49,12 +52,13 @@
 # See es_resource_limits.md for explanation of ulimit
 #
 - name: Create Elasticsearch node container Quadlet
+  become: false
   containers.podman.podman_container:
     name: elasticsearch-svc
     pod: elasticsearch.pod
     image: "{{ elasticsearch_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     volume:
       - "{{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z,U"
       - "{{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z,U"
@@ -66,19 +70,19 @@
       xpack.security.enabled: "{{ elasticsearch_enable_security | string }}"
       bootstrap.memory_lock: "true"
     quadlet_options:
-      - "EnvironmentFile={{ ansible_env.HOME }}/.config/containers/systemd/env/elasticsearch.env"
+      - "EnvironmentFile={{ real_user_dir }}/.config/containers/systemd/env/elasticsearch.env"
       - "Label=traefik.enable=true"
 
       # API router (port 9200) - Explicit service binding
       # Primary hostname
-      - "Label=traefik.http.routers.elasticsearch0.rule=Host(`elasticsearch.{{ domain }}`)"
+      - "Label=traefik.http.routers.elasticsearch0.rule=Host(`{{ elasticsearch_fqdn }}`)"
       - "Label=traefik.http.routers.elasticsearch0.entrypoints=websecure"
       - "Label=traefik.http.routers.elasticsearch0.service=elasticsearch0"
       - "Label=traefik.http.services.elasticsearch0.loadbalancer.server.port=9200"
       - "Label=traefik.http.routers.elasticsearch0.middlewares=secHeaders@file,redirect-to-https@file"
 
       # Secondary hostname (completely separate router)
-      - "Label=traefik.http.routers.elasticsearch1.rule=Host(`es.{{ domain }}`)"
+      - "Label=traefik.http.routers.elasticsearch1.rule=Host(`{{ elasticsearch_fqdn_short }}`)"
       - "Label=traefik.http.routers.elasticsearch1.entrypoints=websecure"
       - "Label=traefik.http.routers.elasticsearch1.service=elasticsearch0" # Use the same service
       # - "Label=traefik.http.services.elasticsearch1.loadbalancer.server.port=9200"
@@ -103,12 +107,13 @@
 
 # ....................................................................................
 - name: Create Elasticvue container Quadlet
+  become: false
   containers.podman.podman_container:
     name: elasticsearch-gui
     pod: elasticsearch.pod
     image: "{{ elasticsearch_elasticvue_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     quadlet_options:
       - |
         [Unit]
@@ -124,15 +129,23 @@
         WantedBy=default.target
 
 # .......................................................................................
-- name: reload systemd user daemon
-  ansible.builtin.systemd:
-    daemon_reload: yes
-    scope: user
+# ....................................................................................
+- name: Wait a moment for quadlet to be written
+  ansible.builtin.wait_for:
+    timeout: 10
 
 # .......................................................................................
-- name: Enable and start rootless pod with systemd
-  ansible.builtin.systemd:
-    name: "{{ service_properties.name }}"
-    state: started
-    enabled: yes
-    scope: user
+- name: reload systemd user daemon
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user daemon-reload
+  become: false
+  changed_when: false
+
+# .......................................................................................
+- name: Start rootless pod with systemd
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user start {{ service_properties.name }}
+  become: false
+  changed_when: true

@@ -1,0 +1,25 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 160
+    level: warning
+  comments:
+    min-spaces-from-content: 2
+    level: warning
+  braces:
+    level: warning
+  brackets:
+    level: warning
+  trailing-spaces:
+    level: warning
+  new-line-at-end-of-file:
+    level: warning
+  truthy:
+    level: warning
+
+ignore: |
+  delete-me-inventory.yml
+  node_modules/
+  .git/

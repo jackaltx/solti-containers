@@ -64,19 +64,23 @@
 
 # ...................................................................................
 - name: Create test document
-  command: >
-    podman exec elasticsearch-svc 
-    curl -s -u elastic:{{ elasticsearch_password }}
-    -X POST "http://localhost:9200/{{ test_index }}/_doc?refresh=true"
-    -H 'Content-Type: application/json'
-    -d "{{ test_doc }}"
+  uri:
+    url: "http://localhost:9200/{{ test_index }}/_doc?refresh=true"
+    method: POST
+    user: elastic
+    password: "{{ elasticsearch_password }}"
+    body_format: json
+    body:
+      message: "Verification {{ ansible_facts.date_time.iso8601 }}"
+    force_basic_auth: yes
+    status_code: 201
   register: index_result
   changed_when: false
   no_log: true
 
 - name: Show index result
   debug:
-    var: index_result.stdout_lines
+    var: index_result.json
 
 # ...................................................................................
 - name: Search test document

@@ -2,28 +2,32 @@
 # Deploy gitea using Podman Quadlets
 # Single container with SQLite
 
+# ....................................................
 - name: Ensure systemd user directories exist
+  become: false
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ real_user_dir }}/{{ item }}"
     state: directory
     mode: "0755"
+    owner: "{{ real_user }}"
+    group: "{{ real_user }}"
   loop:
     - .config/systemd/user
     - .config/containers/systemd
+    - .config/containers/systemd/env
 
-- name: Create gitea environment file directory
-  ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/containers/systemd/env"
-    state: directory
-    mode: "0755"
-
+# ....................................................
 - name: Copy gitea environment file
+  become: false
   ansible.builtin.copy:
     src: "{{ gitea_data_dir }}/config/gitea.env"
-    dest: "{{ ansible_env.HOME }}/.config/containers/systemd/env/gitea.env"
+    dest: "{{ real_user_dir }}/.config/containers/systemd/env/gitea.env"
     mode: "0640"
+    owner: "{{ real_user }}"
+    group: "{{ real_user }}"
     remote_src: true
 
+# ....................................................
 - name: Check if timezone files exist
   ansible.builtin.stat:
     path: "{{ item }}"
@@ -48,14 +52,16 @@
     gitea_volumes: "{{ gitea_volumes + ['/etc/localtime:/etc/localtime:ro'] }}"
   when: tz_files.results[1].stat.exists
 
+# ....................................................
 - name: Create gitea pod quadlet
+  become: false
   containers.podman.podman_pod:
     name: gitea
     state: quadlet
     dns: "{{ service_dns_servers }}"
     dns_search: "{{ service_dns_search }}"
     network: "{{ service_network }}"
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     ports:
       - "127.0.0.1:{{ gitea_port }}:3000"
       - "127.0.0.1:{{ gitea_ssh_port }}:22"
@@ -71,21 +77,22 @@
       - "WantedBy=default.target"
 
 - name: Create gitea container quadlet
+  become: false
   containers.podman.podman_container:
     name: gitea-svc
     pod: gitea.pod
     image: "{{ gitea_image }}"
     state: quadlet
-    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     volume: "{{ gitea_volumes }}"
     env_file:
-      - "{{ ansible_env.HOME }}/.config/containers/systemd/env/gitea.env"
+      - "{{ real_user_dir }}/.config/containers/systemd/env/gitea.env"
     env:
       USER_UID: "1000"
       USER_GID: "1000"
     label:
       traefik.enable: "true"
-      traefik.http.routers.gitea.rule: "Host(`{{ gitea_domain }}`)"
+      traefik.http.routers.gitea.rule: "Host(`{{ gitea_fqdn }}`)"
       traefik.http.routers.gitea.entrypoints: "websecure"
       traefik.http.routers.gitea.service: "gitea"
       traefik.http.services.gitea.loadbalancer.server.port: "3000"
@@ -103,14 +110,23 @@
       - "[Install]"
       - "WantedBy=default.target"
 
-- name: Reload systemd user daemon
-  ansible.builtin.systemd:
-    daemon_reload: true
-    scope: user
+# ....................................................................................
+- name: Wait a moment for quadlet to be written
+  ansible.builtin.wait_for:
+    timeout: 10
 
-- name: Enable and start gitea-pod service
-  ansible.builtin.systemd:
-    name: gitea-pod
-    enabled: true
-    state: started
-    scope: user
+# .......................................................................................
+- name: reload systemd user daemon
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user daemon-reload
+  become: false
+  changed_when: false
+
+# .......................................................................................
+- name: Start rootless pod with systemd
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user start {{ service_properties.name }}
+  become: false
+  changed_when: true

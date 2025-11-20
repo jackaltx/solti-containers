@@ -8,6 +8,19 @@
     on_github: "{{ lookup('env', 'IN_GITHUB_CI', default=false) }}"
 
   tasks:
+    - name: Gather facts without become to get real user info
+      setup:
+      become: false
+
+    # CLAUDE, this is a potential problem
+    - name: Get real user UID (before become takes effect)
+      set_fact:
+        real_user_uid: "{{ ansible_facts['user_uid'] }}"
+        real_user: "{{ ansible_facts['user_id'] }}"
+
+    - name: Re-gather facts with become for system info
+      setup:
+
     - name: Set test run timestamp (used across converge and verify)
       set_fact:
         verify_timestamp: "{{ ansible_facts['date_time']['iso8601'] }}"
@@ -21,33 +34,36 @@
           - "Roles path: {{ playbook_dir }}/../../roles"
           - "Project_root: {{ project_root }}"
           - "Distribution: {{ ansible_facts['distribution'] }}"
-          - "Testing capability: {{ testing_capabilities }}"
+          - "Distribution major version: {{ ansible_facts['distribution_major_version'] }}"
+          - "Distribution release: {{ ansible_facts['distribution_release'] }}"
+          - "Distribution version: {{ ansible_facts['distribution_version'] }}"
+          - "Testing services: {{ testing_services }}"
           - "Test timestamp: {{ verify_timestamp }}"
 
     # ................................................................
     # note this has to be loaded in each phase playbook!
-    - name: Load capability role definitions
+    - name: Load service role definitions
       include_vars:
-        file: "{{ project_root }}/molecule/vars/capabilities.yml"
+        file: "{{ project_root }}/molecule/vars/services.yml"
 
     # ................................................................
-    - name: Validate testing capabilities
+    - name: Validate testing services
       assert:
         that:
-          - capability in monitoring_capabilities.keys()
-        fail_msg: "Invalid capability specified: {{ capability }}"
-        success_msg: "Valid capability: {{ capability }}"
-      loop: "{{ testing_capabilities }}"
+          - service in container_services.keys()
+        fail_msg: "Invalid service specified: {{ service }}"
+        success_msg: "Valid service: {{ service }}"
+      loop: "{{ testing_services }}"
       loop_control:
-        loop_var: capability
+        loop_var: service
 
     # ................................................................
-    - name: Get roles for selected capabilities
+    - name: Get roles for selected services
       set_fact:
         roles_to_include: >-
           {{
-            testing_capabilities |
-            map('extract', monitoring_capabilities) |
+            testing_services |
+            map('extract', container_services) |
             map(attribute='roles') |
             flatten |
             list
@@ -57,11 +73,38 @@
     - name: Debug role inclusion
       debug:
         msg:
-          - "Testing Capabilities: {{ testing_capabilities }}"
+          - "Testing Services: {{ testing_services }}"
           - "Roles to Include: {{ roles_to_include }}"
         verbosity: 0
 
     # ................................................................
+    # Enable loginctl linger for user so containers persist
+    - name: Enable loginctl linger for ansible_user
+      command: "loginctl enable-linger {{ ansible_user }}"
+      changed_when: false
+      become: true
+
+    # ................................................................
+    # Ensure user runtime directory and D-Bus session exist
+    - name: Check if user runtime directory exists
+      ansible.builtin.stat:
+        path: "/run/user/{{ real_user_uid }}"
+      register: runtime_dir_check
+
+    - name: Initialize user session if needed
+      when: not runtime_dir_check.stat.exists
+      block:
+        - name: Create user runtime directory
+          ansible.builtin.file:
+            path: "/run/user/{{ real_user_uid }}"
+            state: directory
+            mode: "0700"
+            owner: "{{ real_user }}"
+            group: "{{ real_user }}"
+          become: true
+
+    # ................................................................
+    # Roles handle privilege escalation internally via their own become directives
     - name: Include roles to be tested
       include_role:
         name: "{{ project_root }}/roles/{{ role_name }}"
