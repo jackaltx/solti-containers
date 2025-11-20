@@ -52,6 +52,8 @@ service_properties:
   data_dir: "{{ influxdb3_data_dir }}"
   config_dir: "config"
   delete_data: "{{ lookup('env', 'DELETE_DATA') | default(true) | bool }}"
+  delete_images: "{{ lookup('env', 'DELETE_IMAGES') | default(false) | bool }}"
+  container_image: "{{ influxdb3_image }}"
   dirs:
     - { path: "", mode: "0750" }
     - { path: "config", mode: "0755" }

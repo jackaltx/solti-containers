@@ -16,6 +16,7 @@ feature branch → test → main (via PR)
 ### Working on Features
 
 1. **Create feature branch from test**:
+
    ```bash
    git checkout test
    git pull
@@ -23,6 +24,7 @@ feature branch → test → main (via PR)
    ```
 
 2. **Develop with checkpoint commits**:
+
    ```bash
    git add -A
    git commit -m "checkpoint: description"
@@ -30,6 +32,7 @@ feature branch → test → main (via PR)
    ```
 
 3. **Push to test branch**:
+
    ```bash
    git checkout test
    git merge feature/my-feature
@@ -56,6 +59,7 @@ feature branch → test → main (via PR)
 ## Testing Locally Before Push
 
 ### Lint checks
+
 ```bash
 # YAML
 yamllint .
@@ -71,12 +75,13 @@ ansible-playbook --syntax-check <playbook.yml>
 ```
 
 ### Molecule tests
+
 ```bash
 # Install dependencies
 pip install molecule molecule-plugins ansible-core
 
 # Test single platform
-MOLECULE_PLATFORM_NAME=uut-ct1 MOLECULE_TEST_ROLE=redis molecule test -s github
+MOLECULE_PLATFORM_NAME=uut-rocky9 MOLECULE_TEST_ROLE=redis molecule test -s github
 
 # Test specific role
 MOLECULE_TEST_ROLE=elasticsearch molecule test -s github
@@ -88,16 +93,18 @@ MOLECULE_TEST_ROLE=elasticsearch molecule test -s github
 
 | Platform | Container Image | SSH Port | Distro |
 |----------|----------------|----------|--------|
-| uut-ct0 | ghcr.io/jackaltx/testing-containers/debian-ssh:12 | 2223 | Debian 12 |
-| uut-ct1 | ghcr.io/jackaltx/testing-containers/rocky-ssh:9 | 2222 | Rocky Linux 9 |
+| uut-deb12 | ghcr.io/jackaltx/testing-containers/debian-ssh:12 | 2223 | Debian 12 |
+| uut-rocky9 | ghcr.io/jackaltx/testing-containers/rocky-ssh:9 | 2222 | Rocky Linux 9 |
 | uut-ct2 | ghcr.io/jackaltx/testing-containers/ubuntu-ssh:24 | 2224 | Ubuntu 24.04 |
 
 ### Environment Variables
 
 **ci.yml accepts**:
+
 - `MOLECULE_TEST_ROLE`: Which service to test (default: redis)
 
 **Example manual trigger**:
+
 1. Go to Actions → CI workflow
 2. Click "Run workflow"
 3. Select branch: main
@@ -107,12 +114,14 @@ MOLECULE_TEST_ROLE=elasticsearch molecule test -s github
 ## Artifacts
 
 ### Test Results (ci.yml)
+
 - **Name**: containers-test-results-{platform}
 - **Path**: verify_output/
 - **Retention**: 5 days
 - **Contains**: Test reports, verification output
 
 ### Logs (ci.yml, on failure)
+
 - **Name**: containers-logs-{platform}
 - **Path**: log/
 - **Retention**: 2 days
@@ -121,9 +130,11 @@ MOLECULE_TEST_ROLE=elasticsearch molecule test -s github
 ## Troubleshooting
 
 ### Lint failures
+
 Check the failing job in GitHub Actions, fix locally, push again.
 
 ### Molecule test failures
+
 1. Download artifacts from failed run
 2. Review verify_output/{distro}/consolidated_test_report.md
 3. Fix issue locally
@@ -131,12 +142,14 @@ Check the failing job in GitHub Actions, fix locally, push again.
 5. Create checkpoint commit and push
 
 ### Superlinter too strict
+
 Superlinter runs only on test branch - use it for early feedback.
 If a check is problematic, disable it in [superlinter.yml](workflows/superlinter.yml).
 
 ## Branch Protection (Recommended)
 
 Configure on GitHub:
+
 - **test branch**: No restrictions (direct push allowed)
 - **main branch**:
   - Require pull request reviews
@@ -162,6 +175,7 @@ Your existing verify.yml tasks are preserved and called by molecule verify phase
 ## Next Steps
 
 1. **Push test branch to GitHub**:
+
    ```bash
    git push -u origin test
    ```

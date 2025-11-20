@@ -72,3 +72,50 @@
         state: absent
       with_fileglob:
         - "{{ real_user_dir }}/.config/systemd/user/*{{ service_properties.root }}*"
+
+# .................................................................
+# Remove container images if DELETE_IMAGES=true
+
+- name: Remove container images
+  when:
+    - service_state == 'absent'
+    - service_properties.delete_images | default(false) | bool
+  become: false
+  block:
+    # Remove multiple images if container_images list exists (preferred)
+    - name: Remove container images (multiple)
+      when: service_properties.container_images is defined
+      command: podman rmi {{ item }}
+      loop: "{{ service_properties.container_images }}"
+      register: image_removal_multi
+      failed_when:
+        - image_removal_multi.rc != 0
+        - "'image not known' not in image_removal_multi.stderr"
+      changed_when: image_removal_multi.rc == 0
+
+    - name: Debug multiple images removal
+      when:
+        - service_properties.container_images is defined
+        - image_removal_multi.changed
+      debug:
+        msg: "Removed images: {{ service_properties.container_images | join(', ') }}"
+
+    # Fallback: Remove single image (for services with only container_image defined)
+    - name: Remove container image (single - fallback)
+      when:
+        - service_properties.container_images is not defined
+        - service_properties.container_image is defined
+      command: podman rmi {{ service_properties.container_image }}
+      register: image_removal_single
+      failed_when:
+        - image_removal_single.rc != 0
+        - "'image not known' not in image_removal_single.stderr"
+      changed_when: image_removal_single.rc == 0
+
+    - name: Debug single image removal
+      when:
+        - service_properties.container_images is not defined
+        - service_properties.container_image is defined
+        - image_removal_single.rc == 0
+      debug:
+        msg: "Removed image: {{ service_properties.container_image }}"

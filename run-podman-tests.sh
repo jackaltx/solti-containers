@@ -26,15 +26,15 @@ Options:
                                   minio, mattermost, grafana
     -n, --name NAME        Specify test name
                            Default: podman
-    -p, --platform PLAT    Specify platform (uut-ct0, uut-ct1, uut-ct2, or all)
+    -p, --platform PLAT    Specify platform (uut-deb12, uut-rocky9, uut-ct2, or all)
                            Default: all
-                           uut-ct0 = Debian 12
-                           uut-ct1 = Rocky 9
+                           uut-deb12 = Debian 12
+                           uut-rocky9 = Rocky 9
                            uut-ct2 = Ubuntu 24
 
 Example:
-    ${0##*/} --services traefik,hashivault --platform uut-ct0
-    ${0##*/} -s redis -p uut-ct1
+    ${0##*/} --services traefik,hashivault --platform uut-deb12
+    ${0##*/} -s redis -p uut-rocky9
     ${0##*/} --services "traefik,hashivault" --name vault_test
 EOF
 }
@@ -86,7 +86,7 @@ done
 
 # Validate platform if specified
 if [ -n "$PLATFORM" ]; then
-    valid_platforms=("uut-ct0" "uut-ct1" "uut-ct2" "all")
+    valid_platforms=("uut-deb12" "uut-rocky9" "uut-ct2" "all")
     found=0
     for valid_plat in "${valid_platforms[@]}"; do
         if [ "$PLATFORM" = "$valid_plat" ]; then

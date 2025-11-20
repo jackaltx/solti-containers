@@ -52,7 +52,12 @@ service_properties:
   data_dir: "{{ redis_data_dir }}"
   config_dir: "config"
   delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
+  delete_images: "{{ lookup('env', 'DELETE_IMAGES') | default(false) | bool }}"
   image: "{{ redis_image }}"
+  container_image: "{{ redis_image }}"
+  container_images:
+    - "{{ redis_image }}"
+    - "{{ redis_commander_image }}"
   dirs:
     - { path: "", mode: "0750" }
     - { path: "config", mode: "0755" }

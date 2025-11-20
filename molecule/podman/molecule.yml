@@ -15,7 +15,7 @@ driver:
 # These images have systemd, SSH, and necessary tooling
 # Containers will install podman inside themselves for nested container testing
 platforms:
-  - name: "uut-ct0"
+  - name: "uut-deb12"
     image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/debian-ssh:12"
     network: "containers-net"
     command: "/sbin/init"
@@ -28,7 +28,7 @@ platforms:
     ssh_user: "jackaltx"
     connection: ssh
 
-  - name: "uut-ct1"
+  - name: "uut-rocky9"
     image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/rocky-ssh:9"
     network: "containers-net"
     command: "/sbin/init"

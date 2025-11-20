@@ -16,8 +16,8 @@ Host System (your workstation)
 ### Key Components
 
 1. **Test Containers**: Privileged systemd containers with SSH
-   - `uut-ct0`: Debian 12 (port 2223)
-   - `uut-ct1`: Rocky 9 (port 2224)
+   - `uut-deb12`: Debian 12 (port 2223)
+   - `uut-rocky9`: Rocky 9 (port 2224)
    - `uut-ct2`: Ubuntu 24 (port 2225)
 
 2. **Podman Installation**: Uses `jackaltx.solti_ensemble.podman` role in prepare phase
@@ -38,10 +38,10 @@ Host System (your workstation)
 ./run-podman-tests.sh --services "traefik,hashivault"
 
 # Test on specific platform
-./run-podman-tests.sh --platform uut-ct0 --services redis
+./run-podman-tests.sh --platform uut-deb12 --services redis
 
 # Test hashivault with full workflow (unseal, write, read, seal)
-./run-podman-tests.sh --services hashivault --platform uut-ct0
+./run-podman-tests.sh --services hashivault --platform uut-deb12
 ```
 
 ### Advanced Options
@@ -51,7 +51,7 @@ Host System (your workstation)
 MOLECULE_SECURE_LOGGING=false ./run-podman-tests.sh --services hashivault
 
 # Test specific platform only
-MOLECULE_PLATFORM_NAME=uut-ct1 molecule test -s podman
+MOLECULE_PLATFORM_NAME=uut-rocky9 molecule test -s podman
 
 # Skip destroy (keep containers for debugging)
 molecule converge -s podman
@@ -83,18 +83,21 @@ container_services:
 ## How It Works
 
 ### 1. Prepare Phase
+
 - Creates test directories
 - Installs podman via `jackaltx.solti_ensemble.podman`
 - Installs service-specific packages
 - Sets up systemd in test container
 
 ### 2. Converge Phase
+
 - Loads service definitions from `services.yml`
 - Maps `MOLECULE_SERVICES` env var to roles
 - Includes roles dynamically (e.g., `redis` → `roles/redis`)
 - Enables loginctl linger for user persistence
 
 ### 3. Verify Phase
+
 - Runs `roles/<service>/tasks/verify.yml` for each service
 - Checks service ports, systemd status
 - Executes service-specific tests (e.g., vault unseal/seal)
@@ -103,10 +106,11 @@ container_services:
 ## Example: Testing HashiVault
 
 ```bash
-./run-podman-tests.sh --services hashivault --platform uut-ct0
+./run-podman-tests.sh --services hashivault --platform uut-deb12
 ```
 
 This will:
+
 1. Spin up Debian 12 test container
 2. Install podman inside it
 3. Deploy HashiVault using `roles/hashivault`
@@ -120,11 +124,13 @@ This will:
 ## Troubleshooting
 
 ### View test logs
+
 ```bash
 tail -f verify_output/latest_test.out
 ```
 
 ### Debug specific service
+
 ```bash
 # Deploy and keep running
 molecule converge -s podman
@@ -141,16 +147,19 @@ podman logs hashivault-svc
 ### Common Issues
 
 1. **Podman not found**: Ensure `solti-ensemble` collection is installed
+
    ```bash
    ansible-galaxy collection list | grep solti_ensemble
    ```
 
 2. **Port conflicts**: Check if ports 2223-2225 are available
+
    ```bash
    ss -tlnp | grep 222
    ```
 
 3. **Container registry auth**: Ensure `LAB_DOMAIN` is set
+
    ```bash
    source ~/.secrets/LabProvision
    echo $LAB_DOMAIN

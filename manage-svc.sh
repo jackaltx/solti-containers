@@ -321,9 +321,23 @@ if ! prompt_user "$TARGET_CONTEXT" "$SERVICE" "$ACTION" "$INVENTORY" "$HOST"; th
     exit 0
 fi
 
+# Test if sudo password is required on target
+# Use ansible ad-hoc to test NOPASSWD capability
+SUDO_FLAG=""
+TARGET_HOST="${HOST:-${SERVICE}_svc}"
+
+echo "Testing sudo capability on target..."
+if ansible -i "${INVENTORY}" "${TARGET_HOST}" -m shell -a "sudo -n true" &>/dev/null; then
+    echo "✓ NOPASSWD detected - sudo password not required"
+    SUDO_FLAG=""
+else
+    echo "✗ Password required - will prompt for sudo password"
+    SUDO_FLAG="-K"
+fi
+
 # Always use sudo for all states
-echo "Executing with sudo privileges: ansible-playbook -K -i ${INVENTORY} ${TEMP_PLAYBOOK} ${EXTRA_ARGS[*]}"
-ansible-playbook -K -i "${INVENTORY}" "${TEMP_PLAYBOOK}" "${EXTRA_ARGS[@]}"
+echo "Executing: ansible-playbook ${SUDO_FLAG} -i ${INVENTORY} ${TEMP_PLAYBOOK} ${EXTRA_ARGS[*]}"
+ansible-playbook ${SUDO_FLAG} -i "${INVENTORY}" "${TEMP_PLAYBOOK}" "${EXTRA_ARGS[@]}"
 
 # Check execution status
 EXIT_CODE=$?

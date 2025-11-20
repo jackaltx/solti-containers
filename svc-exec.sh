@@ -322,14 +322,23 @@ if ! prompt_user "$TARGET_CONTEXT" "$SERVICE" "$ENTRY" "$INVENTORY" "$HOST"; the
     exit 0
 fi
 
-# Execute the playbook with or without sudo prompt
+# Test if sudo password is required when -K is specified
+SUDO_FLAG=""
 if $USE_SUDO; then
-    echo "Executing with sudo privileges: ansible-playbook -K -i ${INVENTORY} ${TEMP_PLAYBOOK} ${EXTRA_ARGS[*]}"
-    ansible-playbook -K -i "${INVENTORY}" "${TEMP_PLAYBOOK}" "${EXTRA_ARGS[@]}"
-else
-    echo "Executing: ansible-playbook -i ${INVENTORY} ${TEMP_PLAYBOOK} ${EXTRA_ARGS[*]}"
-    ansible-playbook -i "${INVENTORY}" "${TEMP_PLAYBOOK}" "${EXTRA_ARGS[@]}"
+    TARGET_HOST="${HOST:-${SERVICE}_svc}"
+    echo "Testing sudo capability on target..."
+    if ansible -i "${INVENTORY}" "${TARGET_HOST}" -m shell -a "sudo -n true" &>/dev/null; then
+        echo "✓ NOPASSWD detected - sudo password not required"
+        SUDO_FLAG=""
+    else
+        echo "✗ Password required - will prompt for sudo password"
+        SUDO_FLAG="-K"
+    fi
 fi
+
+# Execute the playbook with or without sudo prompt
+echo "Executing: ansible-playbook ${SUDO_FLAG} -i ${INVENTORY} ${TEMP_PLAYBOOK} ${EXTRA_ARGS[*]}"
+ansible-playbook ${SUDO_FLAG} -i "${INVENTORY}" "${TEMP_PLAYBOOK}" "${EXTRA_ARGS[@]}"
 
 # Check execution status
 EXIT_CODE=$?
