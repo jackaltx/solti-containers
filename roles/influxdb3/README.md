@@ -26,6 +26,56 @@ Deploys InfluxDB 3 Core as a rootless Podman container with token-based authenti
 ./svc-exec.sh influxdb3 verify
 ```
 
+## Full Redeploy
+
+Complete removal and fresh installation with latest container images. Useful for testing, upgrades, or recovering from corruption.
+
+```bash
+# Step 1: Complete removal (data + images)
+DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.yml influxdb3 remove
+
+# Step 2: Prepare system
+./manage-svc.sh -h podma -i inventory/podma.yml influxdb3 prepare
+
+# Step 3: Deploy with fresh image
+./manage-svc.sh -h podma -i inventory/podma.yml influxdb3 deploy
+
+# Step 4: Configure databases and tokens
+./svc-exec.sh -h podma -i inventory/podma.yml influxdb3 configure
+
+# Step 5: Verify deployment
+./svc-exec.sh -h podma -i inventory/podma.yml influxdb3 verify
+```
+
+**What this does**:
+
+- **Step 1**: Removes service, data directories, AND container images
+- **Step 2**: Creates fresh directory structure with proper permissions
+- **Step 3**: Pulls latest container image, deploys service, creates admin token
+- **Step 4**: Creates databases and resource tokens from inventory
+- **Step 5**: Validates deployment (health checks, write/query tests)
+
+**Expected results**:
+
+- Fresh `docker.io/influxdata/influxdb:3-core` image pulled
+- Clean databases with no existing data
+- New admin token saved to `~/.secrets/influxdb3-secrets/admin-token.json`
+- Resource tokens saved to `./data/influxdb3-tokens-*.yml`
+- All verification tests pass
+- Service accessible at `http://127.0.0.1:8181`
+
+**Localhost variant** (replace `-h podma -i inventory/podma.yml` with no flags):
+
+```bash
+DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh influxdb3 remove
+./manage-svc.sh influxdb3 prepare
+./manage-svc.sh influxdb3 deploy
+./svc-exec.sh influxdb3 configure
+./svc-exec.sh influxdb3 verify
+```
+
+> **Warning**: `DELETE_DATA=true` permanently destroys all databases, tokens, and time-series data. Only use for testing or fresh installations.
+
 ## Configuration
 
 ### Inventory Variables
