@@ -64,6 +64,11 @@ service_properties:
   data_dir: "{{ mattermost_data_dir }}" # override in playbook
   config_dir: "config"
   delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
+  delete_images: "{{ lookup('env', 'DELETE_IMAGES') | default(false) | bool }}"
+  container_image: "{{ mattermost_image }}"
+  container_images:
+    - "{{ mattermost_image }}"
+    - "{{ mattermost_postgres_image }}"
   dirs:
     - { path: "", mode: "0755" }
     - { path: "config", mode: "0775" }

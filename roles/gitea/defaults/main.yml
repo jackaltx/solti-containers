@@ -52,6 +52,8 @@ service_properties:
   data_dir: "{{ gitea_data_dir }}"
   config_dir: "config"
   delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
+  delete_images: "{{ lookup('env', 'DELETE_IMAGES') | default(false) | bool }}"
+  container_image: "{{ gitea_image }}"
   dirs:
     - { path: "", mode: "0755" }
     - { path: "config", mode: "0775" }

@@ -71,6 +71,11 @@ service_properties:
   data_dir: "{{ elasticsearch_data_dir }}" # override in playbook
   config_dir: "config"
   delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
+  delete_images: "{{ lookup('env', 'DELETE_IMAGES') | default(false) | bool }}"
+  container_image: "{{ elasticsearch_image }}"
+  container_images:
+    - "{{ elasticsearch_image }}"
+    - "{{ elasticsearch_elasticvue_image }}"
   dirs:
     - { path: "", mode: "0750" }
     - { path: "config", mode: "0775" }

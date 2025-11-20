@@ -3,7 +3,7 @@
 # Usage: ./svc-exec.sh traefik verify
 
 - name: Check Traefik API
-  uri:
+  ansible.builtin.uri:
     url: "http://localhost:{{ traefik_dashboard_port }}/api/version"
     method: GET
     status_code: 200
@@ -11,7 +11,7 @@
   ignore_errors: true
 
 - name: Get routing data
-  uri:
+  ansible.builtin.uri:
     url: "http://localhost:{{ traefik_dashboard_port }}/api/{{ item }}"
     method: GET
     status_code: 200
@@ -23,13 +23,13 @@
   ignore_errors: true
 
 - name: Extract active routes
-  set_fact:
+  ansible.builtin.set_fact:
     active_routes: "{{ traefik_data.results[0].json | selectattr('provider', 'equalto', 'docker') | selectattr('status', 'equalto', 'enabled') | list }}"
     docker_services: "{{ traefik_data.results[1].json | selectattr('provider', 'equalto', 'docker') | list }}"
   when: traefik_data.results is defined
 
 - name: Show status
-  debug:
+  ansible.builtin.debug:
     msg:
       - "🚀 TRAEFIK STATUS"
       - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -41,17 +41,17 @@
       - ""
 
 - name: Build route list
-  set_fact:
+  ansible.builtin.set_fact:
     route_list: "{{ route_list | default([]) + [item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') + ' ➜ ' + item.service] }}"
   loop: "{{ active_routes | default([]) }}"
   when: item.rule.startswith('Host(')
 
 - name: Show routes
-  debug:
+  ansible.builtin.debug:
     msg: "{{ route_list | default(['No routes found']) }}"
 
 - name: Test all routes
-  uri:
+  ansible.builtin.uri:
     url: "https://{{ item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }}:{{ traefik_http_port }}"
     method: GET
     status_code: [200, 301, 302, 401, 403, 404, 502, 503]
@@ -63,7 +63,7 @@
   ignore_errors: true
 
 - name: Build test results
-  set_fact:
+  ansible.builtin.set_fact:
     test_summary: "{{ test_summary | default([]) + [domain + ' ➜ ' + status_icon + ' ' + (item.status | string)] }}"
   vars:
     domain: "{{ item.item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }}"
@@ -72,7 +72,7 @@
   when: item.item is defined and item.status is defined
 
 - name: Show connectivity tests
-  debug:
+  ansible.builtin.debug:
     msg:
       - ""
       - "🔗 CONNECTIVITY TESTS"
@@ -80,16 +80,16 @@
   when: test_summary is defined
 
 - name: Show test results
-  debug:
+  ansible.builtin.debug:
     msg: "{{ test_summary | default(['No tests performed']) }}"
 
 - name: Check certificates
-  stat:
+  ansible.builtin.stat:
     path: "{{ traefik_data_dir }}/acme/acme.json"
   register: certs
 
 - name: Final summary
-  debug:
+  ansible.builtin.debug:
     msg:
       - ""
       - "📊 SUMMARY"

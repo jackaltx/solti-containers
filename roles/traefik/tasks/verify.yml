@@ -47,15 +47,3 @@
 - name: Show ACME file status
   debug:
     msg: "ACME file exists: {{ acme_file.stat.exists }}"
-# Test HTTP to HTTPS redirect
-# - name: Test HTTP redirect
-#   uri:
-#     url: "http://{{ ansible_host }}"
-#     follow_redirects: none
-#     status_code: 301
-#   register: redirect_test
-#   ignore_errors: yes
-
-# - name: Show redirect test result
-#   debug:
-#     var: redirect_test

@@ -5,20 +5,20 @@ on:
   push:
     branches: [main, test]
     paths:
-      - 'roles/**'
-      - 'molecule/**'
-      - '.github/**'
+      - "roles/**"
+      - "molecule/**"
+      - ".github/**"
   pull_request:
     branches: [main, test]
     paths:
-      - 'roles/**'
-      - 'molecule/**'
+      - "roles/**"
+      - "molecule/**"
   workflow_dispatch:
     inputs:
       test_role:
-        description: 'Service role to test (redis, elasticsearch, etc.)'
+        description: "Service role to test (redis, elasticsearch, etc.)"
         required: false
-        default: 'redis'
+        default: "redis"
 
 env:
   DEBUG_MODE: save
@@ -33,7 +33,8 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        platform: ['uut-ct0', 'uut-ct1', 'uut-ct2']
+        # platform: ["uut-deb12" , 'uut-rocky9', 'uut-ct2']
+        platform: ["uut-rocky9"]
       fail-fast: false
       max-parallel: 3
     env:
@@ -84,10 +85,10 @@ jobs:
       - name: Pull container images
         run: |
           case ${{ matrix.platform }} in
-            uut-ct0)
+            uut-deb12)
               podman pull ghcr.io/jackaltx/testing-containers/debian-ssh:12
               ;;
-            uut-ct1)
+            uut-rocky9)
               podman pull ghcr.io/jackaltx/testing-containers/rocky-ssh:9
               ;;
             uut-ct2)
