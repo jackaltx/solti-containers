@@ -14,7 +14,7 @@ Deploys Gitea (lightweight self-hosted Git service) as a rootless Podman contain
 ## Quick Start
 
 ```bash
-# Set admin password
+# Set admin password (reuired env variable!)
 export GITEA_ADMIN_PASSWORD="your-secure-password"
 
 # Prepare system (one-time)

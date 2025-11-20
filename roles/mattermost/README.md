@@ -17,10 +17,13 @@ export MM_DB_PASSWORD="your_secure_db_password"
 ./manage-svc.sh mattermost deploy
 
 # Initialize admin user and lock down registration
-./svc-exec.sh mattermost initialize
+./svc-exec.sh mattermost initialize-mattermost
 
 # Verify deployment and security settings
 ./svc-exec.sh mattermost verify
+
+# Verify user configuration
+./svc-exec.sh mattermost verify-user
 
 # Verify security configuration
 ./svc-exec.sh mattermost verify-security
