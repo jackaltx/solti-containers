@@ -1,0 +1,8 @@
+---
+# check_upgrade.yml - Check if container image updates are available
+# This role uses the common implementation from _base
+# Usage: ./svc-exec.sh -h <host> -i inventory/<host>.yml influxdb3 check_upgrade
+
+- name: Include _base check_upgrade implementation
+  ansible.builtin.include_tasks:
+    file: ../_base/tasks/check_upgrade.yml
