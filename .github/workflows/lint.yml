@@ -101,9 +101,17 @@ jobs:
         run: |
           # Only check actual playbooks in playbooks/ directory
           # Exclude role files (defaults/, tasks/, handlers/, vars/, meta/)
+          # Skip module test playbooks (require collection to be installed)
           if [ -d "playbooks" ]; then
             for playbook in playbooks/*.yml playbooks/*.yaml; do
               [ -f "$playbook" ] || continue
+
+              # Skip module test playbooks (they require custom modules)
+              if [[ "$playbook" == *"module-test"* ]]; then
+                echo "Skipping $playbook (requires collection modules)"
+                continue
+              fi
+
               echo "Checking $playbook"
               ansible-playbook --syntax-check "$playbook" || exit 1
             done
