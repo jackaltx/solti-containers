@@ -1,0 +1,40 @@
+---
+# Ansible Lint Configuration
+# Reduces noise from trivial formatting issues while enforcing important rules
+
+# Only warn on trivial formatting issues (don't fail CI)
+warn_list:
+  - yaml[comments]          # Comment spacing (2 spaces before #)
+  - yaml[comments-indentation]  # Comment alignment
+  - yaml[braces]            # Jinja2 brace spacing
+  - yaml[trailing-spaces]   # Trailing whitespace
+  - yaml[line-length]       # Lines > 160 characters
+  - yaml[new-line-at-end-of-file]  # Missing newline at EOF
+  - name[casing]            # Task name capitalization
+  - jinja[spacing]          # Jinja2 template spacing
+
+# Skip rules that conflict with project patterns
+skip_list:
+  - galaxy[tags]            # Not publishing to Galaxy yet
+  - galaxy[no-changelog]    # Not publishing to Galaxy yet
+
+# Enforce important rules (will fail CI)
+# - no-changed-when        # Commands must have changed_when
+# - command-instead-of-module  # Use proper Ansible modules
+# - risky-file-permissions  # Files must have explicit mode
+# - syntax-check           # YAML syntax errors
+
+# Exclude patterns
+exclude_paths:
+  - .git/
+  - .github/
+  - node_modules/
+  - tmp/
+  - delete-me-inventory.yml
+  - inventory/original-inventory-deprecated.yml
+
+# Enable offline mode (don't check for newer ansible-lint versions)
+offline: true
+
+# Use yamllint configuration
+yamllint_config_file: .yamllint

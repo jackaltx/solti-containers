@@ -60,6 +60,52 @@ ansible-playbook --syntax-check roles/<service>/tasks/main.yml --limit firefly
 yamllint roles/<service>/tasks/main.yml
 ```
 
+### Incremental Lint Remediation
+
+**Strategy**: Fix lint errors incrementally to avoid overwhelming noise while progressing toward zero errors.
+
+**Workflow**:
+```bash
+# Fix a batch of lint errors (10 by default)
+/lint-fix
+
+# Fix specific number of errors
+/lint-fix 20
+
+# Fix all remaining errors (before PR to main)
+/lint-fix --all
+```
+
+**Key Principles**:
+- **Test branch**: Allows warnings (incremental fixes)
+- **Main branch**: Requires zero errors (strict mode)
+- **Priority**: CRITICAL → IMPORTANT → MINOR → TRIVIAL
+- **Batching**: Fix 10-15 errors per sync to test branch
+- **Tracking**: `.lint-progress.yml` monitors progress
+
+**Configuration Files**:
+- `.markdownlintrc`: Relaxed line-length to 160 chars
+- `.ansible-lint`: Trivial rules in warn_list (don't block CI)
+- `.yamllint`: Line-length warning at 160 chars
+- `.github/workflows/lint.yml`: Conditional strictness by branch
+
+**Error Categories**:
+1. **CRITICAL** (fix immediately): Syntax errors, load failures
+2. **IMPORTANT** (best practices): no-changed-when, command-instead-of-module, risky-file-permissions
+3. **MINOR** (style): truthy values (yes/no vs true/false), task name casing
+4. **TRIVIAL** (formatting): comment spacing, braces, trailing spaces, line length
+
+**Progress Tracking**:
+- Baseline: ~1,800 errors (Nov 2025)
+- Target: 0 errors by Dec 2025
+- Rate: 10-15 fixes per test branch sync
+- Status: See `.lint-progress.yml`
+
+**Before PR to Main**:
+1. Run `/lint-fix --all` to clear remaining errors
+2. Verify all linters pass: `yamllint . && ansible-lint && markdownlint "**/*.md"`
+3. Create PR (CI enforces zero errors on main branch)
+
 ## Architecture Overview
 
 ### The Three Architectural Pillars
