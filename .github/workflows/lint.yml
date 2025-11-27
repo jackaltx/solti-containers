@@ -99,7 +99,14 @@ jobs:
 
       - name: Syntax check all playbooks
         run: |
-          for playbook in $(find . -name "*.yml" -o -name "*.yaml" | grep -E "(playbook|site|main)" | grep -v ".github" | grep -v "molecule"); do
-            echo "Checking $playbook"
-            ansible-playbook --syntax-check "$playbook" || exit 1
-          done
+          # Only check actual playbooks in playbooks/ directory
+          # Exclude role files (defaults/, tasks/, handlers/, vars/, meta/)
+          if [ -d "playbooks" ]; then
+            for playbook in playbooks/*.yml playbooks/*.yaml; do
+              [ -f "$playbook" ] || continue
+              echo "Checking $playbook"
+              ansible-playbook --syntax-check "$playbook" || exit 1
+            done
+          else
+            echo "No playbooks directory found, skipping syntax check"
+          fi
