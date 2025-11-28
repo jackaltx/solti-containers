@@ -108,6 +108,7 @@ database:DATABASE_NAME:ACTIONS
 ```
 
 **Examples:**
+
 - `database:telegraf:write` - Write-only to telegraf
 - `database:metrics:read` - Read-only to metrics
 - `database:logs:write,read` - Read/write to logs
@@ -122,6 +123,7 @@ database:DATABASE_NAME:ACTIONS
 ```
 
 Creates:
+
 - `~/influxdb3-data/config/`
 - `~/influxdb3-data/data/`
 - `~/influxdb3-data/plugins/`
@@ -133,6 +135,7 @@ Creates:
 ```
 
 Actions:
+
 - Templates environment file
 - Deploys pod and container
 - Creates operator (admin) token
@@ -146,6 +149,7 @@ Actions:
 ```
 
 Creates:
+
 - Databases from `influxdb3_databases` list
 - Resource tokens from `influxdb3_tokens` list
 - Saves tokens to `./data/influxdb3-tokens-firefly.yml`
@@ -157,6 +161,7 @@ Creates:
 ```
 
 Tests:
+
 - Pod/container status
 - API health endpoint
 - Database creation

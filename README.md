@@ -373,21 +373,25 @@ vim roles/elasticsearch/tasks/prerequisites.yml
 ```
 
 **Key Benefits**:
+
 - **Data persists across cycles**: Elasticsearch indices, Mattermost channels, database records remain intact
 - **Faster iteration**: No need to recreate test data after each change
 - **True testing**: Work with realistic data throughout development
 
 **Data-Centric Services** (benefit from persistence):
+
 - elasticsearch (indices, mappings)
 - mattermost (channels, messages, users)
 - minio (buckets, objects)
 - hashivault (secrets, policies)
 
 **Stateless Services** (less critical):
+
 - redis (just cache)
 - traefik (just proxy configuration)
 
 **When to Reset Data**:
+
 ```bash
 # Set in inventory.yml for full cleanup
 elasticsearch_delete_data: true

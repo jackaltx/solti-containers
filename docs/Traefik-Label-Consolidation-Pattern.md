@@ -64,6 +64,7 @@ label:
 Move Traefik label generation to `_base` role, where services declare their intent via `service_properties` and `_base` generates the labels dynamically.
 
 This mirrors existing `_base` patterns:
+
 - **Network setup:** All services use `ct-net` via `_base`
 - **Directory creation:** Standardized paths via `_base`
 - **SELinux contexts:** Applied consistently via `_base`
@@ -378,12 +379,14 @@ service_properties:
 
 ## Decision: When to Implement
 
-### Implement Now If:
+### Implement Now If
+
 - Adding 3+ new services soon
 - Traefik configuration changing frequently
 - Team has strong Ansible/Jinja2 skills
 
-### Defer Implementation If:
+### Defer Implementation If
+
 - Service count stable (not adding many new services)
 - Current pattern working well
 - Team prefers explicit over abstract
@@ -436,6 +439,7 @@ service_properties:
 ### Before (_base Pattern)
 
 **Service declares intent:**
+
 ```yaml
 # 10 lines in defaults/main.yml
 service_properties:
@@ -449,6 +453,7 @@ service_properties:
 ```
 
 **Service uses generated labels:**
+
 ```yaml
 # 3 lines in quadlet_rootless.yml
 - include_tasks: ../../_base/tasks/traefik_labels.yml
@@ -461,6 +466,7 @@ label: "{{ traefik_labels }}"
 ### After (Current Dict Pattern)
 
 **Service generates labels directly:**
+
 ```yaml
 # 7 lines in quadlet_rootless.yml
 label:
@@ -485,6 +491,7 @@ label:
 ## Contact
 
 For questions about this pattern:
+
 - Review Container-Role-Architecture.md for inheritance model
 - Check git history for "Traefik standardization sprint"
 - Consult with Claude Code about implementation details

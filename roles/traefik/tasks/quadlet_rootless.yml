@@ -3,7 +3,7 @@
 - name: Ensure required directories exist
   become: false
   ansible.builtin.file:
-    path: "{{ real_user_dir }}/{{ item }}"
+    path: "{{real_user_dir}}/{{item}}"
     state: directory
     mode: "0750"
   loop:
@@ -16,13 +16,13 @@
 #
 - name: Set XDG_RUNTIME_DIR
   set_fact:
-    xdg_runtime_dir: "/run/user/{{ real_user_uid }}"
-    xdg_runtime_dir_selinux: "/var/run/user/{{ real_user_uid }}"
+    xdg_runtime_dir: "/run/user/{{real_user_uid}}"
+    xdg_runtime_dir_selinux: "/var/run/user/{{real_user_uid}}"
 
 - name: Check rootless Podman socket exists
   become: false
   ansible.builtin.stat:
-    path: "{{ xdg_runtime_dir }}/podman/podman.sock"
+    path: "{{xdg_runtime_dir}}/podman/podman.sock"
   register: socket_stat
   failed_when: not socket_stat.stat.exists
   changed_when: false
@@ -34,13 +34,13 @@
   block:
     - name: Add persistent SELinux file context for Podman socket
       community.general.sefcontext:
-        target: "{{ xdg_runtime_dir_selinux }}/podman/podman.sock"
+        target: "{{xdg_runtime_dir_selinux}}/podman/podman.sock"
         setype: container_file_t
         state: present
       become: true
 
     - name: Apply SELinux context to Podman socket
-      ansible.builtin.command: restorecon -v {{ xdg_runtime_dir }}/podman/podman.sock
+      ansible.builtin.command: restorecon -v {{xdg_runtime_dir}}/podman/podman.sock
       register: restorecon_result
       changed_when: restorecon_result.rc == 0
 
@@ -53,13 +53,13 @@
   containers.podman.podman_pod:
     name: traefik
     state: quadlet
-    dns: "{{ service_dns_servers }}"
-    dns_search: "{{ service_dns_search }}"
-    network: "{{ service_network }}"
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    dns: "{{service_dns_servers}}"
+    dns_search: "{{service_dns_search}}"
+    network: "{{service_network}}"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     ports:
-      - "0.0.0.0:{{ traefik_http_port }}:8080" # HTTPS websecure entrypoint
-      - "127.0.0.1:{{ traefik_dashboard_port }}:9000" # Dashboard API
+      - "0.0.0.0:{{traefik_http_port}}:8080"  # HTTPS websecure entrypoint
+      - "127.0.0.1:{{traefik_dashboard_port}}:9000"  # Dashboard API
     quadlet_options:
       - |
         [Service]
@@ -73,19 +73,19 @@
   containers.podman.podman_container:
     name: traefik-svc
     pod: traefik.pod
-    image: "{{ traefik_image }}"
+    image: "{{traefik_image}}"
     state: quadlet
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     volume:
-      - "{{ traefik_data_dir }}/config:/etc/traefik:Z,U,ro"
-      - "{{ traefik_data_dir }}/acme:/etc/traefik/acme:Z,U"
-      - "{{ traefik_data_dir }}/logs:/logs:Z,U"
-      - "{{ xdg_runtime_dir }}/podman/podman.sock:/var/run/docker.sock:ro,Z"
+      - "{{traefik_data_dir}}/config:/etc/traefik:Z,U,ro"
+      - "{{traefik_data_dir}}/acme:/etc/traefik/acme:Z,U"
+      - "{{traefik_data_dir}}/logs:/logs:Z,U"
+      - "{{xdg_runtime_dir}}/podman/podman.sock:/var/run/docker.sock:ro,Z"
     env:
-      LINODE_TOKEN: "{{ lookup('env', 'LINODE_TOKEN') }}"
+      LINODE_TOKEN: "{{lookup('env', 'LINODE_TOKEN')}}"
     label:
-      traefik.enable: "{{ traefik_enable_traefik | lower }}"
-      traefik.http.routers.traefik-dashboard.rule: "Host(`{{ traefik_fqdn }}`)"
+      traefik.enable: "{{traefik_enable_traefik | lower}}"
+      traefik.http.routers.traefik-dashboard.rule: "Host(`{{traefik_fqdn}}`)"
       traefik.http.routers.traefik-dashboard.entrypoints: "websecure"
       traefik.http.routers.traefik-dashboard.tls.certresolver: "letsencrypt"
       traefik.http.routers.traefik-dashboard.service: "api@internal"
@@ -115,9 +115,9 @@
 - name: Fix quadlet file ownership
   become: true
   ansible.builtin.file:
-    path: "{{ real_user_dir }}/.config/containers/systemd/{{ item }}"
-    owner: "{{ real_user }}"
-    group: "{{ real_user }}"
+    path: "{{real_user_dir}}/.config/containers/systemd/{{item}}"
+    owner: "{{real_user}}"
+    group: "{{real_user}}"
     mode: "0640"
   loop:
     - traefik.pod
@@ -127,7 +127,7 @@
 - name: Reload systemd user daemon and run generator
   become: false
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
     /usr/lib/systemd/system-generators/podman-system-generator --user || true
   changed_when: false
@@ -136,8 +136,8 @@
 - name: Verify service unit exists
   become: false
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
-    systemctl --user cat {{ service_properties.name }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
+    systemctl --user cat {{service_properties.name}}
   register: unit_check
   failed_when: unit_check.rc != 0
   changed_when: false
@@ -146,6 +146,6 @@
 - name: Start rootless pod with systemd
   become: false
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
-    systemctl --user start {{ service_properties.name }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
+    systemctl --user start {{service_properties.name}}
   changed_when: true

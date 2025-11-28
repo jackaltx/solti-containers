@@ -32,7 +32,7 @@
   become: false
   command: >
     podman exec influxdb3-svc
-    curl -s http://localhost:{{ influxdb3_internal_port }}/health
+    curl -s http://localhost:{{influxdb3_internal_port}}/health
   register: health_check
   until: health_check.rc == 0
   retries: 30
@@ -49,18 +49,18 @@
   block:
     - name: Check if admin token file exists
       ansible.builtin.stat:
-        path: "{{ influxdb3_data_dir }}/config/admin-token.txt"
+        path: "{{influxdb3_data_dir}}/config/admin-token.txt"
       register: token_file_check
 
     - name: Read admin token file
       ansible.builtin.slurp:
-        src: "{{ influxdb3_data_dir }}/config/admin-token.txt"
+        src: "{{influxdb3_data_dir}}/config/admin-token.txt"
       register: encoded_token
       when: token_file_check.stat.exists
 
     - name: Set admin token
       ansible.builtin.set_fact:
-        verify_token: "{{ encoded_token.content | b64decode | trim }}"
+        verify_token: "{{encoded_token.content | b64decode | trim}}"
       # no_log: true
       when: token_file_check.stat.exists
 
@@ -75,7 +75,7 @@
   become: false
   command: >
     podman exec
-    -e INFLUXDB3_AUTH_TOKEN={{ verify_token }}
+    -e INFLUXDB3_AUTH_TOKEN={{verify_token}}
     influxdb3-svc influxdb3 create database test-ansible
   register: test_db
   changed_when: test_db.rc == 0
@@ -90,9 +90,9 @@
   become: false
   command: >
     podman exec influxdb3-svc
-    curl -s -X POST "http://localhost:{{ influxdb3_internal_port }}/api/v3/write?db=test-ansible"
-    -H "Authorization: Bearer {{ verify_token }}"
-    --data-binary "test_measurement,host={{ ansible_hostname }} value=123,status=\"ok\" {{ ansible_facts.date_time.epoch }}000000000"
+    curl -s -X POST "http://localhost:{{influxdb3_internal_port}}/api/v3/write?db=test-ansible"
+    -H "Authorization: Bearer {{verify_token}}"
+    --data-binary "test_measurement,host={{ansible_hostname}} value=123,status=\"ok\" {{ansible_facts.date_time.epoch}}000000000"
   register: write_result
   changed_when: false
   # no_log: true
@@ -108,8 +108,8 @@
   become: false
   command: >
     podman exec influxdb3-svc
-    curl -s "http://localhost:{{ influxdb3_internal_port }}/api/v3/query?db=test-ansible&q=SELECT%20*%20FROM%20test_measurement"
-    -H "Authorization: Bearer {{ verify_token }}"
+    curl -s "http://localhost:{{influxdb3_internal_port}}/api/v3/query?db=test-ansible&q=SELECT%20*%20FROM%20test_measurement"
+    -H "Authorization: Bearer {{verify_token}}"
   register: query_result
   changed_when: false
   # no_log: true
@@ -124,7 +124,7 @@
   become: false
   command: >
     podman exec
-    -e INFLUXDB3_AUTH_TOKEN={{ verify_token }}
+    -e INFLUXDB3_AUTH_TOKEN={{verify_token}}
     influxdb3-svc influxdb3 delete database test-ansible
   changed_when: false
   failed_when: false

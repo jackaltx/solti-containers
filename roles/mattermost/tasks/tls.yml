@@ -2,22 +2,22 @@
 - name: Check TLS certificate and key paths
   ansible.builtin.fail:
     msg: "Both certificate and key files must be provided when TLS is enabled"
-  when: 
+  when:
     - mattermost_enable_tls | bool
     - (not mattermost_tls_cert_file or not mattermost_tls_key_file)
 
 - name: Copy TLS certificate
   ansible.builtin.copy:
-    src: "{{ mattermost_tls_cert_file }}"
-    dest: "{{ mattermost_data_dir }}/config/tls/{{ mattermost_tls_cert_file | basename }}"
+    src: "{{mattermost_tls_cert_file}}"
+    dest: "{{mattermost_data_dir}}/config/tls/{{mattermost_tls_cert_file | basename}}"
     mode: '0644'
   when: mattermost_enable_tls | bool
   notify: restart mattermost
 
 - name: Copy TLS private key
   ansible.builtin.copy:
-    src: "{{ mattermost_tls_key_file }}"
-    dest: "{{ mattermost_data_dir }}/config/tls/{{ mattermost_tls_key_file | basename }}"
+    src: "{{mattermost_tls_key_file}}"
+    dest: "{{mattermost_data_dir}}/config/tls/{{mattermost_tls_key_file | basename}}"
     mode: '0600'
   when: mattermost_enable_tls | bool
   notify: restart mattermost

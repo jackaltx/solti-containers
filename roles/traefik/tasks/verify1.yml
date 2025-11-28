@@ -4,7 +4,7 @@
 
 - name: Check Traefik API
   ansible.builtin.uri:
-    url: "http://localhost:{{ traefik_dashboard_port }}/api/version"
+    url: "http://localhost:{{traefik_dashboard_port}}/api/version"
     method: GET
     status_code: 200
   register: api_check
@@ -12,7 +12,7 @@
 
 - name: Get routing data
   ansible.builtin.uri:
-    url: "http://localhost:{{ traefik_dashboard_port }}/api/{{ item }}"
+    url: "http://localhost:{{traefik_dashboard_port}}/api/{{item}}"
     method: GET
     status_code: 200
   register: traefik_data
@@ -24,8 +24,8 @@
 
 - name: Extract active routes
   ansible.builtin.set_fact:
-    active_routes: "{{ traefik_data.results[0].json | selectattr('provider', 'equalto', 'docker') | selectattr('status', 'equalto', 'enabled') | list }}"
-    docker_services: "{{ traefik_data.results[1].json | selectattr('provider', 'equalto', 'docker') | list }}"
+    active_routes: "{{traefik_data.results[0].json | selectattr('provider', 'equalto', 'docker') | selectattr('status', 'equalto', 'enabled') | list}}"
+    docker_services: "{{traefik_data.results[1].json | selectattr('provider', 'equalto', 'docker') | list}}"
   when: traefik_data.results is defined
 
 - name: Show status
@@ -33,42 +33,42 @@
     msg:
       - "🚀 TRAEFIK STATUS"
       - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-      - "API: {{ '✅ ONLINE' if api_check.status == 200 else '❌ OFFLINE' }}"
-      - "Version: {{ api_check.json.Version if api_check.json is defined else 'Unknown' }}"
-      - "Dashboard: http://localhost:{{ traefik_dashboard_port }}"
-      - "Routes: {{ active_routes | length if active_routes is defined else 0 }}"
-      - "Services: {{ docker_services | length if docker_services is defined else 0 }}"
+      - "API: {{'✅ ONLINE' if api_check.status == 200 else '❌ OFFLINE'}}"
+      - "Version: {{api_check.json.Version if api_check.json is defined else 'Unknown'}}"
+      - "Dashboard: http://localhost:{{traefik_dashboard_port}}"
+      - "Routes: {{active_routes | length if active_routes is defined else 0}}"
+      - "Services: {{docker_services | length if docker_services is defined else 0}}"
       - ""
 
 - name: Build route list
   ansible.builtin.set_fact:
-    route_list: "{{ route_list | default([]) + [item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') + ' ➜ ' + item.service] }}"
-  loop: "{{ active_routes | default([]) }}"
+    route_list: "{{route_list | default([]) + [item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') + ' ➜ ' + item.service]}}"
+  loop: "{{active_routes | default([])}}"
   when: item.rule.startswith('Host(')
 
 - name: Show routes
   ansible.builtin.debug:
-    msg: "{{ route_list | default(['No routes found']) }}"
+    msg: "{{route_list | default(['No routes found'])}}"
 
 - name: Test all routes
   ansible.builtin.uri:
-    url: "https://{{ item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }}:{{ traefik_http_port }}"
+    url: "https://{{item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1')}}:{{traefik_http_port}}"
     method: GET
     status_code: [200, 301, 302, 401, 403, 404, 502, 503]
     timeout: 5
     validate_certs: false
   register: test_results
-  loop: "{{ active_routes | default([]) }}"
+  loop: "{{active_routes | default([])}}"
   when: item.rule.startswith('Host(')
   ignore_errors: true
 
 - name: Build test results
   ansible.builtin.set_fact:
-    test_summary: "{{ test_summary | default([]) + [domain + ' ➜ ' + status_icon + ' ' + (item.status | string)] }}"
+    test_summary: "{{test_summary | default([]) + [domain + ' ➜ ' + status_icon + ' ' + (item.status | string)]}}"
   vars:
-    domain: "{{ item.item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1') }}"
-    status_icon: "{{ '✅' if item.status in [200, 301, 302] else '🔒' if item.status in [401, 403] else '⚠️' if item.status in [404, 502, 503] else '❌' }}"
-  loop: "{{ test_results.results | default([]) }}"
+    domain: "{{item.item.rule | regex_replace('Host\\(`([^`]+)`\\)', '\\1')}}"
+    status_icon: "{{'✅' if item.status in [200, 301, 302] else '🔒' if item.status in [401, 403] else '⚠️' if item.status in [404, 502, 503] else '❌'}}"
+  loop: "{{test_results.results | default([])}}"
   when: item.item is defined and item.status is defined
 
 - name: Show connectivity tests
@@ -81,11 +81,11 @@
 
 - name: Show test results
   ansible.builtin.debug:
-    msg: "{{ test_summary | default(['No tests performed']) }}"
+    msg: "{{test_summary | default(['No tests performed'])}}"
 
 - name: Check certificates
   ansible.builtin.stat:
-    path: "{{ traefik_data_dir }}/acme/acme.json"
+    path: "{{traefik_data_dir}}/acme/acme.json"
   register: certs
 
 - name: Final summary
@@ -94,8 +94,8 @@
       - ""
       - "📊 SUMMARY"
       - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-      - "Status: {{ '✅ HEALTHY' if api_check.status == 200 and active_routes | length > 0 else '⚠️ ISSUES' }}"
-      - "Redis: {{ '✅ CONFIGURED' if (active_routes | selectattr('rule', 'search', 'redis-ui') | list | length > 0) else '❌ MISSING' }}"
-      - "Certs: {{ '✅ READY' if certs.stat.exists else '❌ MISSING' }}"
+      - "Status: {{'✅ HEALTHY' if api_check.status == 200 and active_routes | length > 0 else '⚠️ ISSUES'}}"
+      - "Redis: {{'✅ CONFIGURED' if (active_routes | selectattr('rule', 'search', 'redis-ui') | list | length > 0) else '❌ MISSING'}}"
+      - "Certs: {{'✅ READY' if certs.stat.exists else '❌ MISSING'}}"
       - ""
-      - "💡 Test: curl -H 'Host: redis-ui.{{ domain }}' http://localhost:{{ traefik_http_port }}"
+      - "💡 Test: curl -H 'Host: redis-ui.{{domain}}' http://localhost:{{traefik_http_port}}"

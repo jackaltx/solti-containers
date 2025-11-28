@@ -24,7 +24,7 @@
 # ....................................................................................
 - name: Wait for Grafana to be ready
   uri:
-    url: "http://localhost:{{ grafana_port }}/api/health"
+    url: "http://localhost:{{grafana_port}}/api/health"
     method: GET
     status_code: 200
   register: health_check
@@ -40,7 +40,7 @@
 # ....................................................................................
 - name: Test Grafana login
   uri:
-    url: "http://localhost:{{ grafana_port }}/login"
+    url: "http://localhost:{{grafana_port}}/login"
     method: GET
     status_code: 200
   register: login_test
@@ -48,15 +48,15 @@
 
 - name: Show login test
   debug:
-    msg: "Grafana login page accessible: {{ login_test.status == 200 }}"
+    msg: "Grafana login page accessible: {{login_test.status == 200}}"
 
 # ....................................................................................
 - name: Get Grafana version and status
   uri:
-    url: "http://localhost:{{ grafana_port }}/api/admin/stats"
+    url: "http://localhost:{{grafana_port}}/api/admin/stats"
     method: GET
-    user: "{{ grafana_admin_user }}"
-    password: "{{ grafana_admin_password }}"
+    user: "{{grafana_admin_user}}"
+    password: "{{grafana_admin_password}}"
     force_basic_auth: true
     status_code: [200, 401]
   register: grafana_stats
@@ -68,10 +68,10 @@
     msg: |
       {% if grafana_stats.status == 200 %}
       Grafana Statistics:
-      - Users: {{ grafana_stats.json.users | default('unknown') }}
-      - Dashboards: {{ grafana_stats.json.dashboards | default('unknown') }}
-      - Data Sources: {{ grafana_stats.json.datasources | default('unknown') }}
-      - Organizations: {{ grafana_stats.json.orgs | default('unknown') }}
+      - Users: {{grafana_stats.json.users | default('unknown')}}
+      - Dashboards: {{grafana_stats.json.dashboards | default('unknown')}}
+      - Data Sources: {{grafana_stats.json.datasources | default('unknown')}}
+      - Organizations: {{grafana_stats.json.orgs | default('unknown')}}
       {% else %}
       Admin API authentication failed (password may have been changed in UI)
       Grafana is running but admin credentials from inventory don't match database
@@ -80,10 +80,10 @@
 # ....................................................................................
 - name: Check available data sources
   uri:
-    url: "http://localhost:{{ grafana_port }}/api/datasources"
+    url: "http://localhost:{{grafana_port}}/api/datasources"
     method: GET
-    user: "{{ grafana_admin_user }}"
-    password: "{{ grafana_admin_password }}"
+    user: "{{grafana_admin_user}}"
+    password: "{{grafana_admin_password}}"
     force_basic_auth: true
     status_code: [200, 401]
   register: datasources
@@ -92,7 +92,7 @@
 
 - name: Show configured data sources
   debug:
-    msg: "{{ 'Data sources: ' + (datasources.json | map(attribute='name') | list | string) if datasources.status == 200 else 'Data sources: (authentication required)' }}"
+    msg: "{{'Data sources: ' + (datasources.json | map(attribute='name') | list | string) if datasources.status == 200 else 'Data sources: (authentication required)'}}"
   when: datasources.status == 200 or datasources.status == 401
 
 # ....................................................................................

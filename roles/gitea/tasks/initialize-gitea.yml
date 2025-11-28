@@ -6,7 +6,7 @@
 # Verify Gitea is running and accessible
 - name: Wait for Gitea to be ready
   ansible.builtin.uri:
-    url: "http://127.0.0.1:{{ gitea_port }}"
+    url: "http://127.0.0.1:{{gitea_port}}"
     method: GET
     status_code: 200
   register: ping_result
@@ -27,7 +27,7 @@
 
 - name: Show Gitea status
   ansible.builtin.debug:
-    msg: "Gitea is accessible at http://127.0.0.1:{{ gitea_port }}"
+    msg: "Gitea is accessible at http://127.0.0.1:{{gitea_port}}"
 
 # ....................................................................................
 # Check if any users exist in the database (not just our specific admin)
@@ -43,16 +43,16 @@
 
 - name: Parse user count
   ansible.builtin.set_fact:
-    has_users: "{{ user_list.stdout_lines | length > 2 }}"
+    has_users: "{{user_list.stdout_lines | length > 2}}"
 
 # ....................................................................................
 # Check if admin user exists by trying to authenticate
 - name: Check if admin user exists
   ansible.builtin.uri:
-    url: "http://127.0.0.1:{{ gitea_port }}/api/v1/user"
+    url: "http://127.0.0.1:{{gitea_port}}/api/v1/user"
     method: GET
-    user: "{{ gitea_admin_user }}"
-    password: "{{ gitea_admin_password }}"
+    user: "{{gitea_admin_user}}"
+    password: "{{gitea_admin_password}}"
     force_basic_auth: true
     status_code: [200, 401]
   register: admin_check
@@ -71,9 +71,9 @@
       podman exec --user git gitea-svc \
         gitea admin user create \
         --admin \
-        --username "{{ gitea_admin_user }}" \
-        --password '{{ gitea_admin_password }}' \
-        --email "{{ gitea_admin_email }}" \
+        --username "{{gitea_admin_user}}" \
+        --password '{{gitea_admin_password}}' \
+        --email "{{gitea_admin_email}}" \
         --must-change-password=false
   register: admin_create
   when:
@@ -91,8 +91,8 @@
     cmd: |
       podman exec --user git gitea-svc \
         gitea admin user change-password \
-        --username "{{ gitea_admin_user }}" \
-        --password '{{ gitea_admin_password }}'
+        --username "{{gitea_admin_user}}" \
+        --password '{{gitea_admin_password}}'
   register: password_change
   when:
     - admin_check.status == 401
@@ -118,10 +118,10 @@
 # Verify admin user can authenticate (only if we just created it or it already existed)
 - name: Verify admin user authentication
   ansible.builtin.uri:
-    url: "http://127.0.0.1:{{ gitea_port }}/api/v1/user"
+    url: "http://127.0.0.1:{{gitea_port}}/api/v1/user"
     method: GET
-    user: "{{ gitea_admin_user }}"
-    password: "{{ gitea_admin_password }}"
+    user: "{{gitea_admin_user}}"
+    password: "{{gitea_admin_password}}"
     force_basic_auth: true
     status_code: 200
   register: auth_verify
@@ -133,9 +133,9 @@
   ansible.builtin.debug:
     msg:
       - "Admin user authenticated successfully"
-      - "Username: {{ auth_verify.json.login }}"
-      - "Email: {{ auth_verify.json.email }}"
-      - "Admin: {{ auth_verify.json.is_admin }}"
+      - "Username: {{auth_verify.json.login}}"
+      - "Email: {{auth_verify.json.email}}"
+      - "Admin: {{auth_verify.json.is_admin}}"
   when: auth_verify is defined and auth_verify.status is defined
 
 # ....................................................................................
@@ -147,7 +147,7 @@
       - "Gitea Initialization Complete"
       - "===================================="
       - "Imported database detected with existing users."
-      - "The configured admin user ({{ gitea_admin_user }}) was not created."
+      - "The configured admin user ({{gitea_admin_user}}) was not created."
       - "Please log in with your existing admin credentials."
       - "===================================="
   when: has_users and admin_check.status == 401
@@ -159,12 +159,12 @@
       - "===================================="
       - "Gitea Initialization Complete"
       - "===================================="
-      - "Admin user: {{ gitea_admin_user }}"
-      - "Access URL: http://127.0.0.1:{{ gitea_port }}"
-      - "Traefik URL: {{ gitea_root_url }}"
+      - "Admin user: {{gitea_admin_user}}"
+      - "Access URL: http://127.0.0.1:{{gitea_port}}"
+      - "Traefik URL: {{gitea_root_url}}"
       - ""
       - "You can now log in with:"
-      - "  Username: {{ gitea_admin_user }}"
+      - "  Username: {{gitea_admin_user}}"
       - "  Password: (the password you configured)"
       - "===================================="
   when: not has_users or admin_check.status == 200

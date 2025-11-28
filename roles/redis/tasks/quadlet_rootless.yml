@@ -3,7 +3,7 @@
 # ....................................................................................
 - name: Ensure quadlet directory exists
   ansible.builtin.file:
-    path: "~{{ real_user }}/.config/containers/systemd"
+    path: "~{{real_user}}/.config/containers/systemd"
     state: directory
     mode: "0755"
   become: false
@@ -14,13 +14,13 @@
   containers.podman.podman_pod:
     name: redis
     state: quadlet
-    dns: "{{ service_dns_servers }}"
-    dns_search: "{{ service_dns_search }}"
-    network: "{{ service_network }}"
-    quadlet_dir: "~{{ real_user }}/.config/containers/systemd"
+    dns: "{{service_dns_servers}}"
+    dns_search: "{{service_dns_search}}"
+    network: "{{service_network}}"
+    quadlet_dir: "~{{real_user}}/.config/containers/systemd"
     ports:
-      - "127.0.0.1:{{ redis_port }}:6379"
-      - "127.0.0.1:{{ redis_gui_port }}:8081"
+      - "127.0.0.1:{{redis_port}}:6379"
+      - "127.0.0.1:{{redis_gui_port}}:8081"
     quadlet_options:
       - |
         [Service]
@@ -35,12 +35,12 @@
   containers.podman.podman_container:
     name: redis-svc
     pod: redis.pod
-    image: "{{ redis_image }}"
+    image: "{{redis_image}}"
     state: quadlet
-    quadlet_dir: "~{{ real_user }}/.config/containers/systemd"
+    quadlet_dir: "~{{real_user}}/.config/containers/systemd"
     volume:
-      - "{{ redis_data_dir }}/config:/usr/local/etc/redis:Z"
-      - "{{ redis_data_dir }}/data:/data:Z"
+      - "{{redis_data_dir}}/config:/usr/local/etc/redis:Z"
+      - "{{redis_data_dir}}/data:/data:Z"
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     quadlet_options:
       - |
@@ -62,14 +62,14 @@
   containers.podman.podman_container:
     name: redis-gui
     pod: redis.pod
-    image: "{{ redis_commander_image }}"
+    image: "{{redis_commander_image}}"
     state: quadlet
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     env:
-      REDIS_HOSTS: "local:redis-svc:6379:0:{{ redis_password }}"
+      REDIS_HOSTS: "local:redis-svc:6379:0:{{redis_password}}"
     label:
-      traefik.enable: "{{ redis_enable_traefik | lower }}"
-      traefik.http.routers.redis.rule: "Host(`{{ redis_svc_name }}.{{ domain }}`)"
+      traefik.enable: "{{redis_enable_traefik | lower}}"
+      traefik.http.routers.redis.rule: "Host(`{{redis_svc_name}}.{{domain}}`)"
       traefik.http.routers.redis.entrypoints: "websecure"
       traefik.http.routers.redis.service: "redis"
       traefik.http.services.redis.loadbalancer.server.port: "8081"
@@ -96,7 +96,7 @@
 # .......................................................................................
 - name: reload systemd user daemon
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
   become: false
   changed_when: false
@@ -104,7 +104,7 @@
 # .......................................................................................
 - name: Start rootless pod with systemd
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
-    systemctl --user start {{ service_properties.name }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
+    systemctl --user start {{service_properties.name}}
   become: false
   changed_when: true

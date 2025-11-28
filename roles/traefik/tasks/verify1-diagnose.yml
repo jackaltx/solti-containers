@@ -30,7 +30,7 @@
 # ..................................................................................
 - name: Test Traefik API accessibility
   uri:
-    url: "http://localhost:{{ traefik_dashboard_port }}/api/version"
+    url: "http://localhost:{{traefik_dashboard_port}}/api/version"
     method: GET
     status_code: 200
     timeout: 10
@@ -40,16 +40,16 @@
 - name: Display API status
   debug:
     msg:
-      - "🌐 API Status: {{ '✅ ONLINE' if api_version.status == 200 else '❌ OFFLINE' }}"
-      - "📍 Dashboard: http://localhost:{{ traefik_dashboard_port }}"
-      - "🔧 Version: {{ api_version.json.Version if api_version.json is defined else 'Unknown' }}"
+      - "🌐 API Status: {{'✅ ONLINE' if api_version.status == 200 else '❌ OFFLINE'}}"
+      - "📍 Dashboard: http://localhost:{{traefik_dashboard_port}}"
+      - "🔧 Version: {{api_version.json.Version if api_version.json is defined else 'Unknown'}}"
 
 # ..................................................................................
 # Get Raw API Data for Debugging
 # ..................................................................................
 - name: Get all HTTP routers (raw)
   uri:
-    url: "http://localhost:{{ traefik_dashboard_port }}/api/http/routers"
+    url: "http://localhost:{{traefik_dashboard_port}}/api/http/routers"
     method: GET
     status_code: 200
   register: routers_raw
@@ -59,14 +59,14 @@
 - name: Debug routers data structure
   debug:
     msg: |
-      🔍 ROUTERS API RESPONSE TYPE: {{ routers_raw.json | type_debug }}
-      📊 ROUTERS COUNT: {{ routers_raw.json | length if routers_raw.json is iterable else 'not iterable' }}
-      🗂️ FIRST ROUTER KEYS: {{ routers_raw.json[0].keys() | list if routers_raw.json and routers_raw.json | length > 0 else 'no routers' }}
+      🔍 ROUTERS API RESPONSE TYPE: {{routers_raw.json | type_debug}}
+      📊 ROUTERS COUNT: {{routers_raw.json | length if routers_raw.json is iterable else 'not iterable'}}
+      🗂️ FIRST ROUTER KEYS: {{routers_raw.json[0].keys() | list if routers_raw.json and routers_raw.json | length > 0 else 'no routers'}}
   when: routers_raw.json is defined
 
 - name: Get all HTTP services (raw)
   uri:
-    url: "http://localhost:{{ traefik_dashboard_port }}/api/http/services"
+    url: "http://localhost:{{traefik_dashboard_port}}/api/http/services"
     method: GET
     status_code: 200
   register: services_raw
@@ -76,14 +76,14 @@
 - name: Debug services data structure
   debug:
     msg: |
-      🔍 SERVICES API RESPONSE TYPE: {{ services_raw.json | type_debug }}
-      📊 SERVICES COUNT: {{ services_raw.json | length if services_raw.json is iterable else 'not iterable' }}
-      🗂️ FIRST SERVICE KEYS: {{ services_raw.json[0].keys() | list if services_raw.json and services_raw.json | length > 0 else 'no services' }}
+      🔍 SERVICES API RESPONSE TYPE: {{services_raw.json | type_debug}}
+      📊 SERVICES COUNT: {{services_raw.json | length if services_raw.json is iterable else 'not iterable'}}
+      🗂️ FIRST SERVICE KEYS: {{services_raw.json[0].keys() | list if services_raw.json and services_raw.json | length > 0 else 'no services'}}
   when: services_raw.json is defined
 
 - name: Get entrypoints (raw)
   uri:
-    url: "http://localhost:{{ traefik_dashboard_port }}/api/entrypoints"
+    url: "http://localhost:{{traefik_dashboard_port}}/api/entrypoints"
     method: GET
     status_code: 200
   register: entrypoints_raw
@@ -93,8 +93,8 @@
 - name: Debug entrypoints data structure
   debug:
     msg: |
-      🔍 ENTRYPOINTS API RESPONSE TYPE: {{ entrypoints_raw.json | type_debug }}
-      📊 ENTRYPOINTS: {{ entrypoints_raw.json.keys() | list if entrypoints_raw.json is mapping else entrypoints_raw.json | length if entrypoints_raw.json is iterable else 'not iterable' }}
+      🔍 ENTRYPOINTS API RESPONSE TYPE: {{entrypoints_raw.json | type_debug}}
+      📊 ENTRYPOINTS: {{entrypoints_raw.json.keys() | list if entrypoints_raw.json is mapping else entrypoints_raw.json | length if entrypoints_raw.json is iterable else 'not iterable'}}
   when: entrypoints_raw.json is defined
 
 # ..................................................................................
@@ -107,9 +107,9 @@
       ║                        🚦 TRAEFIK ROUTING SUMMARY                             ║
       ╚════════════════════════════════════════════════════════════════════════════════╝
 
-      📍 Dashboard: http://localhost:{{ traefik_dashboard_port }}
-      🌐 Domain: {{ domain }}
-      🔗 Network: {{ service_network }}
+      📍 Dashboard: http://localhost:{{traefik_dashboard_port}}
+      🌐 Domain: {{domain}}
+      🔗 Network: {{service_network}}
 
       ┌─────────────────────────────────────────────────────────────────────────────────┐
       │ 📊 DISCOVERED ROUTES                                                            │
@@ -118,10 +118,10 @@
       {%- for router in routers_raw.json %}
       {%- if not router.name.startswith('api@') and not router.name.startswith('dashboard@') %}
 
-      🔀 {{ router.name }}
-         📏 Rule: {{ router.rule | default('No rule') }}
-         🎯 Service: {{ router.service | default('No service') }}
-         🔒 TLS: {{ '✅ Yes' if router.tls else '❌ No' }}
+      🔀 {{router.name}}
+         📏 Rule: {{router.rule | default('No rule')}}
+         🎯 Service: {{router.service | default('No service')}}
+         🔒 TLS: {{'✅ Yes' if router.tls else '❌ No'}}
       {%- endif %}
       {%- endfor %}
       {%- else %}
@@ -135,10 +135,10 @@
       {%- for service in services_raw.json %}
       {%- if not service.name.startswith('api@') and not service.name.startswith('dashboard@') %}
 
-      ⚙️ {{ service.name }}
-         💚 Status: {{ service.status | default('unknown') }}
+      ⚙️ {{service.name}}
+         💚 Status: {{service.status | default('unknown')}}
          {%- if service.loadBalancer is defined and service.loadBalancer.servers is defined %}
-         🖥️ Servers: {{ service.loadBalancer.servers | length }}
+         🖥️ Servers: {{service.loadBalancer.servers | length}}
          {%- endif %}
       {%- endif %}
       {%- endfor %}
@@ -150,14 +150,14 @@
 # Network and Certificate Status
 # ..................................................................................
 - name: Check network configuration
-  command: podman network inspect {{ service_network }}
+  command: podman network inspect {{service_network}}
   register: network_info
   changed_when: false
   ignore_errors: true
 
 - name: Check ACME certificates
   stat:
-    path: "{{ traefik_data_dir }}/acme/acme.json"
+    path: "{{traefik_data_dir}}/acme/acme.json"
   register: acme_file
 
 - name: Display final summary
@@ -167,22 +167,22 @@
       │ 📋 STATUS SUMMARY                                                               │
       └─────────────────────────────────────────────────────────────────────────────────┘
 
-      🎯 Traefik: {{ '✅ RUNNING' if api_version.status == 200 else '❌ DOWN' }}
-      🌐 Network: {{ '✅ EXISTS' if network_info.rc == 0 else '❌ MISSING' }}
-      🔒 Certificates: {{ '✅ CONFIGURED' if acme_file.stat.exists else '❌ NOT FOUND' }}
-      📊 Routes: {{ routers_raw.json | length if routers_raw.json is defined else 0 }}
-      ⚙️ Services: {{ services_raw.json | length if services_raw.json is defined else 0 }}
+      🎯 Traefik: {{'✅ RUNNING' if api_version.status == 200 else '❌ DOWN'}}
+      🌐 Network: {{'✅ EXISTS' if network_info.rc == 0 else '❌ MISSING'}}
+      🔒 Certificates: {{'✅ CONFIGURED' if acme_file.stat.exists else '❌ NOT FOUND'}}
+      📊 Routes: {{routers_raw.json | length if routers_raw.json is defined else 0}}
+      ⚙️ Services: {{services_raw.json | length if services_raw.json is defined else 0}}
 
       ┌─────────────────────────────────────────────────────────────────────────────────┐
       │ 🔧 USEFUL COMMANDS                                                              │
       └─────────────────────────────────────────────────────────────────────────────────┘
 
       # View dashboard:
-      open http://localhost:{{ traefik_dashboard_port }}
+      open http://localhost:{{traefik_dashboard_port}}
 
       # Check raw API data:
-      curl http://localhost:{{ traefik_dashboard_port }}/api/http/routers | jq .
-      curl http://localhost:{{ traefik_dashboard_port }}/api/http/services | jq .
+      curl http://localhost:{{traefik_dashboard_port}}/api/http/routers | jq .
+      curl http://localhost:{{traefik_dashboard_port}}/api/http/services | jq .
 
       # Monitor logs:
       podman logs -f traefik-svc

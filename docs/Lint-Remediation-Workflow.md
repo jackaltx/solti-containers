@@ -51,6 +51,7 @@ cat .lint-progress.yml
 **Purpose**: Distinguish trivial formatting issues from important best practices.
 
 **Key settings**:
+
 - `warn_list`: Trivial rules that don't fail CI (spacing, braces, comments)
 - `skip_list`: Rules we're not enforcing yet (galaxy tags)
 - `offline: true`: Don't check for newer ansible-lint versions
@@ -62,6 +63,7 @@ cat .lint-progress.yml
 **Purpose**: Define YAML formatting standards.
 
 **Key settings**:
+
 - Line length: 160 max (warning level)
 - All rules set to `warning` not `error`
 
@@ -72,6 +74,7 @@ cat .lint-progress.yml
 **Purpose**: Relax markdown formatting rules to match project style.
 
 **Key settings**:
+
 ```json
 {
   "MD013": {
@@ -90,6 +93,7 @@ cat .lint-progress.yml
 **Purpose**: Conditional strictness based on branch.
 
 **Key logic**:
+
 ```bash
 if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.base_ref }}" == "main" ]]; then
   # Strict mode - fail on any errors
@@ -109,6 +113,7 @@ fi
 ## Error Categories
 
 ### CRITICAL (0 remaining)
+
 **Fix immediately - these break functionality**
 
 - Syntax errors (conflicting YAML statements)
@@ -116,10 +121,12 @@ fi
 - Invalid playbook structure
 
 **Examples fixed**:
+
 - `roles/minio/tasks/configure-minio.yml` - Had both `hosts:` and `tasks:` at same level (removed duplicate file)
 - `roles/minio/tasks/get_minio_secrets.yml` - Missing file (created stub)
 
 ### IMPORTANT (12 remaining)
+
 **Best practices - affect idempotency, security, maintainability**
 
 - `no-changed-when`: Commands without `changed_when` directive
@@ -129,6 +136,7 @@ fi
 **Priority**: Fix these in next batches.
 
 ### MINOR (35 remaining)
+
 **Style issues - consistency and readability**
 
 - `yaml[truthy]`: Using `yes/no` instead of `true/false`
@@ -137,6 +145,7 @@ fi
 **Priority**: Fix after IMPORTANT issues cleared.
 
 ### TRIVIAL (98 remaining)
+
 **Formatting - auto-fixable cosmetic issues**
 
 - `yaml[comments]`: Need 2 spaces before `#` comment
@@ -207,6 +216,7 @@ gh pr create --base main --head test
 **Updated by**: `/lint-fix` command after each batch.
 
 **Contents**:
+
 ```yaml
 baseline_errors: 1800           # Starting point (Nov 27, 2025)
 baseline_date: "2025-11-27"
@@ -225,6 +235,7 @@ target_errors: 0
 ```
 
 **How to read**:
+
 - `baseline_errors` → `current_errors`: Total reduction (1800 → 145 = 92% reduced)
 - `categories`: Breakdown by severity
 - `target_date`: When we expect to hit zero
@@ -284,16 +295,19 @@ target_errors: 0
 ### Remaining Work
 
 **IMPORTANT errors (12)**:
+
 - 8 × `no-changed-when` violations
 - 2 × `command-instead-of-module` violations
 - 1 × `risky-file-permissions` violation
 - 1 × other
 
 **MINOR errors (35)**:
+
 - ~30 × `yaml[truthy]` violations (yes/no → true/false)
 - ~5 × `name[casing]` violations
 
 **TRIVIAL errors (98)**:
+
 - ~40 × `yaml[comments]` spacing
 - ~25 × `yaml[braces]` spacing
 - ~20 × `yaml[trailing-spaces]`
@@ -310,6 +324,7 @@ target_errors: 0
 **Location**: [.claude/commands/lint-fix.md](../.claude/commands/lint-fix.md)
 
 **Usage**:
+
 ```bash
 /lint-fix           # Fix 10 errors (default)
 /lint-fix 20        # Fix 20 errors
@@ -317,6 +332,7 @@ target_errors: 0
 ```
 
 **What it does**:
+
 1. Runs all linters and captures current errors
 2. Categorizes by severity (CRITICAL → IMPORTANT → MINOR → TRIVIAL)
 3. Fixes up to `count` errors, starting with highest priority
@@ -325,6 +341,7 @@ target_errors: 0
 6. Updates `.lint-progress.yml` with new counts
 
 **Output example**:
+
 ```
 Fixed 10 errors. 135 errors remaining.
 Breakdown: CRITICAL: 0, IMPORTANT: 10, MINOR: 30, TRIVIAL: 95
@@ -340,6 +357,7 @@ Commit: chore: fix 10 lint errors (truthy, changed_when, comments)
 ### Manual Linting
 
 **Check all linters**:
+
 ```bash
 yamllint .
 ansible-lint --offline
@@ -347,6 +365,7 @@ markdownlint "**/*.md" --config .markdownlintrc
 ```
 
 **Check specific file**:
+
 ```bash
 yamllint roles/redis/tasks/main.yml
 ansible-lint roles/redis/
@@ -354,6 +373,7 @@ markdownlint README.md
 ```
 
 **Auto-fix (when safe)**:
+
 ```bash
 # Markdown auto-fix
 markdownlint "**/*.md" --config .markdownlintrc --fix
@@ -383,6 +403,7 @@ yamlfmt roles/redis/tasks/main.yml
 **Cause**: Trying to fix all ~145 errors at once.
 
 **Solution**: Use incremental approach:
+
 1. Fix 10-15 errors per session with `/lint-fix 15`
 2. Repeat over 4-6 weeks
 3. Use `/lint-fix --all` only when close to zero
@@ -392,6 +413,7 @@ yamlfmt roles/redis/tasks/main.yml
 **Cause**: Linter might be overly strict or have false positive.
 
 **Solution**:
+
 1. Check if rule is in `warn_list` (won't block)
 2. If legitimately a false positive, add to `skip_list` in `.ansible-lint`
 3. Document reason in code comment
@@ -399,12 +421,14 @@ yamlfmt roles/redis/tasks/main.yml
 ### "Want to add more rules to warn_list"
 
 **Process**:
+
 1. Edit [.ansible-lint](../.ansible-lint)
 2. Add rule to `warn_list` section
 3. Test: `ansible-lint --offline`
 4. Commit change
 
 **Example**:
+
 ```yaml
 warn_list:
   - yaml[comments]
@@ -457,6 +481,7 @@ warn_list:
 ### Why incremental instead of fixing all at once?
 
 **Answer**: ~1,800 errors is overwhelming. Incremental approach:
+
 - Avoids merge conflicts (smaller changes)
 - Allows testing between batches
 - Prioritizes important issues first
@@ -469,6 +494,7 @@ warn_list:
 ### Can I skip the workflow and fix manually?
 
 **Answer**: Yes, but:
+
 - Remember to update `.lint-progress.yml` manually
 - Follow priority order (CRITICAL → IMPORTANT → MINOR → TRIVIAL)
 - Create descriptive commit messages
@@ -477,6 +503,7 @@ warn_list:
 ### How do I know when I'm done?
 
 **Answer**:
+
 1. `.lint-progress.yml` shows `current_errors: 0`
 2. All linters pass: `yamllint . && ansible-lint && markdownlint "**/*.md"`
 3. CI passes on main branch PR
@@ -488,6 +515,7 @@ warn_list:
 ### 2025-11-27 - Initial Implementation
 
 **Created**:
+
 - `.ansible-lint` - Configuration with warn_list
 - `.markdownlintrc` - Relaxed line-length rules
 - `.lint-progress.yml` - Progress tracker
@@ -495,15 +523,18 @@ warn_list:
 - `docs/Lint-Remediation-Workflow.md` - This document
 
 **Modified**:
+
 - `.github/workflows/lint.yml` - Branch-based strictness
 - `CLAUDE.md` - Added lint remediation section
 - `.gitignore` - Added .ansible/ artifacts
 
 **Fixed**:
+
 - Removed duplicate `roles/minio/tasks/configure-minio.yml`
 - Created missing `roles/minio/tasks/get_minio_secrets.yml`
 
 **Impact**:
+
 - Baseline: 1,800 errors → Current: ~145 errors (92% noise reduction)
 - Test branch: Warnings allowed
 - Main branch: Zero errors enforced

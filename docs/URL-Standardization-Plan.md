@@ -9,6 +9,7 @@
 ## Background
 
 The collection had inconsistent patterns for defining service URLs and FQDNs:
+
 - **Minio, Redis, Grafana**: Used `*_svc_name` variables with FQDN calculation ✅
 - **Gitea**: Hardcoded domains with mismatched naming (gitea1 vs gitea-test) ❌
 - **Elasticsearch, HashiVault, InfluxDB3, Mattermost**: Fully hardcoded hostnames ❌
@@ -77,6 +78,7 @@ label:
 ### Changes Made
 
 **1. Inventory (inventory.yml:332-354)**
+
 ```yaml
 gitea_svc:
   hosts:
@@ -89,6 +91,7 @@ gitea_svc:
 ```
 
 **2. Defaults (roles/gitea/defaults/main.yml:18-27)**
+
 ```yaml
 # Service naming and URL construction
 gitea_svc_name: "gitea"  # Override per host in inventory
@@ -102,11 +105,13 @@ gitea_root_url: "{{ gitea_external_url }}"
 ```
 
 **3. Traefik Labels (roles/gitea/tasks/quadlet_rootless.yml:89)**
+
 ```yaml
 traefik.http.routers.gitea.rule: "Host(`{{ gitea_fqdn }}`)"
 ```
 
 **4. Verification Output (roles/gitea/tasks/verify.yml:118)**
+
 ```yaml
 - "Traefik: {{ gitea_external_url }}"
 ```
@@ -140,7 +145,9 @@ traefik.http.routers.gitea.rule: "Host(`{{ gitea_fqdn }}`)"
 ### Phase 1: User-Facing Services (High Priority)
 
 #### Mattermost
+
 **Current state:**
+
 ```yaml
 # Hardcoded in quadlet_rootless.yml
 Label=traefik.http.routers.mattermost.rule=Host(`mattermost.{{ domain }}`)
@@ -149,6 +156,7 @@ Label=traefik.http.routers.mattermost.rule=Host(`mattermost.{{ domain }}`)
 **Required changes:**
 
 1. **inventory.yml** - Add service naming:
+
 ```yaml
 mattermost_svc:
   hosts:
@@ -161,6 +169,7 @@ mattermost_svc:
 ```
 
 2. **roles/mattermost/defaults/main.yml** - Add URL construction:
+
 ```yaml
 mattermost_svc_name: "mattermost"
 mattermost_fqdn: "{{ mattermost_svc_name }}.{{ domain }}"
@@ -169,6 +178,7 @@ mattermost_external_url: "https://{{ mattermost_fqdn }}:{{ mattermost_external_p
 ```
 
 3. **roles/mattermost/tasks/quadlet_rootless.yml** - Update Traefik labels:
+
 ```yaml
 Label=traefik.http.routers.mattermost.rule=Host(`{{ mattermost_fqdn }}`)
 ```
@@ -176,6 +186,7 @@ Label=traefik.http.routers.mattermost.rule=Host(`{{ mattermost_fqdn }}`)
 4. **Update any verification/output** - Use `mattermost_external_url`
 
 **Result:**
+
 - firefly: `mattermost.a0a0.org:8080`
 - podma: `mattermost-test.a0a0.org:8080`
 
@@ -186,6 +197,7 @@ Label=traefik.http.routers.mattermost.rule=Host(`{{ mattermost_fqdn }}`)
 #### Elasticsearch (Dual Routes)
 
 **Current state:**
+
 ```yaml
 # Hardcoded dual routes in quadlet
 - "Label=traefik.http.routers.elasticsearch0.rule=Host(`elasticsearch.{{ domain }}`)"
@@ -195,6 +207,7 @@ Label=traefik.http.routers.mattermost.rule=Host(`{{ mattermost_fqdn }}`)
 **Required changes:**
 
 1. **inventory.yml**:
+
 ```yaml
 elasticsearch_svc:
   hosts:
@@ -207,6 +220,7 @@ elasticsearch_svc:
 ```
 
 2. **roles/elasticsearch/defaults/main.yml**:
+
 ```yaml
 elasticsearch_svc_name: "elasticsearch"
 elasticsearch_svc_name_short: "es"
@@ -215,12 +229,14 @@ elasticsearch_fqdn_short: "{{ elasticsearch_svc_name_short }}.{{ domain }}"
 ```
 
 3. **roles/elasticsearch/tasks/quadlet_rootless.yml**:
+
 ```yaml
 - "Label=traefik.http.routers.elasticsearch0.rule=Host(`{{ elasticsearch_fqdn }}`)"
 - "Label=traefik.http.routers.elasticsearch1.rule=Host(`{{ elasticsearch_fqdn_short }}`)"
 ```
 
 **Result:**
+
 - firefly: `elasticsearch.a0a0.org` + `es.a0a0.org`
 - podma: `elasticsearch-test.a0a0.org` + `es-test.a0a0.org`
 
@@ -229,6 +245,7 @@ elasticsearch_fqdn_short: "{{ elasticsearch_svc_name_short }}.{{ domain }}"
 #### HashiVault (Dual Routes)
 
 **Current state:**
+
 ```yaml
 # Hardcoded dual routes
 - "Label=traefik.http.routers.vault-primary.rule=Host(`vault.{{ domain }}`)"
@@ -238,6 +255,7 @@ elasticsearch_fqdn_short: "{{ elasticsearch_svc_name_short }}.{{ domain }}"
 **Required changes:**
 
 1. **inventory.yml**:
+
 ```yaml
 hashivault_svc:
   hosts:
@@ -250,6 +268,7 @@ hashivault_svc:
 ```
 
 2. **roles/hashivault/defaults/main.yml**:
+
 ```yaml
 hashivault_svc_name: "vault"
 hashivault_svc_name_alt: "hashivault"
@@ -258,12 +277,14 @@ hashivault_fqdn_alt: "{{ hashivault_svc_name_alt }}.{{ domain }}"
 ```
 
 3. **roles/hashivault/tasks/quadlet_rootless.yml**:
+
 ```yaml
 - "Label=traefik.http.routers.vault-primary.rule=Host(`{{ hashivault_fqdn }}`)"
 - "Label=traefik.http.routers.vault-secondary.rule=Host(`{{ hashivault_fqdn_alt }}`)"
 ```
 
 **Result:**
+
 - firefly: `vault.a0a0.org` + `hashivault.a0a0.org`
 - podma: `vault-test.a0a0.org` + `hashivault-test.a0a0.org`
 
@@ -272,6 +293,7 @@ hashivault_fqdn_alt: "{{ hashivault_svc_name_alt }}.{{ domain }}"
 #### InfluxDB3 (Simple Single Route)
 
 **Current state:**
+
 ```yaml
 # Hardcoded
 - "Label=traefik.http.routers.influxdb3.rule=Host(`influxdb3.{{ domain }}`)"
@@ -280,6 +302,7 @@ hashivault_fqdn_alt: "{{ hashivault_svc_name_alt }}.{{ domain }}"
 **Required changes:**
 
 1. **inventory.yml**:
+
 ```yaml
 influxdb3_svc:
   hosts:
@@ -290,6 +313,7 @@ influxdb3_svc:
 ```
 
 2. **roles/influxdb3/defaults/main.yml**:
+
 ```yaml
 influxdb3_svc_name: "influxdb3"
 influxdb3_fqdn: "{{ influxdb3_svc_name }}.{{ domain }}"
@@ -298,11 +322,13 @@ influxdb3_external_url: "https://{{ influxdb3_fqdn }}:{{ influxdb3_external_port
 ```
 
 3. **roles/influxdb3/tasks/quadlet_rootless.yml**:
+
 ```yaml
 - "Label=traefik.http.routers.influxdb3.rule=Host(`{{ influxdb3_fqdn }}`)"
 ```
 
 **Result:**
+
 - firefly: `influxdb3.a0a0.org:8080`
 - podma: `influxdb3-test.a0a0.org:8080`
 
@@ -324,15 +350,18 @@ influxdb3_external_url: "https://{{ influxdb3_fqdn }}:{{ influxdb3_external_port
 ### Recommended Approach
 
 **Option 1: Sequential (Safer)**
+
 - Implement one service at a time
 - Test each thoroughly before proceeding
 - Start with user-facing (Mattermost), then backend services
 
 **Option 2: Batch by Type (Faster)**
+
 - Batch 1: Simple single-route services (Mattermost, InfluxDB3)
 - Batch 2: Complex dual-route services (Elasticsearch, HashiVault)
 
 **Option 3: All at Once (Fastest)**
+
 - Update all 4 remaining services in one session
 - More efficient but higher risk
 - Requires careful testing
@@ -352,11 +381,13 @@ influxdb3_external_url: "https://{{ influxdb3_fqdn }}:{{ influxdb3_external_port
 ## DNS/TLS Considerations
 
 ### Current Setup
+
 - Manual DNS configuration required for each FQDN
 - Traefik handles Let's Encrypt certificate generation
 - Wildcard DNS: `*.a0a0.org` → localhost
 
 ### Future Enhancement (Optional)
+
 Enable Traefik DNS challenge for automatic DNS record creation:
 
 ```yaml
@@ -374,11 +405,13 @@ LINODE_TOKEN: "{{ lookup('env', 'LINODE_API_TOKEN') }}"
 ```
 
 **Benefits:**
+
 - Automatic DNS record creation
 - No manual DNS setup per service
 - Certificates work immediately on deployment
 
 **Trade-offs:**
+
 - Requires Linode API token management
 - More complex configuration
 - DNS provider dependency

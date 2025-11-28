@@ -5,21 +5,21 @@ service_dns_servers:
   - "8.8.8.8"
 service_dns_search: "example.com"
 
-service_quadlet_dir: "{{ lookup('env', 'HOME') }}/.config/containers/systemd"
+service_quadlet_dir: "{{lookup('env', 'HOME')}}/.config/containers/systemd"
 
 # _base/defaults/main.yml
 service_properties:
-  root: "" # Service name (e.g., "elasticsearch")
-  name: "" # Systemd service name (e.g., "elasticsearch-pod")
-  pod_key: "" # Pod reference (e.g., "elasticsearch.pod")
-  quadlets: [] # List of quadlet files
-  data_dir: "" # Main data directory
-  config_dir: "config" # Config subdirectory
-  delete_data: false # Whether to delete data on removal (override via DELETE_DATA env var)
-  image: "" # Main container image
-  gui_image: "" # GUI container image (if applicable)
-  dirs: [] # Required directories with permissions
-  ports: [] # Port mappings
-  volumes: [] # Volume mappings
-  environment: {} # Environment variables
-  command: [] # Container command (if overriding default)
+  root: ""  # Service name (e.g., "elasticsearch")
+  name: ""  # Systemd service name (e.g., "elasticsearch-pod")
+  pod_key: ""  # Pod reference (e.g., "elasticsearch.pod")
+  quadlets: []  # List of quadlet files
+  data_dir: ""  # Main data directory
+  config_dir: "config"  # Config subdirectory
+  delete_data: false  # Whether to delete data on removal (override via DELETE_DATA env var)
+  image: ""  # Main container image
+  gui_image: ""  # GUI container image (if applicable)
+  dirs: []  # Required directories with permissions
+  ports: []  # Port mappings
+  volumes: []  # Volume mappings
+  environment: {}  # Environment variables
+  command: []  # Container command (if overriding default)

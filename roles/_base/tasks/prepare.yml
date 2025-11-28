@@ -17,12 +17,12 @@
 - name: Create service directories (user ownership for rootless containers)
   become: false
   ansible.builtin.file:
-    path: "{{ service_properties.data_dir }}{{ '/' + item.path if item.path != '' else '' }}"
+    path: "{{service_properties.data_dir}}{{'/' + item.path if item.path != '' else ''}}"
     state: directory
-    mode: "{{ item.mode }}"
-    owner: "{{ real_user }}"
-    group: "{{ real_user }}"
-  loop: "{{ service_properties.dirs }}"
+    mode: "{{item.mode}}"
+    owner: "{{real_user}}"
+    group: "{{real_user}}"
+  loop: "{{service_properties.dirs}}"
 
 # ....................................................................................
 - name: Configure SELinux if enabled
@@ -33,20 +33,20 @@
   block:
     - name: Set SELinux context for service directories
       ansible.builtin.sefcontext:
-        target: "{{ service_properties.data_dir }}(/.*)?"
+        target: "{{service_properties.data_dir}}(/.*)?"
         setype: container_file_t
         state: present
       register: sefcontext_result
       failed_when: false
 
     - name: Apply SELinux context
-      ansible.builtin.command: restorecon -R -v "{{ service_properties.data_dir }}"
+      ansible.builtin.command: restorecon -R -v "{{service_properties.data_dir}}"
       register: restorecon_result
       changed_when: restorecon_result.rc == 0
       failed_when: false
 
     - name: Fallback - use chcon if semanage/restorecon fails
-      ansible.builtin.command: chcon -R -t container_file_t "{{ service_properties.data_dir }}"
+      ansible.builtin.command: chcon -R -t container_file_t "{{service_properties.data_dir}}"
       when: sefcontext_result.failed or restorecon_result.rc != 0
       register: chcon_result
       changed_when: chcon_result.rc == 0

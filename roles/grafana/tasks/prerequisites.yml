@@ -12,12 +12,12 @@
 # Get container user mapping first
 - name: Get directory ownership
   ansible.builtin.stat:
-    path: "{{ grafana_data_dir }}/config"
+    path: "{{grafana_data_dir}}/config"
   register: dir_info
 
 - name: Debug ownership
   ansible.builtin.debug:
-    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+    msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
 
 # .......................................................................
 - name: Become root and configure settings
@@ -27,10 +27,10 @@
     - name: Template Grafana configuration
       template:
         src: grafana.ini.j2
-        dest: "{{ grafana_data_dir }}/config/grafana.ini"
+        dest: "{{grafana_data_dir}}/config/grafana.ini"
         mode: "0640"
-        owner: "{{ dir_info.stat.uid }}"
-        group: "{{ dir_info.stat.gid }}"
+        owner: "{{dir_info.stat.uid}}"
+        group: "{{dir_info.stat.gid}}"
       notify: restart grafana
 
     # ...................................................
@@ -49,7 +49,7 @@
     #
     # - name: Create default datasource provisioning
     #   ansible.builtin.copy:
-    #     dest: "{{ grafana_data_dir }}/provisioning/datasources/default.yaml"
+    #     dest: "{{grafana_data_dir}}/provisioning/datasources/default.yaml"
     #     content: |
     #       apiVersion: 1
 
@@ -61,8 +61,8 @@
     #           isDefault: true
     #           editable: true
     #     mode: "0640"
-    #     owner: "{{ dir_info.stat.uid }}"
-    #     group: "{{ dir_info.stat.gid }}"
+    #     owner: "{{dir_info.stat.uid}}"
+    #     group: "{{dir_info.stat.gid}}"
 
     # ...................................................
     # Note: SELinux configuration is handled by _base/tasks/prepare.yml

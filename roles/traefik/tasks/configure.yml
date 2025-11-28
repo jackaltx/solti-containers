@@ -9,48 +9,38 @@
     vault_addr: "http://localhost:8200"
 
     # Load the root token from init file
-    vault_keys_dir: "{{ lookup('env','HOME') }}/.secrets/vault-secrets"
-    vault_keys_file: "{{ vault_keys_dir }}/vault-keys.json"
+    vault_keys_dir: "{{lookup('env','HOME')}}/.secrets/vault-secrets"
+    vault_keys_file: "{{vault_keys_dir}}/vault-keys.json"
 
     # Configuration options
     vault_enable_approle: true
     vault_enable_userpass: true
     vault_admin_username: "admin"
-    vault_admin_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits,punctuation') }}"
+    vault_admin_password: "{{lookup('password', '/dev/null length=32 chars=ascii_letters,digits,punctuation')}}"
 
     # Policies to create
     vault_policies:
       - name: "admin"
         rules: |
           # Admin policy
-          path "auth/*" {
-            capabilities = ["create", "read", "update", "delete", "list", "sudo"]
-          }
+          path "auth/*" {capabilities = ["create", "read", "update", "delete", "list", "sudo"]}
 
-          path "sys/*" {
-            capabilities = ["create", "read", "update", "delete", "list", "sudo"]
-          }
+          path "sys/*" {capabilities = ["create", "read", "update", "delete", "list", "sudo"]}
 
-          path "identity/*" {
-            capabilities = ["create", "read", "update", "delete", "list"]
-          }
+          path "identity/*" {capabilities = ["create", "read", "update", "delete", "list"]}
 
-          path "*" {
-            capabilities = ["create", "read", "update", "delete", "list"]
-          }
+          path "*" {capabilities = ["create", "read", "update", "delete", "list"]}
 
       - name: "readonly"
         rules: |
           # Read-only policy
-          path "secret/*" {
-            capabilities = ["read", "list"]
-          }
+          path "secret/*" {capabilities = ["read", "list"]}
 
   tasks:
     # Load the root token
     - name: Check if keys file exists
       stat:
-        path: "{{ vault_keys_file }}"
+        path: "{{vault_keys_file}}"
       register: keys_file_stat
 
     - name: Fail if keys file doesn't exist
@@ -62,18 +52,18 @@
       block:
         - name: Read keys file
           slurp:
-            src: "{{ vault_keys_file }}"
+            src: "{{vault_keys_file}}"
           register: encoded_keys
 
         - name: Extract root token
           set_fact:
-            vault_token: "{{ (encoded_keys['content'] | b64decode | from_json).root_token }}"
+            vault_token: "{{(encoded_keys['content'] | b64decode | from_json).root_token}}"
           no_log: true
 
     # Create temp token file for authentication (will be removed after use)
     - name: Create temporary token file
       copy:
-        content: "{{ vault_token }}"
+        content: "{{vault_token}}"
         dest: "/tmp/vault_token"
         mode: "0600"
       no_log: true
@@ -81,11 +71,11 @@
     # Create policies
     - name: Create Vault policies
       command: >
-        podman exec -e VAULT_TOKEN={{ vault_token }} vault-svc
-        vault policy write {{ item.name }} -
+        podman exec -e VAULT_TOKEN={{vault_token}} vault-svc
+        vault policy write {{item.name}} -
       args:
-        stdin: "{{ item.rules }}"
-      loop: "{{ vault_policies }}"
+        stdin: "{{item.rules}}"
+      loop: "{{vault_policies}}"
       register: policy_result
       changed_when: policy_result.rc == 0
       no_log: true
@@ -93,7 +83,7 @@
     # Enable userpass auth if requested
     - name: Enable userpass authentication
       command: >
-        podman exec -e VAULT_TOKEN={{ vault_token }} vault-svc
+        podman exec -e VAULT_TOKEN={{vault_token}} vault-svc
         vault auth enable userpass
       register: userpass_result
       failed_when:
@@ -105,9 +95,9 @@
     # Create admin user
     - name: Create admin user
       command: >
-        podman exec -e VAULT_TOKEN={{ vault_token }} vault-svc
-        vault write auth/userpass/users/{{ vault_admin_username }} 
-        password={{ vault_admin_password }}
+        podman exec -e VAULT_TOKEN={{vault_token}} vault-svc
+        vault write auth/userpass/users/{{vault_admin_username}}
+        password={{vault_admin_password}}
         policies=admin
       register: admin_user_result
       changed_when: admin_user_result.rc == 0
@@ -117,7 +107,7 @@
     # Enable AppRole auth if requested
     - name: Enable AppRole authentication
       command: >
-        podman exec -e VAULT_TOKEN={{ vault_token }} vault-svc
+        podman exec -e VAULT_TOKEN={{vault_token}} vault-svc
         vault auth enable approle
       register: approle_result
       failed_when:
@@ -129,7 +119,7 @@
     # Enable secrets engines
     - name: Enable KV secrets engine version 2
       command: >
-        podman exec -e VAULT_TOKEN={{ vault_token }} vault-svc
+        podman exec -e VAULT_TOKEN={{vault_token}} vault-svc
         vault secrets enable -version=2 kv
       register: kv_result
       failed_when:
@@ -142,15 +132,15 @@
       copy:
         content: |
           # HashiVault Admin Credentials
-          # Generated by Ansible on {{ ansible_facts.date_time.iso8601 }}
+          # Generated by Ansible on {{ansible_facts.date_time.iso8601}}
 
-          URL: {{ vault_addr }}
-          Username: {{ vault_admin_username }}
-          Password: {{ vault_admin_password }}
+          URL: {{vault_addr}}
+          Username: {{vault_admin_username}}
+          Password: {{vault_admin_password}}
 
           # For API access, use the following token:
-          VAULT_TOKEN={{ vault_token }}
-        dest: "{{ vault_keys_dir }}/vault-admin-credentials.txt"
+          VAULT_TOKEN={{vault_token}}
+        dest: "{{vault_keys_dir}}/vault-admin-credentials.txt"
         mode: "0600"
       when: vault_enable_userpass
       no_log: true
@@ -168,14 +158,14 @@
           - "=============================================================="
           - "HashiVault has been configured successfully!"
           - ""
-          - "Admin username: {{ vault_admin_username }}"
-          - "Admin password: {{ '[saved to file]' }}"
+          - "Admin username: {{vault_admin_username}}"
+          - "Admin password: {{'[saved to file]'}}"
           - ""
           - "These credentials have been saved to:"
-          - "{{ vault_keys_dir }}/vault-admin-credentials.txt"
+          - "{{vault_keys_dir}}/vault-admin-credentials.txt"
           - ""
           - "Next steps:"
-          - "1. Access the Vault UI at: {{ vault_addr }}/ui"
+          - "1. Access the Vault UI at: {{vault_addr}}/ui"
           - "2. Log in with the admin credentials"
           - "3. Create application-specific roles and policies"
           - "4. Store your sensitive secrets"

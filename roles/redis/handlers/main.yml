@@ -1,7 +1,7 @@
 ---
 - name: reload systemd
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
     scope: user
 
 - name: restart redis
@@ -13,5 +13,5 @@
 
 - name: reload systemd user daemon
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
     scope: user

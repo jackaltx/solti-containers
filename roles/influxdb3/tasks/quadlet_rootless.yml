@@ -9,12 +9,12 @@
   containers.podman.podman_pod:
     name: influxdb3
     state: quadlet
-    dns: "{{ service_dns_servers }}"
-    dns_search: "{{ service_dns_search }}"
-    network: "{{ service_network }}"
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    dns: "{{service_dns_servers}}"
+    dns_search: "{{service_dns_search}}"
+    network: "{{service_network}}"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     ports:
-      - "127.0.0.1:{{ influxdb3_port }}:{{ influxdb3_internal_port }}"
+      - "127.0.0.1:{{influxdb3_port}}:{{influxdb3_internal_port}}"
     quadlet_options:
       - |
         [Service]
@@ -29,25 +29,25 @@
   containers.podman.podman_container:
     name: influxdb3-svc
     pod: influxdb3.pod
-    image: "{{ influxdb3_image }}"
+    image: "{{influxdb3_image}}"
     state: quadlet
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     volume:
-      - "{{ influxdb3_data_dir }}/data:/var/lib/influxdb3/data:z,U"
-      - "{{ influxdb3_data_dir }}/plugins:/var/lib/influxdb3/plugins:z,U"
-      - "{{ influxdb3_secrets_dir }}:/var/lib/influxdb3/secrets:z,U"
+      - "{{influxdb3_data_dir}}/data:/var/lib/influxdb3/data:z,U"
+      - "{{influxdb3_data_dir}}/plugins:/var/lib/influxdb3/plugins:z,U"
+      - "{{influxdb3_secrets_dir}}:/var/lib/influxdb3/secrets:z,U"
     env:
-      INFLUXDB3_NODE_IDENTIFIER_PREFIX: "{{ influxdb3_node_id }}"
+      INFLUXDB3_NODE_IDENTIFIER_PREFIX: "{{influxdb3_node_id}}"
     command:
       - "serve"
-      - "--http-bind=0.0.0.0:{{ influxdb3_internal_port }}"
-      - "--object-store={{ influxdb3_object_store }}"
+      - "--http-bind=0.0.0.0:{{influxdb3_internal_port}}"
+      - "--object-store={{influxdb3_object_store}}"
       - "--data-dir=/var/lib/influxdb3/data"
     label:
-      traefik.enable: "{{ influxdb3_enable_traefik | lower }}"
-      traefik.http.routers.influxdb3.rule: "Host(`{{ influxdb3_fqdn }}`)"
+      traefik.enable: "{{influxdb3_enable_traefik | lower}}"
+      traefik.http.routers.influxdb3.rule: "Host(`{{influxdb3_fqdn}}`)"
       traefik.http.routers.influxdb3.entrypoints: "websecure"
-      traefik.http.services.influxdb3.loadbalancer.server.port: "{{ influxdb3_internal_port }}"
+      traefik.http.services.influxdb3.loadbalancer.server.port: "{{influxdb3_internal_port}}"
       traefik.http.routers.influxdb3.middlewares: "secHeaders@file"
     quadlet_options:
       - |
@@ -71,7 +71,7 @@
 # .......................................................................................
 - name: reload systemd user daemon
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
   become: false
   changed_when: false
@@ -79,8 +79,8 @@
 # .......................................................................................
 - name: Start rootless pod with systemd
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
-    systemctl --user start {{ service_properties.name }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
+    systemctl --user start {{service_properties.name}}
   become: false
   changed_when: true
 
@@ -88,5 +88,5 @@
 - name: Wait for InfluxDB3 to be ready
   ansible.builtin.wait_for:
     host: 127.0.0.1
-    port: "{{ influxdb3_port }}"
+    port: "{{influxdb3_port}}"
     timeout: 120

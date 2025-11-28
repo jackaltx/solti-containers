@@ -8,7 +8,7 @@
 # Create secrets directory
 - name: Ensure secrets directory exists
   ansible.builtin.file:
-    path: "{{ influxdb3_secrets_dir }}"
+    path: "{{influxdb3_secrets_dir}}"
     state: directory
     mode: "0700"
 
@@ -16,7 +16,7 @@
 # Check if already initialized
 - name: Check if admin token exists
   ansible.builtin.stat:
-    path: "{{ influxdb3_secrets_dir }}/admin-token.json"
+    path: "{{influxdb3_secrets_dir}}/admin-token.json"
   register: admin_token_file
 
 # ..............................................
@@ -42,13 +42,13 @@
 
     - name: Save admin token securely on host
       ansible.builtin.copy:
-        content: "{{ token_content.stdout }}"
-        dest: "{{ influxdb3_secrets_dir }}/admin-token.json"
+        content: "{{token_content.stdout}}"
+        dest: "{{influxdb3_secrets_dir}}/admin-token.json"
         mode: "0644"
 
     - name: Parse token
       ansible.builtin.set_fact:
-        influxdb3_admin_token: "{{ (token_content.stdout | from_json).token }}"
+        influxdb3_admin_token: "{{(token_content.stdout | from_json).token}}"
       # no_log: true
 
     - name: Display initialization status
@@ -56,7 +56,7 @@
         msg:
           - "=============================================================="
           - "InfluxDB3 initialized successfully!"
-          - "Operator token saved to: {{ influxdb3_secrets_dir }}/admin-token.json"
+          - "Operator token saved to: {{influxdb3_secrets_dir}}/admin-token.json"
           - "IMPORTANT: Store this token securely - it cannot be retrieved later"
           - "=============================================================="
 
@@ -67,12 +67,12 @@
   block:
     - name: Read existing token file
       ansible.builtin.slurp:
-        src: "{{ influxdb3_secrets_dir }}/admin-token.json"
+        src: "{{influxdb3_secrets_dir}}/admin-token.json"
       register: encoded_token
 
     - name: Parse existing token
       ansible.builtin.set_fact:
-        influxdb3_admin_token: "{{ (encoded_token.content | b64decode | from_json).token }}"
+        influxdb3_admin_token: "{{(encoded_token.content | b64decode | from_json).token}}"
       # no_log: true
 
     - name: Display status

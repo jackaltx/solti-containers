@@ -20,7 +20,7 @@
       ansible.builtin.systemd:
         name: "{{ item }}"
         state: stopped
-        enabled: no
+        enabled: false
         scope: user
       loop:
         - "{{ service_properties.name }}"
@@ -43,7 +43,7 @@
     # SMELL this is for rootless!!!
     - name: Reload systemd user daemon
       ansible.builtin.systemd:
-        daemon_reload: yes
+        daemon_reload: true
         scope: user
 
     - name: Debug service file removal

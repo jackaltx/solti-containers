@@ -7,7 +7,7 @@
 
 - name: Validate state parameter
   ansible.builtin.fail:
-    msg: "grafana_state must be one of: prepare, present, absent. Current value: {{ grafana_state }}"
+    msg: "grafana_state must be one of: prepare, present, absent. Current value: {{grafana_state}}"
   when: grafana_state not in ['prepare', 'present', 'absent']
 
 - name: Test become capability
@@ -18,14 +18,14 @@
 # Get real user info using environment variables (immune to become)
 - name: Get real user info from environment
   set_fact:
-    real_user: "{{ lookup('env', 'USER') }}"
-    real_user_dir: "{{ lookup('env', 'HOME') }}"
-    real_user_uid: "{{ lookup('pipe', 'id -u') }}"
+    real_user: "{{lookup('env', 'USER')}}"
+    real_user_dir: "{{lookup('env', 'HOME')}}"
+    real_user_uid: "{{lookup('pipe', 'id -u')}}"
 
 # Calculate FQDN from service name (after inventory vars are merged)
 - name: Calculate grafana_fqdn from service name
   set_fact:
-    grafana_fqdn: "{{ grafana_svc_name }}.{{ domain }}"
+    grafana_fqdn: "{{grafana_svc_name}}.{{domain}}"
 
 # =======================================================================
 # PREPARATION (one-time setup)
@@ -36,12 +36,12 @@
   block:
     - name: Check if already prepared
       ansible.builtin.stat:
-        path: "{{ grafana_data_dir }}"
+        path: "{{grafana_data_dir}}"
       register: data_dir_check
 
     - name: Fail if already prepared
       ansible.builtin.fail:
-        msg: "Grafana appears to be already prepared. Directory {{ grafana_data_dir }} exists."
+        msg: "Grafana appears to be already prepared. Directory {{grafana_data_dir}} exists."
       when: data_dir_check.stat.exists
 
     # ............................................................
@@ -64,7 +64,7 @@
 
     - name: Verify required directories exist
       ansible.builtin.stat:
-        path: "{{ grafana_data_dir }}/{{ service_properties.config_dir }}"
+        path: "{{grafana_data_dir}}/{{service_properties.config_dir}}"
       register: config_dir_check
       failed_when: not config_dir_check.stat.exists
       changed_when: false

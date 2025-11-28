@@ -21,6 +21,7 @@ Verification tasks hardcode assumptions about the test environment:
 ```
 
 **This fails when**:
+
 - Host doesn't allow direct port access (production firewall rules)
 - Service only accessible via Traefik proxy (HTTPS-only environments)
 - Host requires different networking (bridge mode, macvlan, etc.)
@@ -87,6 +88,7 @@ host_capabilities:
 **Test Strategy**: Direct port access, container exec fallback
 
 **Characteristics**:
+
 - Local development machine
 - All ports accessible on localhost
 - Full filesystem access
@@ -111,6 +113,7 @@ host_capabilities:
 **Test Strategy**: External HTTPS preferred, direct access fallback
 
 **Characteristics**:
+
 - Lab infrastructure host
 - Traefik provides SSL termination
 - External domain resolution
@@ -132,6 +135,7 @@ host_capabilities:
 **Test Strategy**: External HTTPS only, no direct access
 
 **Characteristics**:
+
 - Production infrastructure
 - No localhost port access (firewall)
 - HTTPS-only access via Traefik
@@ -150,6 +154,7 @@ host_capabilities:
 **Test Strategy**: Container exec only, no network access
 
 **Characteristics**:
+
 - Ephemeral CI environment
 - No persistent storage
 - No external network access
@@ -193,6 +198,7 @@ host_capabilities:
 **Verification Method**: HTTPS requests via Traefik
 
 **Example** (elasticsearch):
+
 ```yaml
 # roles/elasticsearch/tasks/verify_external.yml
 ---
@@ -222,15 +228,18 @@ host_capabilities:
 ```
 
 **Variables Required**:
+
 - `elasticsearch_proxy`: `https://elasticsearch.a0a0.org`
 
 **Benefits**:
+
 - Tests production access path
 - Validates SSL certificates
 - Tests DNS resolution
 - Mirrors end-user experience
 
 **Limitations**:
+
 - Requires Traefik deployed first
 - Requires DNS configured
 - Slower than direct access
@@ -243,6 +252,7 @@ host_capabilities:
 **Verification Method**: Direct HTTP to localhost:PORT
 
 **Example** (elasticsearch):
+
 ```yaml
 # roles/elasticsearch/tasks/verify_direct.yml
 ---
@@ -275,17 +285,20 @@ host_capabilities:
 ```
 
 **Variables Required**:
+
 - `elasticsearch_http_port`: `9200`
 - `test_index`: `test-ansible`
 - `test_doc`: `{"message": "verification test"}`
 
 **Benefits**:
+
 - Fast execution
 - No external dependencies
 - Full API access
 - Detailed error messages
 
 **Limitations**:
+
 - Doesn't test production path
 - Requires port binding to localhost
 - Might not work in hardened environments
@@ -297,6 +310,7 @@ host_capabilities:
 **Verification Method**: Execute commands inside container
 
 **Example** (elasticsearch):
+
 ```yaml
 # roles/elasticsearch/tasks/verify_container.yml
 ---
@@ -331,16 +345,19 @@ host_capabilities:
 ```
 
 **Variables Required**:
+
 - `elasticsearch_svc_name`: Container name
 - `test_index`, `test_doc`: Test data
 
 **Benefits**:
+
 - Works in restricted environments
 - No network access required
 - Tests container-internal state
 - Fallback when other methods unavailable
 
 **Limitations**:
+
 - Doesn't test external access
 - Requires `podman exec` permission
 - More complex error handling
@@ -353,6 +370,7 @@ host_capabilities:
 **Verification Method**: Systemd service status checks
 
 **Example** (all services):
+
 ```yaml
 # roles/_base/tasks/verify_systemd.yml
 ---
@@ -378,11 +396,13 @@ host_capabilities:
 ```
 
 **Benefits**:
+
 - Quick health check
 - Standard systemd patterns
 - No service-specific knowledge
 
 **Limitations**:
+
 - Doesn't test functionality
 - Only validates service is running
 - Not sufficient alone
@@ -394,6 +414,7 @@ host_capabilities:
 **Pattern**: `<service>_<property>`
 
 **Examples**:
+
 - `elasticsearch_http_port`: Internal port
 - `elasticsearch_proxy`: External HTTPS URL
 - `elasticsearch_svc_name`: Container name
@@ -404,6 +425,7 @@ host_capabilities:
 **Pattern**: `<service>_test_<property>`
 
 **Examples**:
+
 - `elasticsearch_test_strategy`: Selected strategy (`direct`, `external`, `container`)
 - `elasticsearch_test_index`: Test index name
 - `elasticsearch_test_enabled`: Enable/disable tests
@@ -414,6 +436,7 @@ host_capabilities:
 **Pattern**: `host_capabilities` (list)
 
 **Example**:
+
 ```yaml
 host_capabilities:
   - direct_port_access
@@ -422,6 +445,7 @@ host_capabilities:
 ```
 
 **Usage in roles**:
+
 ```yaml
 - name: Check for direct access
   set_fact:
@@ -458,6 +482,7 @@ host_capabilities:
 ```
 
 **Benefits**:
+
 - Single entry point (`verify.yml`)
 - Clear strategy selection logic
 - Easy to add new strategies
@@ -493,11 +518,13 @@ host_capabilities:
 ```
 
 **Benefits**:
+
 - All tests in one file
 - Clear capability requirements
 - Easy to scan capabilities
 
 **Drawbacks**:
+
 - Can become cluttered with many strategies
 - Harder to maintain complex logic
 - More repetition
@@ -537,6 +564,7 @@ host_capabilities:
 ```
 
 **Benefits**:
+
 - Tests increase in depth based on capabilities
 - Clear test hierarchy
 - Easy to understand requirements
@@ -547,11 +575,13 @@ host_capabilities:
 ### Simple Services (Redis, Minio)
 
 **Characteristics**:
+
 - Single port
 - Simple API
 - Basic health check
 
 **Test Strategy**:
+
 ```yaml
 # roles/redis/tasks/verify.yml
 ---
@@ -582,12 +612,14 @@ host_capabilities:
 ### Complex Services (Elasticsearch, Mattermost)
 
 **Characteristics**:
+
 - Multiple endpoints
 - Complex API
 - Requires authentication
 - State management
 
 **Test Strategy**:
+
 ```yaml
 # roles/elasticsearch/tasks/verify.yml
 ---
@@ -618,11 +650,13 @@ host_capabilities:
 ### Infrastructure Services (Traefik, HashiVault)
 
 **Characteristics**:
+
 - Required by other services
 - Complex routing rules
 - Certificate management
 
 **Test Strategy**:
+
 ```yaml
 # roles/traefik/tasks/verify.yml
 ---

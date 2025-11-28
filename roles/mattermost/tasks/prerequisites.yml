@@ -13,12 +13,12 @@
 # Get container user mapping first
 - name: Get directory ownership
   ansible.builtin.stat:
-    path: "{{ mattermost_data_dir }}/config"
+    path: "{{mattermost_data_dir}}/config"
   register: dir_info
 
 - name: Debug ownership
   ansible.builtin.debug:
-    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+    msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
 
 # ==========================================================
 # These tasks require root
@@ -31,21 +31,21 @@
     # Create TLS directory structure if TLS is enabled
     - name: Create TLS directory
       ansible.builtin.file:
-        path: "{{ mattermost_data_dir }}/config/tls"
+        path: "{{mattermost_data_dir}}/config/tls"
         state: directory
         mode: "0750"
-        owner: "{{ dir_info.stat.uid }}"
-        group: "{{ dir_info.stat.gid }}"
+        owner: "{{dir_info.stat.uid}}"
+        group: "{{dir_info.stat.gid}}"
       when: mattermost_enable_tls | bool
 
     # ...................................................
     - name: Create Mattermost config
       ansible.builtin.template:
         src: config.json.j2
-        dest: "{{ mattermost_data_dir }}/config/config.json"
+        dest: "{{mattermost_data_dir}}/config/config.json"
         mode: "0666"
-        owner: "{{ dir_info.stat.uid }}"
-        group: "{{ dir_info.stat.gid }}"
+        owner: "{{dir_info.stat.uid}}"
+        group: "{{dir_info.stat.gid}}"
 
     # ...................................................
     - name: Configure SELinux for data directories
@@ -53,11 +53,11 @@
       block:
         - name: Set SELinux context for data directories
           ansible.builtin.sefcontext:
-            target: "{{ mattermost_data_dir }}(/.*)?"
+            target: "{{mattermost_data_dir}}(/.*)?"
             setype: container_file_t
             state: present
 
         - name: Apply SELinux context
-          ansible.builtin.command: restorecon -R -v "{{ mattermost_data_dir }}"
+          ansible.builtin.command: restorecon -R -v "{{mattermost_data_dir}}"
           register: restorecon_result
           changed_when: restorecon_result.rc == 0

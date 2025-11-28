@@ -31,9 +31,9 @@
 # ....................................................................................
 - name: Test Redis write
   command: >
-    podman exec redis-svc 
-    redis-cli -a {{ redis_password }}
-    SET {{ test_key }} "{{ test_value }}"
+    podman exec redis-svc
+    redis-cli -a {{redis_password}}
+    SET {{test_key}} "{{test_value}}"
   register: redis_write
   changed_when: false
   # no_log: true
@@ -46,8 +46,8 @@
 - name: Test Redis read
   command: >
     podman exec redis-svc
-    redis-cli -a {{ redis_password }}
-    GET {{ test_key }}
+    redis-cli -a {{redis_password}}
+    GET {{test_key}}
   register: redis_read
   changed_when: false
   no_log: true
@@ -60,7 +60,7 @@
 - name: Get Redis INFO
   command: >
     podman exec redis-svc
-    redis-cli -a {{ redis_password }}
+    redis-cli -a {{redis_password}}
     INFO
   register: redis_info
   changed_when: false
@@ -68,13 +68,13 @@
 
 - name: Show Redis version and memory info
   debug:
-    msg: "{{ redis_info.stdout_lines | select('match', '^(redis_version|used_memory_human|maxmemory_human)') | list }}"
+    msg: "{{redis_info.stdout_lines | select('match', '^(redis_version|used_memory_human|maxmemory_human)') | list}}"
 
 # ....................................................................................
 - name: Get Redis config
   command: >
     podman exec redis-svc
-    redis-cli -a {{ redis_password }}
+    redis-cli -a {{redis_password}}
     CONFIG GET *
   register: redis_config
   changed_when: false
@@ -82,14 +82,14 @@
 
 - name: Show important Redis config values
   debug:
-    msg: "{{ redis_config.stdout_lines | select('match', '^(maxmemory|maxmemory-policy|appendonly|dir)') | list }}"
+    msg: "{{redis_config.stdout_lines | select('match', '^(maxmemory|maxmemory-policy|appendonly|dir)') | list}}"
 
 # ....................................................................................
 # Cleanup test key
 - name: Remove test key
   command: >
     podman exec redis-svc
-    redis-cli -a {{ redis_password }}
-    DEL {{ test_key }}
+    redis-cli -a {{redis_password}}
+    DEL {{test_key}}
   changed_when: false
   no_log: true

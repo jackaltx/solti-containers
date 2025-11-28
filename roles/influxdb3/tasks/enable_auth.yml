@@ -44,7 +44,7 @@
 
 - name: Reload systemd after Quadlet update
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
     scope: user
 
 - name: Restart pod with auth enabled

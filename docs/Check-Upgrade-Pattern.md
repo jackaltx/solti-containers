@@ -32,10 +32,12 @@ The pattern is implemented in the **`_base` role** and inherited by all service 
 ### Architecture
 
 **Common implementation in `_base` role:**
+
 - `roles/_base/tasks/check_upgrade.yml` - Main orchestrator
 - `roles/_base/tasks/check_upgrade_container.yml` - Per-container checker
 
 **Service role wrapper:**
+
 - `roles/<service>/tasks/check_upgrade.yml` - Simple include of `_base` implementation
 
 ### File 1: `_base/tasks/check_upgrade.yml` - Main orchestrator
@@ -174,7 +176,7 @@ This preserves the service's variables (like `service_properties`) while using t
 
 ## Example Output
 
-### Mattermost with Updates Available (localhost):
+### Mattermost with Updates Available (localhost)
 
 ```
 TASK [mattermost : Display discovered containers]
@@ -198,7 +200,7 @@ ok: [firefly] => {
 }
 ```
 
-### Mattermost Up-to-Date (podma):
+### Mattermost Up-to-Date (podma)
 
 ```
 TASK [mattermost : Display discovered containers]
@@ -222,7 +224,7 @@ ok: [podma] => {
 }
 ```
 
-### Redis with Partial Update (localhost):
+### Redis with Partial Update (localhost)
 
 ```
 TASK [redis : Display discovered containers]
@@ -299,6 +301,7 @@ Each entry in the `container_checks` list contains:
 To add check_upgrade to another service:
 
 1. Copy the simple wrapper file:
+
    ```bash
    cp roles/mattermost/tasks/check_upgrade.yml roles/<service>/tasks/
    ```

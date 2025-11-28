@@ -34,12 +34,14 @@ This document details the phased approach to evolving the inventory system from 
 ### Deliverables
 
 **Documentation** (in `docs/inventory/`):
+
 - [x] `Inventory-System-Overview.md` - Current state
 - [x] `Inventory-Architecture-Goals.md` - Vision and goals
 - [x] `Migration-Phases.md` - This document
 - [ ] `Capability-Matrix.md` - Testing patterns
 
 **Code Changes**:
+
 - [ ] `manage-svc.sh` - Add `--yes` flag and safety prompts
 - [ ] `svc-exec.sh` - Add `--yes` flag and safety prompts
 - [ ] `ansible.cfg` - Change default to `inventory/localhost.yml`
@@ -62,6 +64,7 @@ This document details the phased approach to evolving the inventory system from 
    - Message: "⚠ Target: podma.a0a0.org - Deploy `<service>`? [y/N]"
 
 **Automation support**:
+
 ```bash
 # Skip all prompts
 ./manage-svc.sh --yes redis deploy
@@ -71,6 +74,7 @@ This document details the phased approach to evolving the inventory system from 
 ### Implementation Details
 
 **manage-svc.sh changes**:
+
 ```bash
 # Add flag parsing
 YES_FLAG=false
@@ -120,6 +124,7 @@ prompt_user() {
 | Verify operation | `./svc-exec.sh -i inventory/padma.yml redis verify` | No prompt (read-only) |
 
 **Validation**:
+
 - [ ] All test scenarios pass
 - [ ] Prompts display correct service and host
 - [ ] `--yes` flag bypasses all prompts
@@ -129,16 +134,19 @@ prompt_user() {
 ### Risks
 
 **Low risk** - All changes are additive:
+
 - Safety prompts are new functionality
 - `--yes` flag is new, doesn't change existing behavior
 - Default inventory change is isolated to `ansible.cfg`
 
 **Potential issues**:
+
 - Prompt logic might misidentify context (localhost vs remote)
 - `--yes` flag might conflict with existing flags
 - Changed default might surprise users expecting old behavior
 
 **Mitigation**:
+
 - Comprehensive test matrix
 - Clear documentation of new behavior
 - Preserve backward compatibility (root `inventory.yml` still works)
@@ -146,12 +154,14 @@ prompt_user() {
 ### Breakpoint
 
 **User Validation Required**:
+
 1. Review documentation for clarity and completeness
 2. Test safety prompts in all scenarios
 3. Confirm `--yes` flag works in automation contexts
 4. Verify default inventory change doesn't break workflows
 
 **Success Criteria**:
+
 - ✓ Documentation approved
 - ✓ Safety prompts work correctly
 - ✓ No regression in existing workflows
@@ -177,12 +187,14 @@ prompt_user() {
 ### Deliverables
 
 **Code Changes**:
+
 - Update `manage-svc.sh` to prefer `inventory/localhost.yml` when `-i` not specified
 - Update `svc-exec.sh` similarly
 - Add deprecation warning when root `inventory.yml` used explicitly
 - Update `ansible.cfg` if not done in Phase 1
 
 **Documentation**:
+
 - Update README with new inventory selection behavior
 - Add deprecation notice to root `inventory.yml` header
 - Update CLAUDE.md with new patterns
@@ -190,6 +202,7 @@ prompt_user() {
 ### Implementation Strategy
 
 **Graceful deprecation**:
+
 ```bash
 # In manage-svc.sh
 DEFAULT_INVENTORY="${ANSIBLE_DIR}/inventory/localhost.yml"
@@ -203,6 +216,7 @@ fi
 ```
 
 **Inventory file header**:
+
 ```yaml
 # inventory.yml
 # DEPRECATED: This file is maintained for backward compatibility only.
@@ -214,18 +228,21 @@ fi
 ### Testing Requirements
 
 **Backward compatibility tests**:
+
 - [ ] Root `inventory.yml` still works when explicitly specified
 - [ ] Environment variable `SOLTI_INVENTORY` still works
 - [ ] `-i` flag takes precedence over defaults
 - [ ] Deprecation warning displays appropriately
 
 **New default behavior tests**:
+
 - [ ] No `-i` flag uses `inventory/localhost.yml`
 - [ ] Scripts find inventory files correctly
 - [ ] Variable resolution works identically
 - [ ] All services deploy successfully
 
 **Regression testing**:
+
 - [ ] Deploy all services with new default
 - [ ] Verify all services with new default
 - [ ] Remove all services with new default
@@ -234,16 +251,19 @@ fi
 ### Risks
 
 **Medium risk** - Changes default behavior:
+
 - Users with automation might break if hardcoded to root inventory
 - Environment variables might override defaults unexpectedly
 - Script logic for inventory detection could have bugs
 
 **Potential issues**:
+
 - Deprecation warning might be too noisy
 - Users might not notice the change
 - Relative path handling differences
 
 **Mitigation**:
+
 - Clear documentation and announcement
 - Deprecation warning is informative, not blocking
 - Keep root inventory functional for entire phase
@@ -252,12 +272,14 @@ fi
 ### Breakpoint
 
 **User Validation Required**:
+
 1. Test all workflows with new default
 2. Verify automation scripts still work
 3. Confirm deprecation warnings are helpful
 4. Check for unexpected side effects
 
 **Success Criteria**:
+
 - ✓ New default works for all use cases
 - ✓ Backward compatibility maintained
 - ✓ No user-reported issues
@@ -285,6 +307,7 @@ fi
 ### Deliverables
 
 **Directory Structure**:
+
 ```
 inventory/
 ├── localhost.yml              # Slim: just host definition
@@ -304,6 +327,7 @@ inventory/
 **Transformed Files**:
 
 **Before** (`inventory/localhost.yml` - 382 lines):
+
 ```yaml
 all:
   vars:
@@ -327,6 +351,7 @@ all:
 ```
 
 **After** (`inventory/localhost.yml` - ~30 lines):
+
 ```yaml
 all:
   children:
@@ -348,6 +373,7 @@ all:
 **New Files**:
 
 `inventory/group_vars/all.yml`:
+
 ```yaml
 ---
 # Global configuration for all hosts and services
@@ -362,6 +388,7 @@ mylab_non_ssh: false
 ```
 
 `inventory/group_vars/redis_svc.yml`:
+
 ```yaml
 ---
 # Redis service defaults
@@ -373,6 +400,7 @@ redis_delete_data: false
 ```
 
 `inventory/host_vars/firefly.yml`:
+
 ```yaml
 ---
 # Localhost-specific configuration
@@ -393,28 +421,33 @@ host_capabilities:
 **Incremental extraction** (do NOT extract everything at once):
 
 **Step 1**: Extract 2-3 simple services as proof-of-concept
+
 - Choose: `redis`, `minio`, `traefik` (simple, well-tested)
 - Create `group_vars/` files
 - Create minimal `host_vars/` overrides
 - Test thoroughly
 
 **Step 2**: Validate variable precedence
+
 - Deploy services
 - Verify variables resolved correctly
 - Check for unexpected precedence issues
 - Document any gotchas
 
 **Step 3**: Extract remaining services
+
 - Batch of 3-4 services at a time
 - Test each batch before proceeding
 - Document any service-specific issues
 
 **Step 4**: Extract global and lab vars
+
 - Move `all:vars` to `group_vars/all.yml`
 - Move `mylab:vars` to `group_vars/mylab.yml`
 - Test all services still work
 
 **Step 5**: Slim down inventory files
+
 - Remove extracted vars from inventory YAML
 - Keep only host definitions and group membership
 - Final regression testing
@@ -422,6 +455,7 @@ host_capabilities:
 ### Variable Precedence Verification
 
 **Ansible's precedence order** (relevant levels):
+
 1. Extra vars (`-e` flag) - Highest
 2. **host_vars/** files
 3. Inventory host vars (inline under host)
@@ -433,6 +467,7 @@ host_capabilities:
 **Critical**: Moving vars from inline to files changes precedence!
 
 **Example issue**:
+
 ```yaml
 # Before (inline): group_vars has higher precedence than host inline vars
 elasticsearch_svc:
@@ -451,6 +486,7 @@ elasticsearch_port: 9201  # File host var - WINS (same precedence as before)
 ```
 
 **Testing**:
+
 - Verify each variable resolves to expected value
 - Use `ansible-inventory -i inventory/localhost.yml --host firefly --yaml` to inspect
 - Check for variables that changed unexpectedly
@@ -458,24 +494,28 @@ elasticsearch_port: 9201  # File host var - WINS (same precedence as before)
 ### Testing Requirements
 
 **Variable resolution tests**:
+
 - [ ] All variables resolve correctly after extraction
 - [ ] Host overrides still override group defaults
 - [ ] Global variables accessible in all contexts
 - [ ] No variable name collisions
 
 **Functional tests** (per service):
+
 - [ ] Prepare succeeds
 - [ ] Deploy succeeds
 - [ ] Verify succeeds
 - [ ] Remove succeeds
 
 **Regression testing** (all services):
+
 - [ ] Deploy all services on localhost
 - [ ] Verify all services
 - [ ] Deploy all services on remote (padma)
 - [ ] Verify all services on remote
 
 **Precedence validation**:
+
 ```bash
 # Inspect resolved variables
 ansible-inventory -i inventory/localhost.yml --host firefly --yaml > /tmp/firefly-vars.yml
@@ -487,18 +527,21 @@ diff /tmp/firefly-vars-before.yml /tmp/firefly-vars-after.yml
 ### Risks
 
 **Medium-High risk** - Complex change with many variables:
+
 - Variable precedence bugs could break deployments
 - Easy to miss a variable during extraction
 - Service interdependencies might break
 - Jinja2 template context changes might cause failures
 
 **Potential issues**:
+
 - Variables not found (missing extraction)
 - Variables resolve to wrong values (precedence issue)
 - Circular dependencies in variable references
 - Templates expecting variables in specific scopes
 
 **Mitigation**:
+
 - Extract in small batches (2-3 services at a time)
 - Test thoroughly between batches
 - Use `ansible-inventory` to verify resolution
@@ -508,12 +551,14 @@ diff /tmp/firefly-vars-before.yml /tmp/firefly-vars-after.yml
 ### Breakpoint
 
 **User Validation Required**:
+
 1. Deploy all services with new structure
 2. Verify variable resolution is correct
 3. Test on both localhost and remote
 4. Confirm no regressions
 
 **Success Criteria**:
+
 - ✓ All services deploy successfully
 - ✓ All variables resolve correctly
 - ✓ Inventory files simplified (<50 lines each)
@@ -521,6 +566,7 @@ diff /tmp/firefly-vars-before.yml /tmp/firefly-vars-after.yml
 - ✓ No functional regressions
 
 **Rollback Plan**:
+
 - Revert to Phase 2 state
 - Delete `group_vars/` and `host_vars/` directories
 - Restore inline variables in inventory files
@@ -546,12 +592,14 @@ diff /tmp/firefly-vars-before.yml /tmp/firefly-vars-after.yml
 ### Deliverables
 
 **Capability Definitions** (`docs/inventory/Capability-Matrix.md`):
+
 - Standard capability names
 - Capability descriptions
 - Required configuration per capability
 - Test selection logic
 
 **Host Configuration**:
+
 ```yaml
 # inventory/host_vars/firefly.yml
 host_capabilities:
@@ -562,6 +610,7 @@ host_capabilities:
 ```
 
 **Role Updates** (example: elasticsearch):
+
 ```yaml
 # roles/elasticsearch/tasks/verify.yml
 ---
@@ -577,6 +626,7 @@ host_capabilities:
 ```
 
 **New Verification Task Files**:
+
 - `roles/<service>/tasks/verify_direct.yml` - Direct port access tests
 - `roles/<service>/tasks/verify_external.yml` - Traefik proxy tests
 - `roles/<service>/tasks/verify_container.yml` - Container exec tests
@@ -584,21 +634,25 @@ host_capabilities:
 ### Implementation Strategy
 
 **Step 1**: Define capabilities and add to hosts
+
 - Document capability taxonomy
 - Add `host_capabilities` to `firefly` and `podma`
 - Test that variables are accessible in roles
 
 **Step 2**: Update 2-3 services as proof-of-concept
+
 - Choose: `redis` (simple), `elasticsearch` (medium), `mattermost` (complex)
 - Split verify tasks by capability
 - Test on both localhost and remote
 
 **Step 3**: Validate test selection logic
+
 - Ensure correct test strategy selected
 - Verify all test variants work
 - Check for missing capability combinations
 
 **Step 4**: Roll out to remaining services
+
 - Update verify tasks for all services
 - Test each service on both hosts
 - Document service-specific requirements
@@ -618,16 +672,19 @@ host_capabilities:
 ### Testing Requirements
 
 **Capability detection tests**:
+
 - [ ] Capabilities defined in host_vars
 - [ ] Roles can access `host_capabilities` variable
 - [ ] Default to safe fallback if capabilities undefined
 
 **Test strategy selection**:
+
 - [ ] Correct strategy chosen based on capabilities
 - [ ] All test variants execute successfully
 - [ ] Missing capabilities handled gracefully
 
 **Service-specific tests** (per service):
+
 - [ ] Direct access tests work on firefly
 - [ ] External access tests work on podma (if Traefik deployed)
 - [ ] Container exec fallback works everywhere
@@ -636,16 +693,19 @@ host_capabilities:
 ### Risks
 
 **Medium risk** - Adds complexity to verification:
+
 - Test selection logic could have bugs
 - Missing capability combinations might not be handled
 - Some services might not fit capability model
 
 **Potential issues**:
+
 - Verification tasks might not have all capability variants
 - Test strategy selection logic could be wrong
 - Services with unique verification needs might not fit pattern
 
 **Mitigation**:
+
 - Start with simple services
 - Test all capability combinations
 - Document service-specific exceptions
@@ -654,18 +714,21 @@ host_capabilities:
 ### Breakpoint
 
 **User Validation Required**:
+
 1. Verify capabilities defined correctly
 2. Test all services on localhost (direct access)
 3. Test all services on remote (external access if Traefik available)
 4. Confirm test selection logic works
 
 **Success Criteria**:
+
 - ✓ All services verify successfully on localhost
 - ✓ All services verify successfully on remote
 - ✓ Test strategy selection works correctly
 - ✓ Capability matrix documented
 
 **Rollback Plan**:
+
 - Remove capability-based test selection
 - Revert to single verify.yml per service
 - Keep capability definitions for future use
@@ -691,6 +754,7 @@ host_capabilities:
 ### Deliverables
 
 **External Repository** (`~/solti-secrets/` or separate git repo):
+
 ```
 solti-secrets/
 ├── inventory/
@@ -703,6 +767,7 @@ solti-secrets/
 ```
 
 **Public Repository Changes**:
+
 ```yaml
 # group_vars/redis_svc.yml (public repo)
 redis_password: "{{ vault_redis_password }}"  # Reference only
@@ -712,6 +777,7 @@ vault_redis_password: "actual_secret_here"
 ```
 
 **Usage Pattern**:
+
 ```bash
 # Ansible automatically merges group_vars from multiple inventory sources
 ansible-playbook -i inventory/localhost.yml \
@@ -726,26 +792,31 @@ export SOLTI_SECRETS_INVENTORY=~/solti-secrets/inventory
 ### Implementation Strategy
 
 **Step 1**: Create secrets repository structure
+
 - Set up directory layout
 - Document secrets management policy
 - Create example vault file
 
 **Step 2**: Extract secrets from 2-3 services
+
 - Move passwords to vault
 - Update references in public repo
 - Test multi-inventory merging
 
 **Step 3**: Implement ansible-vault encryption
+
 - Encrypt vault files
 - Test vault password prompting
 - Document vault key management
 
 **Step 4**: Extract remaining secrets
+
 - Batch extraction of all services
 - Verify no secrets remain in public repo
 - Audit git history for leaked secrets
 
 **Step 5**: Update management scripts
+
 - Add `SOLTI_SECRETS_INVENTORY` support
 - Implement multi-inventory merging
 - Update documentation
@@ -753,6 +824,7 @@ export SOLTI_SECRETS_INVENTORY=~/solti-secrets/inventory
 ### Ansible Vault Integration
 
 **Encrypt secrets**:
+
 ```bash
 # Create vault password file (DO NOT COMMIT)
 echo "your_vault_password" > ~/.ansible_vault_pass
@@ -763,6 +835,7 @@ ansible-vault encrypt solti-secrets/inventory/group_vars/vault.yml \
 ```
 
 **Usage**:
+
 ```bash
 # Ansible uses vault password automatically
 export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass
@@ -778,24 +851,28 @@ ansible-playbook -i inventory/localhost.yml \
 ### Testing Requirements
 
 **Secrets extraction tests**:
+
 - [ ] All secrets moved to external repository
 - [ ] Public repository contains zero secrets
 - [ ] Git history audited for leaked secrets
 - [ ] References to vault variables work correctly
 
 **Multi-inventory tests**:
+
 - [ ] Ansible merges inventories correctly
 - [ ] Variables from secrets repo override public repo
 - [ ] No variable resolution issues
 - [ ] All services deploy successfully
 
 **Vault encryption tests**:
+
 - [ ] Vault files encrypted properly
 - [ ] Vault password prompting works
 - [ ] Ansible decrypts vault files automatically
 - [ ] Invalid vault password handled gracefully
 
 **Security tests**:
+
 - [ ] Secrets repository access controlled (private git repo or local only)
 - [ ] Vault password not committed to git
 - [ ] Decrypted secrets not written to logs
@@ -804,18 +881,21 @@ ansible-playbook -i inventory/localhost.yml \
 ### Risks
 
 **High risk** - Security-critical change:
+
 - Secrets might be leaked during transition
 - Vault encryption might fail
 - Multi-inventory merging could break
 - Git history might contain secrets
 
 **Potential issues**:
+
 - Forgotten secrets still in public repo
 - Vault password management complexity
 - Inventory merging precedence issues
 - Secrets logged during debugging
 
 **Mitigation**:
+
 - Careful audit of all secret locations
 - Use `git-secrets` or similar tools
 - Test vault encryption thoroughly
@@ -825,12 +905,14 @@ ansible-playbook -i inventory/localhost.yml \
 ### Breakpoint
 
 **User Validation Required**:
+
 1. Audit public repository for secrets
 2. Test multi-inventory merging
 3. Verify vault encryption/decryption
 4. Confirm all services work with external secrets
 
 **Success Criteria**:
+
 - ✓ Public repository contains zero secrets
 - ✓ All secrets in external repository (encrypted)
 - ✓ Multi-inventory merging works correctly
@@ -838,6 +920,7 @@ ansible-playbook -i inventory/localhost.yml \
 - ✓ Secrets management documented
 
 **Rollback Plan**:
+
 - Move secrets back to public repository
 - Remove vault encryption
 - Revert to single inventory structure
@@ -852,12 +935,14 @@ ansible-playbook -i inventory/localhost.yml \
 ### Testing Strategy
 
 **Per-phase testing**:
+
 - Unit tests (variable resolution, script logic)
 - Integration tests (deploy single service)
 - Regression tests (deploy all services)
 - User acceptance tests (validate with real workflows)
 
 **Continuous testing**:
+
 - Every commit should be deployable
 - Checkpoint commits before major changes
 - Keep test environment stable throughout
@@ -865,12 +950,14 @@ ansible-playbook -i inventory/localhost.yml \
 ### Documentation Updates
 
 **Per-phase documentation**:
+
 - Update README.md with changes
 - Update CLAUDE.md with new patterns
 - Update relevant docs/ files
 - Add migration notes to changelog
 
 **User communication**:
+
 - Announce phase start and objectives
 - Document breaking changes clearly
 - Provide migration examples
@@ -879,12 +966,14 @@ ansible-playbook -i inventory/localhost.yml \
 ### Rollback Strategy
 
 **Each phase boundary enables rollback**:
+
 - Checkpoint commits before phase start
 - Document rollback procedure
 - Test rollback process
 - Preserve old files during transition
 
 **Rollback triggers**:
+
 - Critical bugs discovered
 - User workflows broken
 - Performance degradation
@@ -893,6 +982,7 @@ ansible-playbook -i inventory/localhost.yml \
 ### Success Metrics
 
 **Phase success indicators**:
+
 - All tests pass
 - No user-reported issues
 - Documentation complete
@@ -900,6 +990,7 @@ ansible-playbook -i inventory/localhost.yml \
 - Security maintained or improved
 
 **Overall migration success**:
+
 - Inventory files reduced to <50 lines
 - Service configuration centralized
 - Duplication eliminated

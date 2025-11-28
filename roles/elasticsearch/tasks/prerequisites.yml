@@ -15,12 +15,12 @@
 # Get container user mapping first
 - name: Get directory ownership
   ansible.builtin.stat:
-    path: "{{ elasticsearch_data_dir }}/config"
+    path: "{{elasticsearch_data_dir}}/config"
   register: dir_info
 
 - name: Debug ownership
   ansible.builtin.debug:
-    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+    msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
 
 # .......................................................................
 - name: Become root and change setting files
@@ -29,28 +29,28 @@
     - name: Template elasticsearch.yml config
       ansible.builtin.template:
         src: elasticsearch.yml.j2
-        dest: "{{ elasticsearch_data_dir }}/config/elasticsearch.yml"
+        dest: "{{elasticsearch_data_dir}}/config/elasticsearch.yml"
         mode: "0644"
-        owner: "{{ dir_info.stat.uid }}"
-        group: "{{ dir_info.stat.gid }}"
+        owner: "{{dir_info.stat.uid}}"
+        group: "{{dir_info.stat.gid}}"
       notify: restart elasticsearch
 
     - name: Template log4j2.properties file
       ansible.builtin.template:
         src: log4j2.properties.j2
-        dest: "{{ elasticsearch_data_dir }}/config/log4j2.properties"
+        dest: "{{elasticsearch_data_dir}}/config/log4j2.properties"
         mode: "0644"
-        owner: "{{ dir_info.stat.uid }}"
-        group: "{{ dir_info.stat.gid }}"
+        owner: "{{dir_info.stat.uid}}"
+        group: "{{dir_info.stat.gid}}"
       notify: restart elasticsearch
 
     - name: Template jvm.options file
       ansible.builtin.template:
         src: jvm.options.j2
-        dest: "{{ elasticsearch_data_dir }}/config/jvm.options"
+        dest: "{{elasticsearch_data_dir}}/config/jvm.options"
         mode: "0644"
-        owner: "{{ dir_info.stat.uid }}"
-        group: "{{ dir_info.stat.gid }}"
+        owner: "{{dir_info.stat.uid}}"
+        group: "{{dir_info.stat.gid}}"
       notify: restart elasticsearch
 
     # .....................................................................................
@@ -59,11 +59,11 @@
       block:
         - name: Set SELinux context for data directories
           ansible.builtin.sefcontext:
-            target: "{{ elasticsearch_data_dir }}(/.*)?"
+            target: "{{elasticsearch_data_dir}}(/.*)?"
             setype: container_file_t
             state: present
 
         - name: Apply SELinux context
-          ansible.builtin.command: restorecon -R -v "{{ elasticsearch_data_dir }}"
+          ansible.builtin.command: restorecon -R -v "{{elasticsearch_data_dir}}"
           register: restorecon_result
           changed_when: restorecon_result.rc == 0

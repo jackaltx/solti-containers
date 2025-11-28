@@ -2,29 +2,29 @@
 - name: Check TLS certificate and key paths
   ansible.builtin.fail:
     msg: "Both certificate and key files must be provided when TLS is enabled"
-  when: 
+  when:
     - elasticsearch_enable_tls | bool
     - (not elasticsearch_tls_cert_file or not elasticsearch_tls_key_file)
 
 - name: Create TLS directory
   ansible.builtin.file:
-    path: "{{ elasticsearch_data_dir }}/config/tls"
+    path: "{{elasticsearch_data_dir}}/config/tls"
     state: directory
     mode: "0750"
   when: elasticsearch_enable_tls | bool
 
 - name: Copy TLS certificate
   ansible.builtin.copy:
-    src: "{{ elasticsearch_tls_cert_file }}"
-    dest: "{{ elasticsearch_data_dir }}/config/tls/{{ elasticsearch_tls_cert_file | basename }}"
+    src: "{{elasticsearch_tls_cert_file}}"
+    dest: "{{elasticsearch_data_dir}}/config/tls/{{elasticsearch_tls_cert_file | basename}}"
     mode: '0644'
   when: elasticsearch_enable_tls | bool
   notify: restart elasticsearch
 
 - name: Copy TLS private key
   ansible.builtin.copy:
-    src: "{{ elasticsearch_tls_key_file }}"
-    dest: "{{ elasticsearch_data_dir }}/config/tls/{{ elasticsearch_tls_key_file | basename }}"
+    src: "{{elasticsearch_tls_key_file}}"
+    dest: "{{elasticsearch_data_dir}}/config/tls/{{elasticsearch_tls_key_file | basename}}"
     mode: '0600'
   when: elasticsearch_enable_tls | bool
   notify: restart elasticsearch

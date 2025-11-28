@@ -6,7 +6,7 @@
 - name: Ensure required directories exist
   become: false
   ansible.builtin.file:
-    path: "{{ real_user_dir }}/{{ item }}"
+    path: "{{real_user_dir}}/{{item}}"
     state: directory
     mode: "0750"
   loop:
@@ -19,7 +19,7 @@
   become: false
   ansible.builtin.template:
     src: elasticsearch.env.j2
-    dest: "{{ real_user_dir }}/.config/containers/systemd/env/elasticsearch.env"
+    dest: "{{real_user_dir}}/.config/containers/systemd/env/elasticsearch.env"
     mode: "0600"
 
 # ....................................................................................
@@ -28,13 +28,13 @@
   containers.podman.podman_pod:
     name: elasticsearch
     state: quadlet
-    dns: "{{ service_dns_servers }}"
-    dns_search: "{{ service_dns_search }}"
-    network: "{{ service_network }}"
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    dns: "{{service_dns_servers}}"
+    dns_search: "{{service_dns_search}}"
+    network: "{{service_network}}"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     ports:
-      - "127.0.0.1:{{ elasticsearch_port }}:9200"
-      - "127.0.0.1:{{ elasticsearch_gui_port }}:8080"
+      - "127.0.0.1:{{elasticsearch_port}}:9200"
+      - "127.0.0.1:{{elasticsearch_gui_port}}:8080"
     quadlet_options:
       - |
         [Service]
@@ -56,31 +56,31 @@
   containers.podman.podman_container:
     name: elasticsearch-svc
     pod: elasticsearch.pod
-    image: "{{ elasticsearch_image }}"
+    image: "{{elasticsearch_image}}"
     state: quadlet
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     volume:
-      - "{{ elasticsearch_data_dir }}/config:/usr/share/elasticsearch/config:Z,U"
-      - "{{ elasticsearch_data_dir }}/data:/usr/share/elasticsearch/data:Z,U"
-      - "{{ elasticsearch_data_dir }}/logs:/usr/share/elasticsearch/logs:Z,U"
+      - "{{elasticsearch_data_dir}}/config:/usr/share/elasticsearch/config:Z,U"
+      - "{{elasticsearch_data_dir}}/data:/usr/share/elasticsearch/data:Z,U"
+      - "{{elasticsearch_data_dir}}/logs:/usr/share/elasticsearch/logs:Z,U"
     env:
-      # ES_JAVA_OPTS: "-Xms{{ elasticsearch_memory }} -Xmx{{ elasticsearch_memory }} -Djava.security.manager=allow -Djava.locale.providers=SPI,JRE -Des.logs.base_path=/usr/share/elasticsearch/logs -Des.logs.cluster_name=docker-cluster"
-      discovery.type: "{{ elasticsearch_discovery_type }}"
-      ELASTIC_PASSWORD: "{{ elasticsearch_password }}"
-      xpack.security.enabled: "{{ elasticsearch_enable_security | string }}"
+      # ES_JAVA_OPTS: "-Xms{{elasticsearch_memory}} -Xmx{{elasticsearch_memory}} -Djava.security.manager=allow -Djava.locale.providers=SPI,JRE -Des.logs.base_path=/usr/share/elasticsearch/logs -Des.logs.cluster_name=docker-cluster"
+      discovery.type: "{{elasticsearch_discovery_type}}"
+      ELASTIC_PASSWORD: "{{elasticsearch_password}}"
+      xpack.security.enabled: "{{elasticsearch_enable_security | string}}"
       bootstrap.memory_lock: "true"
     label:
-      traefik.enable: "{{ elasticsearch_enable_traefik | lower }}"
-      traefik.http.routers.elasticsearch0.rule: "Host(`{{ elasticsearch_fqdn }}`)"
+      traefik.enable: "{{elasticsearch_enable_traefik | lower}}"
+      traefik.http.routers.elasticsearch0.rule: "Host(`{{elasticsearch_fqdn}}`)"
       traefik.http.routers.elasticsearch0.entrypoints: "websecure"
       traefik.http.routers.elasticsearch0.service: "elasticsearch0"
       traefik.http.services.elasticsearch0.loadbalancer.server.port: "9200"
       traefik.http.routers.elasticsearch0.middlewares: "secHeaders@file"
-      traefik.http.routers.elasticsearch1.rule: "Host(`{{ elasticsearch_fqdn_short }}`)"
+      traefik.http.routers.elasticsearch1.rule: "Host(`{{elasticsearch_fqdn_short}}`)"
       traefik.http.routers.elasticsearch1.entrypoints: "websecure"
       traefik.http.routers.elasticsearch1.service: "elasticsearch0"
     quadlet_options:
-      - "EnvironmentFile={{ real_user_dir }}/.config/containers/systemd/env/elasticsearch.env"
+      - "EnvironmentFile={{real_user_dir}}/.config/containers/systemd/env/elasticsearch.env"
       - "Ulimit=memlock=-1:-1"
       - "Ulimit=nofile=65535:65535"
       - |
@@ -104,9 +104,9 @@
   containers.podman.podman_container:
     name: elasticsearch-gui
     pod: elasticsearch.pod
-    image: "{{ elasticsearch_elasticvue_image }}"
+    image: "{{elasticsearch_elasticvue_image}}"
     state: quadlet
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     quadlet_options:
       - |
         [Unit]
@@ -130,7 +130,7 @@
 # .......................................................................................
 - name: reload systemd user daemon
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
   become: false
   changed_when: false
@@ -138,7 +138,7 @@
 # .......................................................................................
 - name: Start rootless pod with systemd
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
-    systemctl --user start {{ service_properties.name }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
+    systemctl --user start {{service_properties.name}}
   become: false
   changed_when: true

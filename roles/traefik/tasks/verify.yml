@@ -22,9 +22,9 @@
 - name: Check Traefik API health
   uri:
     url: "http://127.0.0.1:{{ traefik_dashboard_port }}/api/rawdata"
-    return_content: yes
+    return_content: true
   register: health_check
-  ignore_errors: yes
+  ignore_errors: true
 
 - name: Show health check result
   debug:

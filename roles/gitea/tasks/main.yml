@@ -6,7 +6,7 @@
   ansible.builtin.fail:
     msg: >-
       gitea_state must be one of: prepare, present, absent.
-      Current value: {{ gitea_state }}
+      Current value: {{gitea_state}}
   when: gitea_state not in ['prepare', 'present', 'absent']
 
 - name: Test become capability
@@ -17,9 +17,9 @@
 # Get real user info using environment variables (immune to become)
 - name: Get real user info from environment
   set_fact:
-    real_user: "{{ lookup('env', 'USER') }}"
-    real_user_dir: "{{ lookup('env', 'HOME') }}"
-    real_user_uid: "{{ lookup('pipe', 'id -u') }}"
+    real_user: "{{lookup('env', 'USER')}}"
+    real_user_dir: "{{lookup('env', 'HOME')}}"
+    real_user_uid: "{{lookup('pipe', 'id -u')}}"
 
 # =======================================================================
 # PREPARATION (one-time setup)
@@ -30,7 +30,7 @@
   block:
     - name: Check if gitea has been prepared
       ansible.builtin.stat:
-        path: "{{ gitea_data_dir }}/.prepared"
+        path: "{{gitea_data_dir}}/.prepared"
       register: gitea_prepared
 
     - name: Run preparation tasks
@@ -43,11 +43,11 @@
         - name: Mark gitea as prepared
           become: false
           ansible.builtin.file:
-            path: "{{ gitea_data_dir }}/.prepared"
+            path: "{{gitea_data_dir}}/.prepared"
             state: touch
             mode: "0644"
-            owner: "{{ real_user }}"
-            group: "{{ real_user }}"
+            owner: "{{real_user}}"
+            group: "{{real_user}}"
 
 # =======================================================================
 # DEPLOYMENT (present state)
@@ -72,7 +72,7 @@
 
     - name: Verify required directories exist
       ansible.builtin.stat:
-        path: "{{ gitea_data_dir }}/{{ service_properties.config_dir }}"
+        path: "{{gitea_data_dir}}/{{service_properties.config_dir}}"
       register: config_dir_check
       failed_when: not config_dir_check.stat.exists
       changed_when: false
@@ -80,7 +80,7 @@
     - name: Wait for gitea to be ready
       ansible.builtin.wait_for:
         host: 127.0.0.1
-        port: "{{ gitea_port }}"
+        port: "{{gitea_port}}"
         timeout: 120
 
     - name: Initialize gitea with admin user

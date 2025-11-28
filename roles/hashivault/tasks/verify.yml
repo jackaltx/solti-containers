@@ -29,7 +29,7 @@
   uri:
     url: "http://localhost:{{ vault_api_port }}/v1/sys/seal-status"
     method: GET
-    return_content: yes
+    return_content: true
   register: seal_status
   changed_when: false
   failed_when: false
@@ -53,7 +53,7 @@
   uri:
     url: "http://localhost:{{ vault_api_port }}/v1/sys/health"
     method: GET
-    return_content: yes
+    return_content: true
     status_code: [200, 429, 473, 501, 503]  # All valid Vault health responses
   register: health_status
   changed_when: false

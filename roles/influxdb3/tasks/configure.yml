@@ -8,7 +8,7 @@
 # Load admin token
 - name: Check if admin token exists
   ansible.builtin.stat:
-    path: "{{ influxdb3_secrets_dir }}/admin-token.json"
+    path: "{{influxdb3_secrets_dir}}/admin-token.json"
   register: admin_token_file
 
 - name: Fail if admin token doesn't exist
@@ -18,12 +18,12 @@
 
 - name: Load admin token
   ansible.builtin.slurp:
-    src: "{{ influxdb3_secrets_dir }}/admin-token.json"
+    src: "{{influxdb3_secrets_dir}}/admin-token.json"
   register: encoded_token
 
 - name: Parse admin token
   ansible.builtin.set_fact:
-    admin_token: "{{ (encoded_token.content | b64decode | from_json).token }}"
+    admin_token: "{{(encoded_token.content | b64decode | from_json).token}}"
   # no_log: true
 
 # ..............................................
@@ -33,7 +33,7 @@
   ansible.builtin.command:
     cmd: >
       podman exec
-      -e INFLUXDB3_AUTH_TOKEN={{ admin_token }}
+      -e INFLUXDB3_AUTH_TOKEN={{admin_token}}
       influxdb3-svc influxdb3 query "SHOW DATABASES"
   register: db_list
   changed_when: false
@@ -47,9 +47,9 @@
   ansible.builtin.command:
     cmd: >
       podman exec
-      -e INFLUXDB3_AUTH_TOKEN={{ admin_token }}
-      influxdb3-svc influxdb3 create database {{ item.name }}
-  loop: "{{ influxdb3_databases | default([]) }}"
+      -e INFLUXDB3_AUTH_TOKEN={{admin_token}}
+      influxdb3-svc influxdb3 create database {{item.name}}
+  loop: "{{influxdb3_databases | default([])}}"
   when: item.name not in (db_list.stdout | default(''))
   register: db_create
   changed_when: db_create.rc == 0
@@ -64,12 +64,12 @@
   ansible.builtin.command:
     cmd: >
       podman exec
-      -e INFLUXDB3_AUTH_TOKEN={{ admin_token }}
+      -e INFLUXDB3_AUTH_TOKEN={{admin_token}}
       influxdb3-svc influxdb3 create token
-      --description {{ item.description }}
-      --permission {{ item.permissions }}
+      --description {{item.description}}
+      --permission {{item.permissions}}
       --format json
-  loop: "{{ influxdb3_tokens | default([]) }}"
+  loop: "{{influxdb3_tokens | default([])}}"
   register: token_results
   # no_log: true
   changed_when: token_results.rc == 0
@@ -83,18 +83,18 @@
   ansible.builtin.copy:
     content: |
       # InfluxDB 3 Core Tokens
-      # Generated: {{ ansible_facts.date_time.iso8601 }}
-      # Host: {{ ansible_hostname }}
+      # Generated: {{ansible_facts.date_time.iso8601}}
+      # Host: {{ansible_hostname}}
 
       {% for result in token_results.results %}
       {% if result.stdout is defined and result.stdout != '' %}
       {% set token_data = result.stdout | from_json %}
-      - description: {{ token_data.description }}
-        token: {{ token_data.token }}
-        permissions: {{ influxdb3_tokens[loop.index0].permissions }}
+      - description: {{token_data.description}}
+        token: {{token_data.token}}
+        permissions: {{influxdb3_tokens[loop.index0].permissions}}
       {% endif %}
       {% endfor %}
-    dest: "./data/influxdb3-tokens-{{ ansible_hostname }}.yml"
+    dest: "./data/influxdb3-tokens-{{ansible_hostname}}.yml"
     mode: "0600"
   delegate_to: localhost
   when: token_results.results | length > 0
@@ -105,7 +105,7 @@
     msg:
       - "=============================================================="
       - "InfluxDB3 configuration complete!"
-      - "Databases created: {{ influxdb3_databases | default([]) | length }}"
-      - "Tokens created: {{ influxdb3_tokens | default([]) | length }}"
-      - "Tokens saved to: ./data/influxdb3-tokens-{{ ansible_hostname }}.yml"
+      - "Databases created: {{influxdb3_databases | default([]) | length}}"
+      - "Tokens created: {{influxdb3_tokens | default([]) | length}}"
+      - "Tokens saved to: ./data/influxdb3-tokens-{{ansible_hostname}}.yml"
       - "=============================================================="

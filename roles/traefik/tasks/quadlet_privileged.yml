@@ -2,7 +2,7 @@
 # .............................................................................
 - name: Ensure required directories exist
   ansible.builtin.file:
-    path: "{{ real_user_dir }}/{{ item }}"
+    path: "{{real_user_dir}}/{{item}}"
     state: directory
     mode: "0750"
   loop:
@@ -27,9 +27,8 @@
   ansible.builtin.systemd:
     name: podman.socket
     state: started
-    enabled: yes
-    daemon_reload: yes
-
+    enabled: true
+    daemon_reload: true
 - name: Check root Podman socket exists
   become: true
   ansible.builtin.stat:
@@ -55,15 +54,15 @@
   containers.podman.podman_pod:
     name: traefik
     state: quadlet
-    dns: "{{ service_dns_servers }}"
-    dns_search: "{{ service_dns_search }}"
-    network: "{{ service_network }}"
-    quadlet_dir: "{{ traefik_dns_servers | join(',') }}"
+    dns: "{{service_dns_servers}}"
+    dns_search: "{{service_dns_search}}"
+    network: "{{service_network}}"
+    quadlet_dir: "{{traefik_dns_servers | join(',')}}"
     userns: "keep-id"
     ports:
-      - "0.0.0.0:{{ traefik_http_port }}:80"
-      - "0.0.0.0:{{ traefik_https_port }}:443"
-      - "127.0.0.1:{{ traefik_dashboard_port }}:8080"
+      - "0.0.0.0:{{traefik_http_port}}:80"
+      - "0.0.0.0:{{traefik_https_port}}:443"
+      - "127.0.0.1:{{traefik_dashboard_port}}:8080"
     quadlet_options:
       - |
         [Service]
@@ -78,16 +77,16 @@
   containers.podman.podman_container:
     name: traefik-svc
     pod: traefik.pod
-    image: "{{ traefik_image }}"
+    image: "{{traefik_image}}"
     state: quadlet
     quadlet_dir: "/etc/containers/systemd"
     volume:
-      - "{{ traefik_data_dir }}/config:/etc/traefik:Z,ro"
-      - "{{ traefik_data_dir }}/acme:/etc/traefik/acme:Z"
-      - "{{ traefik_data_dir }}/logs:/logs:Z"
+      - "{{traefik_data_dir}}/config:/etc/traefik:Z,ro"
+      - "{{traefik_data_dir}}/acme:/etc/traefik/acme:Z"
+      - "{{traefik_data_dir}}/logs:/logs:Z"
       - "/run/podman/podman.sock:/var/run/docker.sock:ro"
     env:
-      LINODE_TOKEN: "{{ lookup('env', 'LINODE_TOKEN') }}"
+      LINODE_TOKEN: "{{lookup('env', 'LINODE_TOKEN')}}"
     quadlet_options:
       - |
         [Unit]
@@ -109,12 +108,11 @@
 - name: Reload systemd daemon
   become: true
   ansible.builtin.systemd:
-    daemon_reload: yes
-
+    daemon_reload: true
 # .............................................................................
 - name: Enable and start pod with systemd
   become: true
   ansible.builtin.systemd:
     name: traefik-pod
     state: started
-    enabled: yes
+    enabled: true

@@ -14,12 +14,12 @@
 - name: Get directory ownership
   become: true
   ansible.builtin.stat:
-    path: "{{ vault_data_dir }}/config"
+    path: "{{vault_data_dir}}/config"
   register: dir_info
 
 - name: Debug ownership
   ansible.builtin.debug:
-    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+    msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
 
 # .......................................................................
 # NOTE: this is only for configuration setting files.
@@ -31,10 +31,10 @@
     - name: Template Vault configuration
       template:
         src: vault.hcl.j2
-        dest: "{{ vault_data_dir }}/config/vault.hcl"
+        dest: "{{vault_data_dir}}/config/vault.hcl"
         mode: "0640"
-        owner: "{{ dir_info.stat.uid }}"
-        group: "{{ dir_info.stat.gid }}"
+        owner: "{{dir_info.stat.uid}}"
+        group: "{{dir_info.stat.gid}}"
       notify: restart vault
 
     # .......................................................................
@@ -43,11 +43,11 @@
       block:
         - name: Set SELinux context for Redis directories
           ansible.builtin.sefcontext:
-            target: "{{ vault_data_dir }}(/.*)?"
+            target: "{{vault_data_dir}}(/.*)?"
             setype: container_file_t
             state: present
 
         - name: Apply SELinux context
-          ansible.builtin.command: restorecon -R -v "{{ vault_data_dir }}"
+          ansible.builtin.command: restorecon -R -v "{{vault_data_dir}}"
           register: restorecon_result
           changed_when: restorecon_result.rc == 0

@@ -15,10 +15,12 @@ This document describes the current inventory system in solti-containers: how in
 **Purpose**: Multi-host orchestration for development workflows
 
 **Hosts Defined**:
+
 - `firefly` - localhost (ansible_connection: local)
 - `podma` - remote test host (podma.a0a0.org)
 
 **Key Characteristics**:
+
 - Service instances differentiated by `<service>_svc_name` suffixes
   - `firefly`: Base names (e.g., `elasticsearch`)
   - `podma`: Test suffix (e.g., `elasticsearch-test`)
@@ -27,6 +29,7 @@ This document describes the current inventory system in solti-containers: how in
 - Focus: Multi-host deployment from single command
 
 **Use Case**:
+
 ```bash
 ./manage-svc.sh redis deploy           # Deploys to both firefly and podma
 ./manage-svc.sh -h firefly redis deploy  # Targets only firefly
@@ -35,6 +38,7 @@ This document describes the current inventory system in solti-containers: how in
 ### Directory Inventories (Current Standard)
 
 **Files**:
+
 - `inventory/localhost.yml` (382 lines) - firefly only
 - `inventory/padma.yml` (384 lines) - podma only
 
@@ -44,6 +48,7 @@ This document describes the current inventory system in solti-containers: how in
 **Purpose**: Single-host targeting with host-specific configuration
 
 **Key Characteristics**:
+
 - One host per file
 - Service names use base names (no suffixes)
 - Explicit data directory paths (`<service>_data_dir`)
@@ -52,6 +57,7 @@ This document describes the current inventory system in solti-containers: how in
 - Focus: Host-local operations and isolated deployments
 
 **Use Cases**:
+
 ```bash
 # Localhost operations
 ./manage-svc.sh -i inventory/localhost.yml redis deploy
@@ -130,12 +136,14 @@ all:
 Both `manage-svc.sh` and `svc-exec.sh` support flexible inventory selection:
 
 **Default Behavior**:
+
 ```bash
 # Uses ansible.cfg default (currently ./inventory.yml)
 ./manage-svc.sh redis deploy
 ```
 
 **Explicit Inventory Selection**:
+
 ```bash
 # Via -i flag (highest priority)
 ./manage-svc.sh -i inventory/localhost.yml redis deploy
@@ -146,6 +154,7 @@ export SOLTI_INVENTORY=inventory/localhost.yml
 ```
 
 **Host Targeting**:
+
 ```bash
 # Target specific host within inventory
 ./manage-svc.sh -h firefly redis deploy
@@ -153,6 +162,7 @@ export SOLTI_INVENTORY=inventory/localhost.yml
 ```
 
 **Implementation** (manage-svc.sh:18):
+
 ```bash
 INVENTORY="${SOLTI_INVENTORY:-${ANSIBLE_DIR}/inventory.yml}"
 
@@ -181,6 +191,7 @@ Scripts generate temporary playbooks dynamically:
 ```
 
 **Key Points**:
+
 - Playbooks target service groups (`<service>_svc`) by default
 - Host targeting via `-h` overrides group targeting
 - Ansible resolves all variables from inventory automatically
@@ -218,6 +229,7 @@ elasticsearch_data_dir: "~/elasticsearch-data"
 ```
 
 **Resulting Context**:
+
 ```yaml
 domain: "a0a0.org"                    # from all:vars
 service_network: "ct-net"             # from all:vars
@@ -293,11 +305,13 @@ service_dns_search: "{{ domain }}"
 **Problem**: Three inventory files with ~95% overlap (1169 total lines)
 
 **Impact**:
+
 - Service configuration changes require updates in 3 places
 - Risk of inconsistency and drift
 - Maintenance burden scales with number of services
 
 **Example**: Adding `minio` service requires:
+
 - 30 lines in `inventory.yml`
 - 30 lines in `inventory/localhost.yml`
 - 30 lines in `inventory/padma.yml`
@@ -308,11 +322,13 @@ service_dns_search: "{{ domain }}"
 **Problem**: Different inventories focus on different aspects
 
 **Root inventory.yml**:
+
 - External routing (`<service>_external_port`)
 - Service name differentiation (`-test` suffix)
 - Multi-host coordination
 
 **Directory inventories**:
+
 - Data directory paths (`<service>_data_dir`)
 - Proxy URLs (`<service>_proxy`)
 - Domain URLs (`<service>_domain`)
@@ -324,6 +340,7 @@ service_dns_search: "{{ domain }}"
 **Problem**: `ansible.cfg` defaults to `./inventory.yml` but documentation recommends `inventory/localhost.yml`
 
 **Impact**:
+
 - Users might accidentally deploy to both hosts
 - Inconsistent behavior between documented and actual defaults
 
@@ -332,6 +349,7 @@ service_dns_search: "{{ domain }}"
 **Problem**: Easy to deploy to wrong host without confirmation
 
 **Impact**:
+
 - Risk of accidentally deploying to remote hosts
 - No "are you sure" prompts for destructive operations
 - Automation and interactive use have same behavior
@@ -341,16 +359,19 @@ service_dns_search: "{{ domain }}"
 ### Choosing the Right Inventory
 
 **Use `inventory/localhost.yml` when**:
+
 - Developing/testing services locally
 - Working on a single host
 - Want isolated, predictable deployments
 
 **Use `inventory/padma.yml` when**:
+
 - Testing on remote infrastructure
 - Validating service behavior on different host
 - Running CI/CD tests
 
 **Use root `inventory.yml` when** (deprecated):
+
 - Need to deploy to multiple hosts simultaneously
 - Orchestrating multi-host workflows
 - (Recommend using separate inventory files with orchestration tooling instead)
@@ -358,17 +379,20 @@ service_dns_search: "{{ domain }}"
 ### Variable Organization
 
 **Global variables** (rare changes):
+
 - Network configuration (`service_network`, DNS settings)
 - Authentication (`ansible_user`, SSH keys)
 - Domain/lab settings
 
 **Service variables** (frequent changes):
+
 - Passwords and secrets
 - Port assignments
 - Feature flags
 - Test data
 
 **Host variables** (host-specific):
+
 - Service names (for disambiguation)
 - Data directory paths
 - Connection settings
@@ -382,6 +406,7 @@ mylab_nolog: "{{ cluster_secure_log | bool | default(true) }}"
 ```
 
 **Usage in roles**:
+
 ```yaml
 - name: Task with sensitive data
   debug:
@@ -390,6 +415,7 @@ mylab_nolog: "{{ cluster_secure_log | bool | default(true) }}"
 ```
 
 **Override for debugging**:
+
 ```bash
 export MOLECULE_SECURE_LOGGING=false
 ./manage-svc.sh redis deploy
@@ -436,6 +462,7 @@ export SOLTI_INVENTORY=inventory/localhost.yml
 ### Service Group Naming
 
 All service groups follow the pattern `<service>_svc`:
+
 - `redis_svc`
 - `elasticsearch_svc`
 - `mattermost_svc`
@@ -445,6 +472,7 @@ All service groups follow the pattern `<service>_svc`:
 ### Variable Lookup Order
 
 For any variable, Ansible checks in this order:
+
 1. Command line `-e` vars
 2. Host-level vars (under host in inventory)
 3. Group-level vars (under group in inventory)

@@ -6,6 +6,7 @@
 ## What We Completed
 
 ### ✅ Implementation (DONE)
+
 - Complete influxdb3 role created
 - All task files written
 - inventory.yml configured
@@ -13,20 +14,27 @@
 - Git commits created (2 commits: planning + implementation)
 
 ### ✅ Testing Started
+
 **Step 1: Prepare** - ✅ **SUCCESSFUL**
+
 ```bash
 ./manage-svc.sh influxdb3 prepare
 ```
+
 Results:
+
 - Created `~/influxdb3-data/` directories
 - Applied SELinux contexts
 - All directory permissions set correctly
 
 **Step 2: Deploy** - ❌ **BLOCKED**
+
 ```bash
 ./manage-svc.sh influxdb3 deploy
 ```
+
 Issue:
+
 - VSCode terminal cannot handle interactive sudo password prompt
 - Ansible's `-K` flag requires interactive terminal
 - Even with `sudo -v` cached, Ansible prompts again
@@ -34,6 +42,7 @@ Issue:
 ## Problem: Sudo Password in Non-Interactive Terminal
 
 **Root Cause:**
+
 - `manage-svc.sh` hardcodes `-K` flag (line 158)
 - VSCode runs commands in non-interactive mode
 - Ansible cannot read password from stdin
@@ -43,6 +52,7 @@ Issue:
 ## Resume in Tmux - Step by Step
 
 ### 1. Start Tmux Session
+
 ```bash
 cd /home/lavender/sandbox/ansible/jackaltx/solti-containers
 tmux new-session -s influxdb-deploy
@@ -51,15 +61,19 @@ tmux new-session -s influxdb-deploy
 ### 2. Run Deployment Steps
 
 **Step 1: Prepare** (already done, skip unless you want to verify)
+
 ```bash
 ./manage-svc.sh influxdb3 prepare
 ```
 
 **Step 2: Deploy** (this is where we stopped)
+
 ```bash
 ./manage-svc.sh influxdb3 deploy
 ```
+
 Expected:
+
 - Prompts for sudo password (you'll be able to type it in tmux)
 - Templates config files
 - Deploys pod and container
@@ -67,19 +81,25 @@ Expected:
 - Runs basic health check
 
 **Step 3: Configure**
+
 ```bash
 ./svc-exec.sh influxdb3 configure
 ```
+
 Expected:
+
 - Creates databases: telegraf, metrics, logs, traces
 - Creates resource tokens
 - Saves to `./data/influxdb3-tokens-firefly.yml`
 
 **Step 4: Verify**
+
 ```bash
 ./svc-exec.sh influxdb3 verify
 ```
+
 Expected:
+
 - Health checks
 - Test database operations
 - Cleanup test data
@@ -104,6 +124,7 @@ cat ./data/influxdb3-tokens-firefly.yml
 ```
 
 ### 4. Traefik Access (if configured)
+
 ```bash
 # HTTPS via Traefik (port 8080)
 curl https://influxdb3.a0a0.org:8080/health
@@ -112,17 +133,20 @@ curl https://influxdb3.a0a0.org:8080/health
 ## If Issues Occur
 
 ### Generated Playbook Preserved on Failure
+
 ```bash
 ls -la tmp/influxdb3-*.yml
 ```
 
 ### Check Logs
+
 ```bash
 journalctl --user -u influxdb3-pod -f
 podman logs influxdb3-svc
 ```
 
 ### Rollback
+
 ```bash
 ./manage-svc.sh influxdb3 remove
 ```
@@ -147,11 +171,13 @@ See DEPLOYMENT_SESSION_STATE.md for full context.
 ## Files to Review
 
 **Implementation:**
+
 - [INFLUXDB3_IMPLEMENTATION_PLAN.md](INFLUXDB3_IMPLEMENTATION_PLAN.md) - Full design
 - [roles/influxdb3/README.md](roles/influxdb3/README.md) - Usage guide
 - [roles/influxdb3/](roles/influxdb3/) - All role files
 
 **Configuration:**
+
 - [inventory.yml](inventory.yml) - Lines 354-407 (influxdb3_svc)
 - [manage-svc.sh](manage-svc.sh) - Line 34 (added influxdb3)
 - [svc-exec.sh](svc-exec.sh) - Line 34 (added influxdb3)

@@ -7,18 +7,21 @@ The inventory system is evolving to support **solti-orchestrator**: a headless a
 ## Strategic Direction
 
 ### Near-Term (Current Sprint)
+
 - Document current state comprehensively
 - Eliminate obvious pain points (duplication, safety)
 - Establish clear patterns for inventory organization
 - Implement safety improvements for interactive use
 
 ### Mid-Term (Next 3-6 Months)
+
 - Transition to `group_vars/host_vars` pattern
 - Implement capability matrix for testing strategies
 - Separate secrets into external private repository
 - Standardize across solti collections
 
 ### Long-Term (Orchestrator Era)
+
 - Headless operation with external inventory sources
 - Workflow-driven deployments (not script-driven)
 - Multi-collection coordination
@@ -64,6 +67,7 @@ The inventory system is evolving to support **solti-orchestrator**: a headless a
 ```
 
 **Benefits**:
+
 - Public repos contain no secrets
 - Configuration changes don't require code changes
 - External systems can inject workflows and secrets
@@ -85,6 +89,7 @@ The inventory system is evolving to support **solti-orchestrator**: a headless a
 **Current Problem**: Verification tasks hardcode assumptions about capabilities
 
 **Example** (elasticsearch verify):
+
 ```yaml
 # Assumes direct port access
 - name: Test Elasticsearch API
@@ -94,6 +99,7 @@ The inventory system is evolving to support **solti-orchestrator**: a headless a
 ```
 
 **This fails on hosts that**:
+
 - Don't allow localhost binding
 - Require Traefik proxy access
 - Use different networking models
@@ -157,6 +163,7 @@ inventory/
 ```
 
 **Benefits**:
+
 1. **DRY Principle**: Service config defined once in `group_vars/<service>_svc.yml`
 2. **Scalability**: Add new hosts with minimal configuration (just host_vars)
 3. **Maintainability**: Change service defaults in one place
@@ -166,6 +173,7 @@ inventory/
 **Example** (elasticsearch configuration):
 
 `group_vars/elasticsearch_svc.yml`:
+
 ```yaml
 ---
 # Default configuration for all elasticsearch deployments
@@ -178,6 +186,7 @@ elasticsearch_delete_data: false
 ```
 
 `host_vars/firefly.yml`:
+
 ```yaml
 ---
 # Localhost-specific overrides
@@ -191,6 +200,7 @@ host_capabilities:
 ```
 
 `host_vars/podma.yml`:
+
 ```yaml
 ---
 # Remote host overrides
@@ -206,6 +216,7 @@ host_capabilities:
 ```
 
 **Result**: Adding `minio` service requires:
+
 - 1 file: `group_vars/minio_svc.yml` (~30 lines)
 - 2 host var additions (name + data_dir overrides)
 - Total: ~35 lines vs 90 lines in current system
@@ -220,6 +231,7 @@ elasticsearch_password: "{{ lookup('env', 'ELASTICSEARCH_PASSWORD') }}"
 ```
 
 **Problems**:
+
 - Environment variable pattern doesn't work in all contexts
 - No central secrets management
 - Difficult to rotate secrets
@@ -242,6 +254,7 @@ solti-secrets/                       # Private repository
 ```
 
 **Usage**:
+
 ```bash
 # Ansible automatically merges group_vars from multiple sources
 ansible-playbook -i inventory/localhost.yml \
@@ -250,6 +263,7 @@ ansible-playbook -i inventory/localhost.yml \
 ```
 
 **Benefits**:
+
 - Public repos contain zero secrets
 - Secrets managed independently of code
 - Multiple secret backends supported (vault, env, keyring)
@@ -293,6 +307,7 @@ ansible-playbook -i inventory/localhost.yml \
 ```
 
 **Orchestrator responsibilities**:
+
 - Parse workflow definitions
 - Resolve dependencies between services
 - Merge inventory sources (base + secrets)
@@ -302,12 +317,14 @@ ansible-playbook -i inventory/localhost.yml \
 - Record audit trail
 
 **Collection responsibilities** (solti-containers):
+
 - Implement service deployment roles
 - Provide verification tasks
 - Define service capabilities and requirements
 - Maintain role documentation
 
 **Benefits**:
+
 - Collections become pure implementation (no workflow logic)
 - Workflows are version-controlled and reviewable
 - Same collection code deploys to any environment
@@ -356,6 +373,7 @@ ansible-playbook -i inventory/localhost.yml \
 ```
 
 **Benefits**:
+
 - Same role works on localhost and production
 - Tests adapt to environment automatically
 - Clear documentation of requirements
@@ -391,6 +409,7 @@ host_capabilities: "{{ default_capabilities + ['direct_port_access', 'traefik_ro
 ### Phase Boundaries
 
 Each migration phase ends with:
+
 - ✓ Checkpoint commit
 - ✓ Full regression testing
 - ✓ User validation period
@@ -400,23 +419,27 @@ Each migration phase ends with:
 ### Risk Management
 
 **Low Risk Changes**:
+
 - Documentation additions
 - Safety feature additions
 - Inventory file additions (not replacements)
 - Script flag additions (backwards compatible)
 
 **Medium Risk Changes**:
+
 - Changing default inventory in `ansible.cfg`
 - Creating `group_vars/` alongside existing inline vars
 - Adding validation checks to scripts
 
 **High Risk Changes**:
+
 - Removing root `inventory.yml`
 - Moving all vars to `group_vars/` (changes precedence)
 - Removing inline vars from inventory files
 - Changing variable names or structure
 
 **Mitigation**:
+
 - High-risk changes done in later phases after validation
 - Always test with `--check` mode first
 - Maintain parallel systems during transition
@@ -425,30 +448,35 @@ Each migration phase ends with:
 ## Success Criteria
 
 ### Phase 1 (Safety & Documentation)
+
 - ✓ Complete documentation of current system
 - ✓ Safety prompts prevent accidental remote deployments
 - ✓ Clear migration roadmap with breakpoints
 - ✓ Users understand current vs future state
 
 ### Phase 2 (Consolidate to inventory/)
+
 - ✓ Default inventory is `inventory/localhost.yml`
 - ✓ All workflows use `inventory/` files
 - ✓ Root `inventory.yml` deprecated (but functional)
 - ✓ No duplication between active inventory files
 
 ### Phase 3 (Extract group_vars)
+
 - ✓ Service configuration in `group_vars/<service>_svc.yml`
 - ✓ Host overrides in `host_vars/<host>.yml`
 - ✓ Inventory files slim (<50 lines)
 - ✓ Variable precedence behaves correctly
 
 ### Phase 4 (Capability Matrix)
+
 - ✓ Hosts declare capabilities
 - ✓ Verification tasks adapt to capabilities
 - ✓ Same role works on localhost and production
 - ✓ Progressive testing based on environment
 
 ### Phase 5 (Secrets Separation)
+
 - ✓ No secrets in public repository
 - ✓ External secrets repository pattern documented
 - ✓ Multiple inventory source support tested
