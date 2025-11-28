@@ -24,7 +24,7 @@
 # ....................................................................................
 - name: Wait for MinIO to be ready
   uri:
-    url: "http://localhost:{{ minio_api_port }}/minio/health/live"
+    url: "http://localhost:{{minio_api_port}}/minio/health/live"
     method: GET
     status_code: 200
   register: health_check

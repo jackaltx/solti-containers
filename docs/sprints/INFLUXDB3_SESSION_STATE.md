@@ -10,12 +10,14 @@
 ## What We Accomplished
 
 ### ✅ Core Implementation
+
 - Complete influxdb3 role with all task files
 - Quadlet-based deployment (rootless containers)
 - Integration with manage-svc.sh and svc-exec.sh
 - inventory.yml configuration
 
 ### ✅ Major Fixes Applied
+
 1. **Volume Mount Permissions**:
    - Data/plugins: `:z,U` (chown to container user)
    - Secrets: `:z` (no chown, container reads only)
@@ -42,16 +44,19 @@
 ## Current Issues
 
 ### 🔄 In Progress
+
 - Deployment is running, waiting to see if offline token generation succeeds
 - Need to verify the two-phase auth flow works (initialize → enable_auth)
 
 ### ⚠️ Known Challenges
+
 - Sudo password prompts require manual interaction (can't automate)
 - `influxdb3_delete_data: true` set in inventory for dev (remember to set false for prod)
 
 ## Files Modified
 
 ### Role Files
+
 - `roles/influxdb3/tasks/main.yml` - Added enable_auth step
 - `roles/influxdb3/tasks/initialize.yml` - Offline token generation
 - `roles/influxdb3/tasks/enable_auth.yml` - NEW: Restart with auth enabled
@@ -61,12 +66,15 @@
 - `roles/influxdb3/defaults/main.yml` - Secrets dir location, permissions
 
 ### Configuration
+
 - `inventory.yml` - Updated secrets_dir path, delete_data=true
 
 ## Next Steps
 
 ### Immediate (Next Session)
+
 1. Check if current deployment succeeded:
+
    ```bash
    podman ps --filter "pod=influxdb3"
    podman logs influxdb3-svc
@@ -74,17 +82,20 @@
    ```
 
 2. If deployment succeeded, test verification:
+
    ```bash
    ./svc-exec.sh influxdb3 verify
    ```
 
 3. If deployment failed, check:
+
    ```bash
    journalctl --user -eu influxdb3-svc.service
    ls -la ~/influxdb3-data/secrets/
    ```
 
 ### Testing Needed
+
 - [ ] Full deploy cycle (prepare → deploy)
 - [ ] Token generation and auth enablement
 - [ ] Verify task (database operations)
@@ -93,6 +104,7 @@
 - [ ] Traefik SSL integration
 
 ### Clean Up Before PR
+
 - Revert `influxdb3_delete_data` to `false` in inventory.yml
 - Re-enable `no_log: true` directives in all tasks
 - Review and squash checkpoint commits
@@ -101,6 +113,7 @@
 ## Architecture Notes
 
 ### Volume Mount Strategy
+
 ```yaml
 # Data volumes - container needs write access
 - data:/var/lib/influxdb3/data:z,U
@@ -111,6 +124,7 @@
 ```
 
 ### Token Generation Flow
+
 ```
 1. Start container with --without-auth
 2. podman exec influxdb3 create token --admin --offline --output-file /tmp/token.json
@@ -120,6 +134,7 @@
 ```
 
 ### Directory Structure
+
 ```
 ~/influxdb3-data/
 ├── config/      (0755)

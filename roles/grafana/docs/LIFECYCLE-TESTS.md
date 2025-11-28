@@ -18,18 +18,21 @@ This document contains executable lifecycle tests for the Grafana service. These
 **Test Sequence:**
 
 ### Step 1: Complete Removal
+
 ```bash
 # Remove service, data, AND container images (destructive!)
 DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.yml grafana remove
 ```
 
 **Expected outcome:**
+
 - ✓ Service stopped: `grafana-pod.service` inactive
 - ✓ Quadlets removed: `grafana-svc.container`, `grafana.pod` deleted
 - ✓ Data directories deleted: `~/grafana-data/` removed
 - ✓ Container image removed: `docker.io/grafana/grafana:latest` deleted
 
 **Verification:**
+
 ```bash
 # All of these should fail/return empty
 ssh podma.a0a0.org "systemctl --user status grafana-pod"           # Should fail (inactive)
@@ -40,17 +43,20 @@ ssh podma.a0a0.org "podman images | grep grafana"                  # Should be e
 ---
 
 ### Step 2: Prepare
+
 ```bash
 ./manage-svc.sh -h podma -i inventory/podma.yml grafana prepare
 ```
 
 **Expected outcome:**
+
 - ✓ Directories created (9 total: root, config, data, logs, plugins, provisioning/*)
 - ✓ Ownership: user:user (1000:1000 typically)
 - ✓ Permissions: 0750
 - ✓ SELinux context applied (on RHEL/Rocky/Fedora)
 
 **Verification:**
+
 ```bash
 ssh podma.a0a0.org "ls -ld ~/grafana-data/"                        # Should exist with correct ownership
 ssh podma.a0a0.org "ls -la ~/grafana-data/"                        # Should show all subdirectories
@@ -61,11 +67,13 @@ ssh podma.a0a0.org "ls -la ~/grafana-data/"                        # Should show
 ---
 
 ### Step 3: Deploy
+
 ```bash
 ./manage-svc.sh -h podma -i inventory/podma.yml grafana deploy
 ```
 
 **Expected outcome:**
+
 - ✓ Container image pulled: `docker.io/grafana/grafana:latest` (latest version)
 - ✓ Configuration templated: `grafana.ini` created
 - ✓ Network created/verified: `ct-net`
@@ -76,6 +84,7 @@ ssh podma.a0a0.org "ls -la ~/grafana-data/"                        # Should show
 - ✓ Service started: `grafana-pod.service` active
 
 **Verification:**
+
 ```bash
 ssh podma.a0a0.org "systemctl --user status grafana-pod"           # Should be active (running)
 ssh podma.a0a0.org "podman ps --filter pod=grafana"                # Should show 2 containers
@@ -95,17 +104,20 @@ Skip this step.
 ---
 
 ### Step 5: Verify
+
 ```bash
 ./svc-exec.sh -h podma -i inventory/podma.yml grafana verify
 ```
 
 **Expected outcome:**
+
 - ✓ Systemd service check passes
 - ✓ Container health check passes
 - ✓ HTTP API responds (port 3000)
 - ✓ Admin login works
 
 **Verification:**
+
 ```bash
 # Manual verification if automated verify fails
 ssh podma.a0a0.org "curl -s http://localhost:3000/api/health" | jq
@@ -120,6 +132,7 @@ ssh podma.a0a0.org "curl -s -u admin:changeme http://localhost:3000/api/org" | j
 ---
 
 ### Step 6: Cleanup After Testing
+
 ```bash
 # If this was just a test, remove everything
 DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.yml grafana remove
@@ -137,14 +150,16 @@ DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.
 
 **Prerequisites:** Grafana already deployed (run Test 1 steps 1-3 first, but skip step 6)
 
-### Test Sequence:
+### Test Sequence
 
 #### Step 1: Check for upgrades
+
 ```bash
 ./svc-exec.sh -h podma -i inventory/podma.yml grafana check_upgrade
 ```
 
 **Expected outcome:**
+
 - ✓ Current version detected
 - ✓ Latest version checked
 - ✓ Upgrade status displayed (available or up-to-date)
@@ -156,6 +171,7 @@ DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.
 ---
 
 #### Step 2: Remove old image and redeploy
+
 ```bash
 # Remove only the image (keep data and configuration)
 DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.yml grafana remove
@@ -166,6 +182,7 @@ DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.yml grafana remov
 ```
 
 **Expected outcome:**
+
 - ✓ New image version pulled
 - ✓ Service upgraded
 - ✓ Data preserved (existing dashboards, datasources, users intact)
@@ -173,11 +190,13 @@ DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.yml grafana remov
 ---
 
 #### Step 3: Verify upgrade
+
 ```bash
 ./svc-exec.sh -h podma -i inventory/podma.yml grafana verify
 ```
 
 **Expected outcome:**
+
 - ✓ All verification passes
 - ✓ Version updated (check via API: `/api/health`)
 - ✓ Data intact (existing config preserved)
@@ -187,17 +206,21 @@ DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.yml grafana remov
 ## Service-Specific Notes
 
 ### Timing Considerations
+
 - Container startup: ~5-10 seconds
 - Database initialization: Automatic on first run
 - No manual initialization required
 
 ### Port Binding
+
 - Internal: 3000
 - External (localhost): 3000 (configurable via `grafana_port` in inventory)
 - Traefik: Enabled by default (`grafana_enable_traefik: true`)
 
 ### Data Persistence
+
 All data persists in `~/grafana-data/`:
+
 - `data/grafana.db` - SQLite database (dashboards, users, datasources)
 - `config/grafana.ini` - Configuration file
 - `logs/` - Application logs
@@ -207,10 +230,13 @@ All data persists in `~/grafana-data/`:
 ### Common Issues
 
 **Issue:** Image pull fails
+
 ```
 Error: error pulling image "docker.io/grafana/grafana:latest": ...
 ```
+
 **Solution:** Check network connectivity, try manual pull:
+
 ```bash
 ssh podma.a0a0.org "podman pull docker.io/grafana/grafana:latest"
 ```
@@ -218,10 +244,13 @@ ssh podma.a0a0.org "podman pull docker.io/grafana/grafana:latest"
 ---
 
 **Issue:** Service won't start
+
 ```
 Job for grafana-pod.service failed
 ```
+
 **Solution:** Check logs:
+
 ```bash
 ssh podma.a0a0.org "journalctl --user -u grafana-pod -n 50"
 ssh podma.a0a0.org "podman logs grafana-svc"
@@ -230,10 +259,13 @@ ssh podma.a0a0.org "podman logs grafana-svc"
 ---
 
 **Issue:** Verification fails (HTTP connection refused)
+
 ```
 curl: (7) Failed to connect to localhost port 3000
 ```
+
 **Solution:** Wait a few seconds for container to fully start, then retry:
+
 ```bash
 ssh podma.a0a0.org "podman ps --filter pod=grafana"  # Verify container is up
 sleep 10  # Wait for Grafana to initialize
@@ -254,6 +286,7 @@ curl -k https://grafana.a0a0.org:8443/api/health
 ```
 
 **Expected outcome:**
+
 - ✓ HTTPS connection successful
 - ✓ Response: `{"database":"ok",...}`
 - ✓ Certificate valid (if Let's Encrypt configured)

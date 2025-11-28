@@ -7,7 +7,7 @@ grafana_force_reload: false
 grafana_image: "docker.io/grafana/grafana:latest"
 
 # Directory settings
-grafana_data_dir: "{{ lookup('env', 'HOME') }}/grafana-data"
+grafana_data_dir: "{{lookup('env', 'HOME')}}/grafana-data"
 
 # Grafana settings
 grafana_port: 3000
@@ -20,8 +20,8 @@ grafana_enable_traefik: true
 
 # Security settings
 grafana_admin_user: "admin"
-grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') | default('changeme') }}"
-grafana_secret_key: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters,digits') }}"
+grafana_admin_password: "{{lookup('env', 'GRAFANA_ADMIN_PASSWORD') | default('changeme')}}"
+grafana_secret_key: "{{lookup('password', '/dev/null length=20 chars=ascii_letters,digits')}}"
 
 # Database settings (using SQLite by default for simplicity)
 # Note: path inside container
@@ -61,18 +61,18 @@ service_properties:
   quadlets:
     - "grafana-svc.container"
     - "grafana.pod"
-  data_dir: "{{ grafana_data_dir }}"
+  data_dir: "{{grafana_data_dir}}"
   config_dir: "config"
-  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
-  delete_images: "{{ lookup('env', 'DELETE_IMAGES') | default(false) | bool }}"
-  container_image: "{{ grafana_image }}"
+  delete_data: "{{lookup('env', 'DELETE_DATA') | default(false) | bool}}"
+  delete_images: "{{lookup('env', 'DELETE_IMAGES') | default(false) | bool}}"
+  container_image: "{{grafana_image}}"
   dirs:
-    - { path: "", mode: "0750" }
-    - { path: "config", mode: "0750" }
-    - { path: "data", mode: "0750" }
-    - { path: "logs", mode: "0750" }
-    - { path: "plugins", mode: "0750" }
-    - { path: "provisioning", mode: "0750" }
-    - { path: "provisioning/dashboards", mode: "0750" }
-    - { path: "provisioning/datasources", mode: "0750" }
-    - { path: "provisioning/notifiers", mode: "0750" }
+    - {path: "", mode: "0750"}
+    - {path: "config", mode: "0750"}
+    - {path: "data", mode: "0750"}
+    - {path: "logs", mode: "0750"}
+    - {path: "plugins", mode: "0750"}
+    - {path: "provisioning", mode: "0750"}
+    - {path: "provisioning/dashboards", mode: "0750"}
+    - {path: "provisioning/datasources", mode: "0750"}
+    - {path: "provisioning/notifiers", mode: "0750"}

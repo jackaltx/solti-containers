@@ -26,37 +26,37 @@
   block:
     - name: Check if service config exists
       ansible.builtin.stat:
-        path: "{{ service_properties.data_dir }}/{{ service_properties.config_dir }}"
+        path: "{{service_properties.data_dir}}/{{service_properties.config_dir}}"
       register: dir_check
 
     - name: Fail if service config dir doesn't exist
       fail:
-        msg: "Directory does not exist: {{ service_properties.data_dir }}/{{ service_properties.config_dir }}"
+        msg: "Directory does not exist: {{service_properties.data_dir}}/{{service_properties.config_dir}}"
       when: not dir_check.stat.exists
 
     - name: Set ownership facts from existing directory
       ansible.builtin.set_fact:
-        dir_uid: "{{ dir_check.stat.uid }}"
-        dir_gid: "{{ dir_check.stat.gid }}"
+        dir_uid: "{{dir_check.stat.uid}}"
+        dir_gid: "{{dir_check.stat.gid}}"
         config_file_exists: true
 
   rescue:
     - name: Set default ownership facts on failure
       ansible.builtin.set_fact:
-        dir_uid: "{{ ansible_user_id }}"
-        dir_gid: "{{ ansible_user_id }}"
+        dir_uid: "{{ansible_user_id}}"
+        dir_gid: "{{ansible_user_id}}"
         config_file_exists: false
 
 # ....................................................................................
 - name: Create service directories
-  become: "{{ config_file_exists or ansible_user_id != dir_uid }}"
+  become: "{{config_file_exists or ansible_user_id != dir_uid}}"
   ansible.builtin.file:
-    path: "{{ service_properties.data_dir }}{{ '/' + item.path if item.path != '' else '' }}"
+    path: "{{service_properties.data_dir}}{{'/' + item.path if item.path != '' else ''}}"
     state: directory
-    mode: "{{ item.mode }}"
-    owner: "{{ dir_uid }}"
-    group: "{{ dir_gid }}"
-  loop: "{{ service_properties.dirs }}"
+    mode: "{{item.mode}}"
+    owner: "{{dir_uid}}"
+    group: "{{dir_gid}}"
+  loop: "{{service_properties.dirs}}"
 
 # ....................................................................................
 - name: Configure SELinux
@@ -67,11 +67,11 @@
   block:
     - name: Set SELinux context for service directories
       ansible.builtin.sefcontext:
-        target: "{{ service_properties.data_dir }}(/.*)?"
+        target: "{{service_properties.data_dir}}(/.*)?"
         setype: container_file_t
         state: present
 
     - name: Apply SELinux context
-      ansible.builtin.command: restorecon -R -v "{{ service_properties.data_dir }}"
+      ansible.builtin.command: restorecon -R -v "{{service_properties.data_dir}}"
       register: restorecon_result
       changed_when: restorecon_result.rc == 0

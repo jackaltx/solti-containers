@@ -2,7 +2,7 @@
 - name: reload systemd
   become: false
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
     scope: user
 
 - name: restart traefik
@@ -23,5 +23,5 @@
 - name: reload systemd user daemon
   become: false
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
     scope: user

@@ -50,12 +50,14 @@ ports:
 ```
 
 **Security Reality**:
+
 - ✗ Any local process can connect to 127.0.0.1 ports
 - ✗ TLS doesn't prevent local access
 - ✗ Containers share network namespace with host
 - ✗ No meaningful isolation benefit from TLS
 
 **Complexity Cost**:
+
 - Certificate management per service
 - Different TLS implementations (Go, Python, Node.js)
 - Debugging encrypted traffic
@@ -98,18 +100,21 @@ ports:
 ### Benefits
 
 **Security Where It Matters**:
+
 - ✓ External traffic encrypted (HTTPS)
 - ✓ Single certificate management point
 - ✓ Automatic Let's Encrypt renewal
 - ✓ Services remain on localhost (not exposed)
 
 **Operational Simplicity**:
+
 - ✓ Services use plain HTTP (fast, simple)
 - ✓ Easy debugging (unencrypted logs)
 - ✓ No per-service certificate management
 - ✓ Traefik handles all SSL complexity
 
 **Industry Standard**:
+
 - This is the **standard cloud-native pattern**
 - Used by: Kubernetes Ingress, AWS ALB, Nginx, HAProxy
 - Separation of concerns: proxy handles TLS, services handle business logic
@@ -121,6 +126,7 @@ ports:
 ### Traefik Configuration
 
 **Only service with TLS enabled**:
+
 ```yaml
 # roles/traefik/defaults/main.yml
 traefik_enable_ssl: true
@@ -129,6 +135,7 @@ traefik_acme_staging: false
 ```
 
 **Automatic routing via labels**:
+
 ```yaml
 # Example: InfluxDB3 Quadlet
 traefik.enable=true
@@ -141,11 +148,13 @@ traefik.http.services.influxdb3.loadbalancer.server.port=8181
 ### DNS Configuration
 
 **Wildcard DNS** points all subdomains to localhost:
+
 ```
 *.a0a0.org → 127.0.0.1
 ```
 
 **Result**:
+
 - `https://grafana.a0a0.org:8443` → Traefik → `http://127.0.0.1:3000`
 - `https://es.a0a0.org:8443` → Traefik → `http://127.0.0.1:9200`
 - All traffic encrypted externally, plain internally
@@ -159,6 +168,7 @@ traefik.http.services.influxdb3.loadbalancer.server.port=8181
 These variables exist in role defaults but are **not actively used**:
 
 **Elasticsearch** (`roles/elasticsearch/defaults/main.yml`):
+
 ```yaml
 elasticsearch_enable_tls: false
 elasticsearch_tls_cert_file: ""
@@ -168,6 +178,7 @@ elasticsearch_tls_verify_client: "optional"
 ```
 
 **Redis** (`roles/redis/defaults/main.yml`):
+
 ```yaml
 redis_enable_tls: false
 redis_tls_cert_file: ""
@@ -176,6 +187,7 @@ redis_tls_auth_clients: "no"
 ```
 
 **Mattermost** (`roles/mattermost/defaults/main.yml`):
+
 ```yaml
 mattermost_enable_tls: false
 mattermost_tls_cert_file: ""
@@ -186,6 +198,7 @@ mattermost_tls_min_version: "1.2"
 ```
 
 **HashiVault** (`roles/hashivault/defaults/main.yml`):
+
 ```yaml
 vault_enable_tls: false
 vault_tls_cert_file: ""
@@ -195,11 +208,13 @@ vault_tls_min_version: "tls12"
 ```
 
 **Gitea** (`roles/gitea/defaults/main.yml`):
+
 ```yaml
 gitea_enable_tls: true  # ← Note: set to true but not implemented
 ```
 
 **MinIO** (`roles/minio/defaults/main.yml`):
+
 ```yaml
 minio_enable_tls: false
 minio_tls_cert_file: ""
@@ -209,6 +224,7 @@ minio_tls_key_file: ""
 ### Why Keep Them (Phase 1)
 
 **Reasons to retain for now**:
+
 1. **Historical context**: Shows architectural evolution
 2. **Documentation**: Helps understand why they're not used
 3. **No harm**: They don't cause problems (set to false/empty)
@@ -226,6 +242,7 @@ minio_tls_key_file: ""
 **Scope**: Remove unused TLS configuration from service roles
 
 **Services to clean up**:
+
 - elasticsearch (5 TLS variables)
 - redis (4 TLS variables)
 - mattermost (6 TLS variables)
@@ -276,16 +293,19 @@ Localhost services have a different threat model than exposed services.
 ### 2. Separation of Concerns
 
 **Good separation**:
+
 - Traefik: SSL termination, routing, certificates
 - Services: Business logic, data processing
 
 **Bad separation**:
+
 - Every service reimplements TLS configuration
 - Certificates managed in 8 different places
 
 ### 3. Industry Patterns Exist for Reasons
 
 SSL termination proxy is the standard pattern because:
+
 - It works
 - It scales
 - It's operationally simple
@@ -309,6 +329,7 @@ Sometimes the pragmatic solution (proxy) is better than the "pure" solution (ser
 **Question**: Should services authenticate to each other via mTLS?
 
 **Answer**: Not needed for this architecture:
+
 - All services on localhost (same security boundary)
 - No multi-tenant concerns
 - Trust boundary is at Traefik, not between services
@@ -321,6 +342,7 @@ Sometimes the pragmatic solution (proxy) is better than the "pure" solution (ser
 **Question**: Should services communicate over VPN?
 
 **Answer**: Overkill for localhost:
+
 - VPN is for network-level isolation
 - Services already isolated (localhost binding)
 - Would add complexity without benefit

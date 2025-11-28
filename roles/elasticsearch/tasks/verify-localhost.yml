@@ -10,7 +10,7 @@
 
 - name: Show port check status
   debug:
-    msg: "Elasticsearch port 9200 is {{ 'open' if port_check.state is defined and port_check.state == 'started' else 'closed' }}"
+    msg: "Elasticsearch port 9200 is {{'open' if port_check.state is defined and port_check.state == 'started' else 'closed'}}"
 
 # ....................................................................................
 - name: Wait for Elasticsearch to be ready
@@ -18,7 +18,7 @@
     url: "http://localhost:9200/_cluster/health"
     method: GET
     user: elastic
-    password: "{{ elasticsearch_password }}"
+    password: "{{elasticsearch_password}}"
     status_code: 200
     validate_certs: false
   register: health_check
@@ -34,7 +34,7 @@
     url: "http://localhost:9200/_cluster/health?pretty"
     method: GET
     user: elastic
-    password: "{{ elasticsearch_password }}"
+    password: "{{elasticsearch_password}}"
     status_code: 200
     validate_certs: false
     return_content: true
@@ -52,7 +52,7 @@
     url: "http://localhost:9200/?pretty"
     method: GET
     user: elastic
-    password: "{{ elasticsearch_password }}"
+    password: "{{elasticsearch_password}}"
     status_code: 200
     validate_certs: false
     return_content: true
@@ -67,11 +67,11 @@
 # ....................................................................................
 - name: Create test document
   uri:
-    url: "http://localhost:9200/{{ test_index }}/_doc?refresh=true"
+    url: "http://localhost:9200/{{test_index}}/_doc?refresh=true"
     method: POST
     user: elastic
-    password: "{{ elasticsearch_password }}"
-    body: "{{ test_doc }}"
+    password: "{{elasticsearch_password}}"
+    body: "{{test_doc}}"
     body_format: json
     status_code: 201
     validate_certs: false
@@ -87,10 +87,10 @@
 # ....................................................................................
 - name: Search test document
   uri:
-    url: "http://localhost:9200/{{ test_index }}/_search?pretty"
+    url: "http://localhost:9200/{{test_index}}/_search?pretty"
     method: GET
     user: elastic
-    password: "{{ elasticsearch_password }}"
+    password: "{{elasticsearch_password}}"
     status_code: 200
     validate_certs: false
     return_content: true
@@ -108,7 +108,7 @@
     url: "http://localhost:9200/_nodes/stats/jvm?pretty"
     method: GET
     user: elastic
-    password: "{{ elasticsearch_password }}"
+    password: "{{elasticsearch_password}}"
     status_code: 200
     validate_certs: false
     return_content: true
@@ -118,16 +118,16 @@
 
 - name: Show memory usage
   debug:
-    msg: "{{ memory_stats.json | json_query('nodes.*.jvm.mem.heap_used_percent') }}"
+    msg: "{{memory_stats.json | json_query('nodes.*.jvm.mem.heap_used_percent')}}"
 
 # ....................................................................................
 # Cleanup
 - name: Delete test index
   uri:
-    url: "http://localhost:9200/{{ test_index }}"
+    url: "http://localhost:9200/{{test_index}}"
     method: DELETE
     user: elastic
-    password: "{{ elasticsearch_password }}"
+    password: "{{elasticsearch_password}}"
     status_code: [200, 404]
     validate_certs: false
   changed_when: false

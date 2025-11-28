@@ -3,7 +3,7 @@
 # ..................................................................................
 - name: Ensure required directories exist
   ansible.builtin.file:
-    path: "~{{ real_user_dir }}/{{ item }}"
+    path: "~{{real_user_dir}}/{{item}}"
     state: directory
     mode: "0750"
   loop:
@@ -16,7 +16,7 @@
   become: false
   ansible.builtin.template:
     src: mattermost-db.env.j2
-    dest: "{{ real_user_dir }}/.config/containers/systemd/env/mattermost-db.env"
+    dest: "{{real_user_dir}}/.config/containers/systemd/env/mattermost-db.env"
     mode: "0600"
 
 # ..................................................................................
@@ -25,12 +25,12 @@
   containers.podman.podman_pod:
     name: mattermost
     state: quadlet
-    dns: "{{ service_dns_servers }}"
-    dns_search: "{{ service_dns_search }}"
-    network: "{{ service_network }}"
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    dns: "{{service_dns_servers}}"
+    dns_search: "{{service_dns_search}}"
+    network: "{{service_network}}"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     ports:
-      - "127.0.0.1:{{ mattermost_port }}:8065"
+      - "127.0.0.1:{{mattermost_port}}:8065"
     quadlet_options:
       - |
         [Service]
@@ -48,13 +48,13 @@
   containers.podman.podman_container:
     name: mattermost-db
     pod: mattermost.pod
-    image: "{{ mattermost_postgres_image }}"
+    image: "{{mattermost_postgres_image}}"
     state: quadlet
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     volume:
-      - "{{ mattermost_data_dir }}/postgres:/var/lib/postgresql/data:Z"
+      - "{{mattermost_data_dir}}/postgres:/var/lib/postgresql/data:Z"
     quadlet_options:
-      - "EnvironmentFile={{ real_user_dir }}/.config/containers/systemd/env/mattermost-db.env"
+      - "EnvironmentFile={{real_user_dir}}/.config/containers/systemd/env/mattermost-db.env"
       - |
         [Unit]
         Description=Mattermost Database Container
@@ -74,27 +74,27 @@
   containers.podman.podman_container:
     name: mattermost-svc
     pod: mattermost.pod
-    image: "{{ mattermost_image }}"
+    image: "{{mattermost_image}}"
     state: quadlet
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     volume:
-      - "{{ mattermost_data_dir }}/config:/mattermost/config:Z,U"
-      - "{{ mattermost_data_dir }}/data:/mattermost/data:Z,U"
-      - "{{ mattermost_data_dir }}/logs:/mattermost/logs:Z,U"
-      - "{{ mattermost_data_dir }}/plugins:/mattermost/plugins:Z,U"
-      - "{{ mattermost_data_dir }}/client/plugins:/mattermost/client/plugins:Z,U"
-      - "{{ mattermost_data_dir }}/bleve-indexes:/mattermost/bleve-indexes:Z,U"
+      - "{{mattermost_data_dir}}/config:/mattermost/config:Z,U"
+      - "{{mattermost_data_dir}}/data:/mattermost/data:Z,U"
+      - "{{mattermost_data_dir}}/logs:/mattermost/logs:Z,U"
+      - "{{mattermost_data_dir}}/plugins:/mattermost/plugins:Z,U"
+      - "{{mattermost_data_dir}}/client/plugins:/mattermost/client/plugins:Z,U"
+      - "{{mattermost_data_dir}}/bleve-indexes:/mattermost/bleve-indexes:Z,U"
     env:
-      MM_USERNAME: "{{ mattermost_db_user }}"
-      MM_PASSWORD: "{{ mattermost_postgres_password }}"
-      MM_DBNAME: "{{ mattermost_db_name }}"
+      MM_USERNAME: "{{mattermost_db_user}}"
+      MM_PASSWORD: "{{mattermost_postgres_password}}"
+      MM_DBNAME: "{{mattermost_db_name}}"
       MM_SQLSETTINGS_DRIVERNAME: "postgres"
-      MM_SQLSETTINGS_DATASOURCE: "postgres://{{ mattermost_db_user }}:{{ mattermost_postgres_password }}@mattermost-db:5432/{{ mattermost_db_name }}?sslmode=disable"
+      MM_SQLSETTINGS_DATASOURCE: "postgres://{{mattermost_db_user}}:{{mattermost_postgres_password}}@mattermost-db:5432/{{mattermost_db_name}}?sslmode=disable"
     security_opt:
       - label=disable
     label:
-      traefik.enable: "{{ mattermost_enable_traefik | lower }}"
-      traefik.http.routers.mattermost.rule: "Host(`{{ mattermost_fqdn }}`)"
+      traefik.enable: "{{mattermost_enable_traefik | lower}}"
+      traefik.http.routers.mattermost.rule: "Host(`{{mattermost_fqdn}}`)"
       traefik.http.routers.mattermost.entrypoints: "websecure"
       traefik.http.routers.mattermost.service: "mattermost"
       traefik.http.services.mattermost.loadbalancer.server.port: "8065"
@@ -122,7 +122,7 @@
 # .......................................................................................
 - name: reload systemd user daemon
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
   become: false
   changed_when: false
@@ -130,7 +130,7 @@
 # .......................................................................................
 - name: Start rootless pod with systemd
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
-    systemctl --user start {{ service_properties.name }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
+    systemctl --user start {{service_properties.name}}
   become: false
   changed_when: true

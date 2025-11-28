@@ -1,14 +1,14 @@
 ---
 - name: Ensure systemd override directory exists
   ansible.builtin.file:
-    path: "{{ lookup('env', 'HOME') }}/.config/systemd/user/container-elasticsearch-svc.service.d"
+    path: "{{lookup('env', 'HOME')}}/.config/systemd/user/container-elasticsearch-svc.service.d"
     state: directory
     mode: "0755"
   become: false
 
 - name: Configure systemd resource limits
   ansible.builtin.copy:
-    dest: "{{ lookup('env', 'HOME') }}/.config/systemd/user/container-elasticsearch-svc.service.d/override.conf"
+    dest: "{{lookup('env', 'HOME')}}/.config/systemd/user/container-elasticsearch-svc.service.d/override.conf"
     content: |
       [Service]
       LimitMEMLOCK=infinity

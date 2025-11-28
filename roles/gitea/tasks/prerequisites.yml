@@ -13,33 +13,33 @@
 
 - name: Get current user ownership
   ansible.builtin.stat:
-    path: "{{ gitea_data_dir }}"
+    path: "{{gitea_data_dir}}"
   register: dir_stat
 
 - name: Create gitea configuration file
   ansible.builtin.template:
     src: app.ini.j2
-    dest: "{{ gitea_data_dir }}/config/app.ini"
-    owner: "{{ dir_stat.stat.uid }}"
-    group: "{{ dir_stat.stat.gid }}"
+    dest: "{{gitea_data_dir}}/config/app.ini"
+    owner: "{{dir_stat.stat.uid}}"
+    group: "{{dir_stat.stat.gid}}"
     mode: '0640'
   become: true
 
 - name: Create gitea environment file
   ansible.builtin.template:
     src: gitea.env.j2
-    dest: "{{ gitea_data_dir }}/config/gitea.env"
-    owner: "{{ dir_stat.stat.uid }}"
-    group: "{{ dir_stat.stat.gid }}"
+    dest: "{{gitea_data_dir}}/config/gitea.env"
+    owner: "{{dir_stat.stat.uid}}"
+    group: "{{dir_stat.stat.gid}}"
     mode: '0640'
   become: true
 
 - name: Ensure data directories have correct permissions
   ansible.builtin.file:
-    path: "{{ gitea_data_dir }}/{{ item.path }}"
+    path: "{{gitea_data_dir}}/{{item.path}}"
     state: directory
-    owner: "{{ dir_stat.stat.uid }}"
-    group: "{{ dir_stat.stat.gid }}"
-    mode: "{{ item.mode }}"
+    owner: "{{dir_stat.stat.uid}}"
+    group: "{{dir_stat.stat.gid}}"
+    mode: "{{item.mode}}"
   become: true
-  loop: "{{ service_properties.dirs }}"
+  loop: "{{service_properties.dirs}}"

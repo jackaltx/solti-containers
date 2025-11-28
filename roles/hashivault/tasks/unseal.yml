@@ -13,15 +13,15 @@
 
 - name: Parse vault status
   set_fact:
-    vault_sealed: "{{ (vault_status.stdout | from_json).sealed | default(true) }}"
-    vault_initialized: "{{ (vault_status.stdout | from_json).initialized | default(false) }}"
+    vault_sealed: "{{(vault_status.stdout | from_json).sealed | default(true)}}"
+    vault_initialized: "{{(vault_status.stdout | from_json).initialized | default(false)}}"
   when: vault_status.rc == 0
 
 - name: Display current Vault status
   debug:
     msg:
-      - "Vault initialized: {{ vault_initialized | default(false) }}"
-      - "Vault sealed: {{ vault_sealed | default(true) }}"
+      - "Vault initialized: {{vault_initialized | default(false)}}"
+      - "Vault sealed: {{vault_sealed | default(true)}}"
 
 # .........................................................................
 # Only proceed with unsealing if Vault is sealed
@@ -31,32 +31,32 @@
     # Check if keys file exists
     - name: Check if keys file exists
       stat:
-        path: "{{ vault_keys_file | default( lookup('env', 'HOME') + '/.secrets/vault-secrets/vault-keys.json') }}"
+        path: "{{vault_keys_file | default( lookup('env', 'HOME') + '/.secrets/vault-secrets/vault-keys.json')}}"
       register: keys_file_stat
 
     - name: Fail if keys file doesn't exist
       fail:
-        msg: "Vault keys file not found. Please check if the file exists at {{ vault_keys_file | default( lookup('env', 'HOME') + '/.secrets/vault-secrets/vault-keys.json') }}"
+        msg: "Vault keys file not found. Please check if the file exists at {{vault_keys_file | default( lookup('env', 'HOME') + '/.secrets/vault-secrets/vault-keys.json')}}"
       when: not keys_file_stat.stat.exists
 
     # .........................................................................
     # Load the unseal keys
     - name: Load unseal keys from file
       slurp:
-        src: "{{ vault_keys_file | default( lookup('env', 'HOME') + '/.secrets/vault-secrets/vault-keys.json') }}"
+        src: "{{vault_keys_file | default( lookup('env', 'HOME') + '/.secrets/vault-secrets/vault-keys.json')}}"
       register: encoded_keys
 
     - name: Parse unseal keys
       set_fact:
-        vault_unseal_keys: "{{ (encoded_keys.content | b64decode | from_json).unseal_keys_b64 }}"
-        vault_root_token: "{{ (encoded_keys.content | b64decode | from_json).root_token }}"
+        vault_unseal_keys: "{{(encoded_keys.content | b64decode | from_json).unseal_keys_b64}}"
+        vault_root_token: "{{(encoded_keys.content | b64decode | from_json).root_token}}"
       no_log: true
 
     # .........................................................................
     # Apply unseal keys up to the threshold
     - name: Apply unseal keys (up to threshold)
-      command: "podman exec vault-svc vault operator unseal {{ item }}"
-      loop: "{{ vault_unseal_keys[:vault_key_threshold | default(3)] }}"
+      command: "podman exec vault-svc vault operator unseal {{item}}"
+      loop: "{{vault_unseal_keys[:vault_key_threshold | default(3)]}}"
       register: unseal_result
       no_log: true
 
@@ -69,4 +69,4 @@
 
     - name: Show final Vault status
       debug:
-        msg: "Vault is now unsealed: {{ not ((final_status.stdout | from_json).sealed) }}"
+        msg: "Vault is now unsealed: {{not ((final_status.stdout | from_json).sealed)}}"

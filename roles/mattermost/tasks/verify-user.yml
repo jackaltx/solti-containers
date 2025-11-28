@@ -30,10 +30,10 @@
 # Check PostgreSQL
 - name: Check PostgreSQL connection
   command: >
-    podman exec 
-    -e PGPASSWORD="{{ mattermost_postgres_password }}"
-    mattermost-db 
-    psql -U {{ mattermost_db_user }} -d {{ mattermost_db_name }} -c "SELECT version();"
+    podman exec
+    -e PGPASSWORD="{{mattermost_postgres_password}}"
+    mattermost-db
+    psql -U {{mattermost_db_user}} -d {{mattermost_db_name}} -c "SELECT version();"
   register: postgres_version
   changed_when: false
   no_log: true
@@ -46,7 +46,7 @@
 # Check Mattermost API
 - name: Wait for Mattermost to be ready
   uri:
-    url: "{{ mattermost_site_url }}/api/v4/system/ping"
+    url: "{{mattermost_site_url}}/api/v4/system/ping"
     method: GET
     status_code: 200
   register: ping_result
@@ -59,23 +59,23 @@
 # Set test user variables if not defined
 - name: Set default test user variables if not defined
   set_fact:
-    test_email: "{{ test_email | default('test-' + ansible_facts.date_time.epoch + '@example.com') }}"
-    test_username: "{{ test_username | default('testuser-' + ansible_facts.date_time.epoch) }}"
-    test_password: "{{ test_password | default('Test123!') }}"
-    test_team_name: "{{ test_team_name | default('testteam-' + ansible_facts.date_time.epoch) }}"
-    test_team_display_name: "{{ test_team_display_name | default('Test Team') }}"
-    test_team_description: "{{ test_team_description | default('Team for testing purposes') }}"
+    test_email: "{{test_email | default('test-' + ansible_facts.date_time.epoch + '@example.com')}}"
+    test_username: "{{test_username | default('testuser-' + ansible_facts.date_time.epoch)}}"
+    test_password: "{{test_password | default('Test123!')}}"
+    test_team_name: "{{test_team_name | default('testteam-' + ansible_facts.date_time.epoch)}}"
+    test_team_display_name: "{{test_team_display_name | default('Test Team')}}"
+    test_team_description: "{{test_team_description | default('Team for testing purposes')}}"
 
 # ....................................................................................
 # Login to get authentication token using actual admin credentials
 - name: Login to get authentication token
   uri:
-    url: "{{ mattermost_site_url }}/api/v4/users/login"
+    url: "{{mattermost_site_url}}/api/v4/users/login"
     method: POST
     body_format: json
     body:
-      login_id: "{{ mattermost_admin_email }}"
-      password: "{{ mattermost_admin_password }}"
+      login_id: "{{mattermost_admin_email}}"
+      password: "{{mattermost_admin_password}}"
     status_code: [200, 201]
     return_content: true
   register: login_response
@@ -83,27 +83,27 @@
 
 - name: Set auth token from login response
   set_fact:
-    auth_token: "{{ login_response.token }}"
+    auth_token: "{{login_response.token}}"
   no_log: true
 
 - name: Confirm authentication
   debug:
-    msg: "Successfully authenticated as {{ mattermost_admin_username }}"
+    msg: "Successfully authenticated as {{mattermost_admin_username}}"
 
 # ....................................................................................
 # Create Test Team if needed
 - name: Create test team
   uri:
-    url: "{{ mattermost_site_url }}/api/v4/teams"
+    url: "{{mattermost_site_url}}/api/v4/teams"
     method: POST
     headers:
-      Authorization: "Bearer {{ auth_token }}"
+      Authorization: "Bearer {{auth_token}}"
     body_format: json
     body:
-      name: "{{ test_team_name }}"
-      display_name: "{{ test_team_display_name }}"
-      description: "{{ test_team_description }}"
-      type: "O" # Open team
+      name: "{{test_team_name}}"
+      display_name: "{{test_team_display_name}}"
+      description: "{{test_team_description}}"
+      type: "O"  # Open team
     status_code: [201, 400]
   register: team_create
   when: auth_token is defined
@@ -115,7 +115,7 @@
 
 - name: Set team ID fact
   set_fact:
-    team_id: "{{ team_create.json.id }}"
+    team_id: "{{team_create.json.id}}"
   when: team_create.status == 201
   no_log: true
 
@@ -123,15 +123,15 @@
 # Create Test User
 - name: Create test user
   uri:
-    url: "{{ mattermost_site_url }}/api/v4/users"
+    url: "{{mattermost_site_url}}/api/v4/users"
     method: POST
     headers:
-      Authorization: "Bearer {{ auth_token }}"
+      Authorization: "Bearer {{auth_token}}"
     body_format: json
     body:
-      email: "{{ test_email }}"
-      username: "{{ test_username }}"
-      password: "{{ test_password }}"
+      email: "{{test_email}}"
+      username: "{{test_username}}"
+      password: "{{test_password}}"
       first_name: "Test"
       last_name: "User"
     status_code: [201, 400]
@@ -145,7 +145,7 @@
 
 - name: Set user ID fact
   set_fact:
-    user_id: "{{ user_create.json.id }}"
+    user_id: "{{user_create.json.id}}"
   when: user_create.status == 201
   no_log: true
 
@@ -153,14 +153,14 @@
 # Add test user to team if both exist
 - name: Add test user to team
   uri:
-    url: "{{ mattermost_site_url }}/api/v4/teams/{{ team_create.json.id }}/members"
+    url: "{{mattermost_site_url}}/api/v4/teams/{{team_create.json.id}}/members"
     method: POST
     headers:
-      Authorization: "Bearer {{ auth_token }}"
+      Authorization: "Bearer {{auth_token}}"
     body_format: json
     body:
-      team_id: "{{ team_create.json.id }}"
-      user_id: "{{ user_create.json.id }}"
+      team_id: "{{team_create.json.id}}"
+      user_id: "{{user_create.json.id}}"
     status_code: [201, 400, 403]
   register: team_add
   when:
@@ -180,10 +180,10 @@
   debug:
     msg: |
       Mattermost test user created:
-      - Username: {{ test_username }}
-      - Email: {{ test_email }}
-      - Password: {{ test_password }}
-      - Team: {{ test_team_display_name }}
+      - Username: {{test_username}}
+      - Email: {{test_email}}
+      - Password: {{test_password}}
+      - Team: {{test_team_display_name}}
   when: user_create.status == 201
 
 # ....................................................................................
@@ -196,4 +196,4 @@
 
 - name: Show recent error logs if any
   debug:
-    msg: "{{ mattermost_logs.stdout_lines | select('match', '.*error.*') | list }}"
+    msg: "{{mattermost_logs.stdout_lines | select('match', '.*error.*') | list}}"

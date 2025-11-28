@@ -8,26 +8,26 @@ gitea_port: 3001
 gitea_ssh_port: 2222
 
 # Data directories
-gitea_data_dir: "{{ lookup('env', 'HOME') }}/gitea-data"
+gitea_data_dir: "{{lookup('env', 'HOME')}}/gitea-data"
 
 # Admin credentials
 gitea_admin_user: "gitea_admin"
-gitea_admin_password: "{{ lookup('env', 'GITEA_ADMIN_PASSWORD', default='changeme') }}"
-gitea_admin_email: "admin@{{ domain }}" # noqa yaml[line-length]
+gitea_admin_password: "{{lookup('env', 'GITEA_ADMIN_PASSWORD', default='changeme')}}"
+gitea_admin_email: "admin@{{domain}}"  # noqa yaml[line-length]
 
 # Service naming and URL construction
 gitea_svc_name: "gitea"  # Override per host in inventory
-gitea_fqdn: "{{ gitea_svc_name }}.{{ domain }}"
+gitea_fqdn: "{{gitea_svc_name}}.{{domain}}"
 gitea_external_port: 8080  # Port users access through Traefik
-gitea_external_url: "https://{{ gitea_fqdn }}:{{ gitea_external_port }}"
+gitea_external_url: "https://{{gitea_fqdn}}:{{gitea_external_port}}"
 
 # Traefik integration
 gitea_enable_traefik: true
 
 # Application settings
 gitea_app_name: "Gitea"
-gitea_domain: "{{ gitea_fqdn }}"  # For backward compatibility
-gitea_root_url: "{{ gitea_external_url }}"
+gitea_domain: "{{gitea_fqdn}}"  # For backward compatibility
+gitea_root_url: "{{gitea_external_url}}"
 gitea_disable_registration: false
 gitea_require_signin: true
 
@@ -49,15 +49,15 @@ service_properties:
   quadlets:
     - "gitea-svc.container"
     - "gitea.pod"
-  data_dir: "{{ gitea_data_dir }}"
+  data_dir: "{{gitea_data_dir}}"
   config_dir: "config"
-  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
-  delete_images: "{{ lookup('env', 'DELETE_IMAGES') | default(false) | bool }}"
-  container_image: "{{ gitea_image }}"
+  delete_data: "{{lookup('env', 'DELETE_DATA') | default(false) | bool}}"
+  delete_images: "{{lookup('env', 'DELETE_IMAGES') | default(false) | bool}}"
+  container_image: "{{gitea_image}}"
   dirs:
-    - { path: "", mode: "0755" }
-    - { path: "config", mode: "0775" }
-    - { path: "data", mode: "0775" }
-    - { path: "data/gitea", mode: "0775" }
-    - { path: "data/git", mode: "0775" }
-    - { path: "logs", mode: "0775" }
+    - {path: "", mode: "0755"}
+    - {path: "config", mode: "0775"}
+    - {path: "data", mode: "0775"}
+    - {path: "data/gitea", mode: "0775"}
+    - {path: "data/git", mode: "0775"}
+    - {path: "logs", mode: "0775"}

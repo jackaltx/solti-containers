@@ -18,18 +18,21 @@ The `prepare` and `deploy` phases are deliberately separated to handle Podman vo
 Podman provides mount option flags to handle these scenarios:
 
 ### `:z` Flag (SELinux Context)
+
 - **Purpose**: Label volume content as shared between containers
 - **When to use**: Always on SELinux-enabled systems (RHEL, Fedora, CentOS)
 - **Effect**: Sets `svirt_sandbox_file_t` context
 - **Example**: `~/service-data/config:/app/config:z`
 
 ### `:Z` Flag (SELinux Private Context)
+
 - **Purpose**: Label volume content as private to single container
 - **When to use**: When volume should ONLY be accessed by one container
 - **Effect**: Sets unique SELinux label per container
 - **Example**: `~/service-data/secrets:/app/secrets:Z`
 
 ### `:U` Flag (Ownership Mapping)
+
 - **Purpose**: Auto-chown volume contents to match container user
 - **When to use**: When container needs to modify files created by host
 - **Effect**: Recursively changes ownership to container's UID:GID
@@ -73,6 +76,7 @@ The two-phase approach exists because:
 ## Real-World Example: InfluxDB3 Token Persistence
 
 ### Initial Problem
+
 ```yaml
 # Host creates file (UID 1000)
 - name: Save token
@@ -86,11 +90,13 @@ volume:
 ```
 
 **Result**: Container (running as influxdb UID) cannot read token file
+
 ```
 Failed to read admin token file metadata: Permission denied (os error 13)
 ```
 
 ### Solution
+
 ```yaml
 # Container mount WITH :U flag
 volume:
@@ -130,18 +136,21 @@ volume:
 ### Common Pitfalls
 
 ❌ **Bad**: No mount flags on SELinux system
+
 ```yaml
 volume:
   - "{{ service_data_dir }}/data:/var/lib/app"
 ```
 
 ❌ **Bad**: Missing :U when container needs to write
+
 ```yaml
 volume:
   - "{{ service_data_dir }}/data:/var/lib/app:z"
 ```
 
 ✅ **Good**: Proper flags for container-writable volume
+
 ```yaml
 volume:
   - "{{ service_data_dir }}/data:/var/lib/app:z,U"
@@ -150,13 +159,17 @@ volume:
 ## Future Considerations
 
 ### Pattern Standardization
+
 Consider adding mount option guidance to `_base` role documentation:
+
 - Standard volume types (config, data, secrets, logs)
 - Recommended flags for each type
 - Testing checklist for permission verification
 
 ### Role Template
+
 Could create a mount options template in `service_properties`:
+
 ```yaml
 service_properties:
   volumes:
@@ -166,7 +179,9 @@ service_properties:
 ```
 
 ### Verification Task
+
 Add to `verify.yml` template:
+
 ```yaml
 - name: Verify container can write to data directory
   command: podman exec {{ service }}-svc touch /var/lib/app/.write-test
@@ -176,8 +191,8 @@ Add to `verify.yml` template:
 
 ## References
 
-- Podman volume mount documentation: https://docs.podman.io/en/latest/markdown/podman-run.1.html#volume-v-source-volume-host-dir-container-dir-options
-- SELinux container contexts: https://www.redhat.com/sysadmin/privileged-flag-container-engines
+- Podman volume mount documentation: <https://docs.podman.io/en/latest/markdown/podman-run.1.html#volume-v-source-volume-host-dir-container-dir-options>
+- SELinux container contexts: <https://www.redhat.com/sysadmin/privileged-flag-container-engines>
 - InfluxDB3 implementation: `roles/influxdb3/tasks/quadlet_rootless.yml:36`
 
 ## Related Documents
@@ -189,5 +204,6 @@ Add to `verify.yml` template:
 ---
 
 **Document History**:
+
 - 2025-01-10: Created based on InfluxDB3 token persistence implementation
 - Key insight: prepare/deploy separation exists to handle mount options properly

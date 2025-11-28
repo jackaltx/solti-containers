@@ -1,9 +1,9 @@
 ---
 - name: Create internal service network
   become: false
-  become_user: "{{ real_user }}"
+  become_user: "{{real_user}}"
   containers.podman.podman_network:
-    name: "{{ service_network }}"
+    name: "{{service_network}}"
     driver: bridge
     disable_dns: false
     state: present

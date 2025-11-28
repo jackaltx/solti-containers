@@ -11,12 +11,12 @@ redis_image: "docker.io/library/redis:7.2-alpine"
 redis_commander_image: "docker.io/rediscommander/redis-commander:latest"
 
 # Directory settings
-redis_data_dir: "{{ lookup('env', 'HOME')}}/redis-data"
+redis_data_dir: "{{lookup('env', 'HOME')}}/redis-data"
 
 # Redis settings
 redis_port: 6379
 redis_gui_port: 8081
-redis_password: "{{ lookup('env', 'REDIS_PASSWORD') | default('changeme') }}"
+redis_password: "{{lookup('env', 'REDIS_PASSWORD') | default('changeme')}}"
 redis_maxmemory: "256mb"
 redis_maxmemory_policy: "allkeys-lru"
 
@@ -49,25 +49,25 @@ service_properties:
     - "redis-svc.container"
     - "redis-gui.container"
     - "redis.pod"
-  data_dir: "{{ redis_data_dir }}"
+  data_dir: "{{redis_data_dir}}"
   config_dir: "config"
-  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
-  delete_images: "{{ lookup('env', 'DELETE_IMAGES') | default(false) | bool }}"
-  image: "{{ redis_image }}"
-  container_image: "{{ redis_image }}"
+  delete_data: "{{lookup('env', 'DELETE_DATA') | default(false) | bool}}"
+  delete_images: "{{lookup('env', 'DELETE_IMAGES') | default(false) | bool}}"
+  image: "{{redis_image}}"
+  container_image: "{{redis_image}}"
   container_images:
-    - "{{ redis_image }}"
-    - "{{ redis_commander_image }}"
+    - "{{redis_image}}"
+    - "{{redis_commander_image}}"
   dirs:
-    - { path: "", mode: "0750" }
-    - { path: "config", mode: "0755" }
-    - { path: "data", mode: "0750" }
+    - {path: "", mode: "0750"}
+    - {path: "config", mode: "0755"}
+    - {path: "data", mode: "0750"}
   ports:
-    - "127.0.0.1:{{ redis_port }}:6379"
-    - "127.0.0.1:{{ redis_gui_port }}:8081"
+    - "127.0.0.1:{{redis_port}}:6379"
+    - "127.0.0.1:{{redis_gui_port}}:8081"
   volumes:
     [
-      "{{ redis_data_dir }}/config:/usr/local/etc/redis:Z",
-      "{{ redis_data_dir }}/data:/data:Z",
+      "{{redis_data_dir}}/config:/usr/local/etc/redis:Z",
+      "{{redis_data_dir}}/data:/data:Z",
     ]
   command: ["redis-server", "/usr/local/etc/redis/redis.conf"]

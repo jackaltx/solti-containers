@@ -12,12 +12,12 @@
 # Get container user mapping first
 - name: Get directory ownership
   ansible.builtin.stat:
-    path: "{{ minio_data_dir }}/config"
+    path: "{{minio_data_dir}}/config"
   register: dir_info
 
 - name: Debug ownership
   ansible.builtin.debug:
-    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+    msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
 # .......................................................................
 # NOTE: Directory creation and SELinux handled by _base/prepare.yml
 # No additional prerequisites needed for MinIO

@@ -4,7 +4,7 @@
 - name: Ensure required directories exist
   become: false
   ansible.builtin.file:
-    path: "{{ real_user_dir }}/{{ item }}"
+    path: "{{real_user_dir}}/{{item}}"
     state: directory
     mode: "0750"
   loop:
@@ -17,13 +17,13 @@
   containers.podman.podman_pod:
     name: vault
     state: quadlet
-    dns: "{{ service_dns_servers }}"
-    dns_search: "{{ service_dns_search }}"
-    network: "{{ service_network }}"
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    dns: "{{service_dns_servers}}"
+    dns_search: "{{service_dns_search}}"
+    network: "{{service_network}}"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     ports:
-      - "127.0.0.1:{{ vault_api_port }}:8200"
-      - "127.0.0.1:{{ vault_cluster_port }}:8201"
+      - "127.0.0.1:{{vault_api_port}}:8200"
+      - "127.0.0.1:{{vault_cluster_port}}:8201"
     quadlet_options:
       - |
         [Service]
@@ -38,27 +38,27 @@
   containers.podman.podman_container:
     name: vault-svc
     pod: vault.pod
-    image: "{{ vault_image }}"
+    image: "{{vault_image}}"
     state: quadlet
-    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     command: "server"
     volume:
-      - "{{ vault_data_dir }}/config:/vault/config:Z"
-      - "{{ vault_data_dir }}/data:/vault/data:Z"
-      - "{{ vault_data_dir }}/logs:/vault/logs:Z"
-      - "{{ vault_data_dir }}/tls:/vault/tls:Z"
+      - "{{vault_data_dir}}/config:/vault/config:Z"
+      - "{{vault_data_dir}}/data:/vault/data:Z"
+      - "{{vault_data_dir}}/logs:/vault/logs:Z"
+      - "{{vault_data_dir}}/tls:/vault/tls:Z"
     env:
       VAULT_ADDR: "http://127.0.0.1:8200"
       VAULT_API_ADDR: "http://127.0.0.1:8200"
       VAULT_CLUSTER_ADDR: "http://127.0.0.1:8201"
     label:
-      traefik.enable: "{{ hashivault_enable_traefik | lower }}"
-      traefik.http.routers.vault-primary.rule: "Host(`{{ hashivault_fqdn }}`)"
+      traefik.enable: "{{hashivault_enable_traefik | lower}}"
+      traefik.http.routers.vault-primary.rule: "Host(`{{hashivault_fqdn}}`)"
       traefik.http.routers.vault-primary.entrypoints: "websecure"
       traefik.http.routers.vault-primary.service: "vault-primary"
       traefik.http.services.vault-primary.loadbalancer.server.port: "8200"
       traefik.http.routers.vault-primary.middlewares: "secHeaders@file"
-      traefik.http.routers.vault-secondary.rule: "Host(`{{ hashivault_fqdn_alt }}`)"
+      traefik.http.routers.vault-secondary.rule: "Host(`{{hashivault_fqdn_alt}}`)"
       traefik.http.routers.vault-secondary.entrypoints: "websecure"
       traefik.http.routers.vault-secondary.service: "vault-primary"
       traefik.http.routers.vault-secondary.middlewares: "secHeaders@file"
@@ -85,7 +85,7 @@
 # .......................................................................................
 - name: reload systemd user daemon
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
   become: false
   changed_when: false
@@ -93,7 +93,7 @@
 # .......................................................................................
 - name: Start rootless pod with systemd
   ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
-    systemctl --user start {{ service_properties.name }}
+    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
+    systemctl --user start {{service_properties.name}}
   become: false
   changed_when: true

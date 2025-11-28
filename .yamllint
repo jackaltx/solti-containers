@@ -6,9 +6,13 @@ rules:
     max: 160
     level: warning
   comments:
-    min-spaces-from-content: 2
+    min-spaces-from-content: 1  # Relaxed from 2 for incremental fixes
+    level: warning
+  comments-indentation:
     level: warning
   braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1  # Allow some flexibility
     level: warning
   brackets:
     level: warning
@@ -18,8 +22,11 @@ rules:
     level: warning
   truthy:
     level: warning
+  document-start:
+    level: warning
 
 ignore: |
   delete-me-inventory.yml
   node_modules/
   .git/
+  solti-venv/

@@ -5,25 +5,25 @@
 
 - name: Get all containers in pod
   command: >
-    podman ps --filter "pod={{ service_properties.root }}" --format '{% raw %}{{.Names}}|{{.Image}}{% endraw %}'
+    podman ps --filter "pod={{service_properties.root}}" --format '{% raw %}{{.Names}}|{{.Image}}{% endraw %}'
   register: pod_containers
   changed_when: false
   failed_when: pod_containers.rc != 0
 
 - name: Display discovered containers
   debug:
-    msg: "Found {{ pod_containers.stdout_lines | length }} container(s) in pod: {{ service_properties.root }}"
+    msg: "Found {{pod_containers.stdout_lines | length}} container(s) in pod: {{service_properties.root}}"
 
 - name: Check each container for updates
   include_tasks: check_upgrade_container.yml
-  loop: "{{ pod_containers.stdout_lines }}"
+  loop: "{{pod_containers.stdout_lines}}"
   loop_control:
     loop_var: container_info
   when: "'infra' not in container_info"  # Skip pause/infra container
 
 - name: Summary of upgrade status
   debug:
-    msg: "{{ upgrade_summary }}"
+    msg: "{{upgrade_summary}}"
   vars:
     upgrade_summary: >-
       {%- set updates = [] -%}
@@ -33,7 +33,7 @@
         {%- endif -%}
       {%- endfor -%}
       {%- if updates | length > 0 -%}
-      UPDATES AVAILABLE for: {{ updates | join(', ') }}
+      UPDATES AVAILABLE for: {{updates | join(', ')}}
       {%- else -%}
       All containers up to date
       {%- endif -%}

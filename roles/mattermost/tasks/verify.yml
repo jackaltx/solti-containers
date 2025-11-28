@@ -25,10 +25,10 @@
 # Check PostgreSQL
 - name: Check PostgreSQL connection
   command: >
-    podman exec 
-    -e PGPASSWORD="{{ mattermost_postgres_password }}"
-    mattermost-db 
-    psql -U {{ mattermost_db_user }} -d {{ mattermost_db_name }} -c "SELECT version();"
+    podman exec
+    -e PGPASSWORD="{{mattermost_postgres_password}}"
+    mattermost-db
+    psql -U {{mattermost_db_user}} -d {{mattermost_db_name}} -c "SELECT version();"
   register: postgres_version
   changed_when: false
   no_log: true
@@ -40,9 +40,9 @@
 - name: Check PostgreSQL tables
   command: >
     podman exec
-    -e PGPASSWORD="{{ mattermost_postgres_password }}"
-    mattermost-db 
-    psql -U {{ mattermost_db_user }} -d {{ mattermost_db_name }} 
+    -e PGPASSWORD="{{mattermost_postgres_password}}"
+    mattermost-db
+    psql -U {{mattermost_db_user}} -d {{mattermost_db_name}}
     -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';"
   register: table_count
   changed_when: false
@@ -56,7 +56,7 @@
 # Check Mattermost API
 - name: Wait for Mattermost to be ready
   uri:
-    url: "{{ mattermost_site_url }}/api/v4/system/ping"
+    url: "{{mattermost_site_url}}/api/v4/system/ping"
     method: GET
     status_code: 200
   register: ping_result
@@ -67,7 +67,7 @@
 
 - name: Get Mattermost server status
   uri:
-    url: "{{ mattermost_site_url }}/api/v4/system/ping"
+    url: "{{mattermost_site_url}}/api/v4/system/ping"
     method: GET
   register: status_result
   no_log: true
@@ -86,13 +86,13 @@
 
 - name: Show recent error logs if any
   debug:
-    msg: "{{ mattermost_logs.stdout_lines | select('match', '.*error.*') | list }}"
+    msg: "{{mattermost_logs.stdout_lines | select('match', '.*error.*') | list}}"
 
 # ..................................................................................
 # Check config accessibility via API
 - name: Verify config API accessibility
   uri:
-    url: "{{ mattermost_site_url }}/api/v4/config/client?format=old"
+    url: "{{mattermost_site_url}}/api/v4/config/client?format=old"
     method: GET
     status_code: [200, 401]
   register: config_check
@@ -100,7 +100,7 @@
 
 - name: Show config accessibility status
   debug:
-    msg: "Config API status: {{ 'Locked down (auth required)' if config_check.status == 401 else 'WARNING: Open access (no auth)' }}"
+    msg: "Config API status: {{'Locked down (auth required)' if config_check.status == 401 else 'WARNING: Open access (no auth)'}}"
 
 # ..................................................................................
 # Memory usage

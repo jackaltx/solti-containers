@@ -9,10 +9,13 @@ This file defines custom commands that Claude Code can execute for this project.
 **Process:**
 
 1. Discover which services have `verify.yml` files by checking `roles/*/tasks/verify.yml`
-2. Exclude services that require sudo (wazuh) or are not currently running
-3. Load `labenv` environment once
-4. Execute `./svc-exec.sh <service> verify` for each service with verify.yml
-5. Report summary of passed/failed/skipped verifications
+2. Extract service names from paths (e.g., `roles/hashivault/tasks/verify.yml` → `hashivault`)
+3. Check which services are currently running using `podman pod ps`
+4. Load `labenv` environment once
+5. Execute `./svc-exec.sh <service> verify` for each running service with verify.yml
+6. Report summary of passed/failed/skipped verifications
+
+**Important:** Service directory names (e.g., `hashivault`) are used with `./svc-exec.sh`, not the pod names (e.g., `vault`). The script handles name mapping internally.
 
 **Usage:**
 
@@ -28,17 +31,33 @@ This file defines custom commands that Claude Code can execute for this project.
 **Example execution:**
 
 ```bash
-# Check for services with verify.yml
-ls roles/*/tasks/verify.yml
+# 1. Find all services with verify.yml
+# Output: roles/elasticsearch/tasks/verify.yml, roles/hashivault/tasks/verify.yml, etc.
 
-# Load environment and run all verifications in single shell session
-labenv; ./svc-exec.sh elasticsearch verify; ./svc-exec.sh redis verify; ./svc-exec.sh mattermost verify; ...
+# 2. Check running pods
+podman pod ps --format "{{.Name}}"
+# Output: elasticsearch, vault, redis, etc.
+
+# 3. Map service names to pod names (hashivault → vault, others match 1:1)
+
+# 4. Run verifications in single shell session with labenv loaded
+source $HOME/.secrets/LabProvision && \
+  ./svc-exec.sh elasticsearch verify && \
+  ./svc-exec.sh gitea verify && \
+  ./svc-exec.sh grafana verify && \
+  ./svc-exec.sh hashivault verify && \
+  ./svc-exec.sh influxdb3 verify && \
+  ./svc-exec.sh mattermost verify && \
+  ./svc-exec.sh minio verify && \
+  ./svc-exec.sh redis verify && \
+  ./svc-exec.sh traefik verify
 ```
 
 **Expected behavior:**
 
-- Claude discovers services with verify.yml files dynamically from roles/*/tasks/verify.yml
-- Loads labenv environment using the alias directly
-- Runs verification for all services with verify tasks sequentially in same shell
-- Provides summary with pass/fail status for each service
-- Reports which services were skipped (no verify.yml)
+- Discovers services with verify.yml files dynamically from `roles/*/tasks/verify.yml`
+- Uses `podman pod ps` to check running pods (more reliable than systemctl grep)
+- Loads labenv environment once at the start
+- Runs verification for all running services with verify tasks sequentially
+- Provides summary table with pass/fail status for each service
+- Notes which services were skipped (not running or no verify.yml)

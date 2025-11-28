@@ -9,6 +9,7 @@
 ## Summary
 
 Standardized Traefik integration across 9 services to use consistent patterns:
+
 - Dict format for labels
 - Conditional enable flags
 - HTTPS-only on port 8080
@@ -39,6 +40,7 @@ Added `<service>_enable_traefik: true` to all services' `defaults/main.yml`:
 Converted all services from `quadlet_options` with `Label=` strings to `label:` dict format:
 
 **Before:**
+
 ```yaml
 quadlet_options:
   - "Label=traefik.enable=true"
@@ -46,6 +48,7 @@ quadlet_options:
 ```
 
 **After:**
+
 ```yaml
 label:
   traefik.enable: "{{ grafana_enable_traefik | lower }}"
@@ -53,6 +56,7 @@ label:
 ```
 
 Services modified:
+
 - mattermost/tasks/quadlet_rootless.yml:95-101
 - grafana/tasks/quadlet_rootless.yml:61-67
 - hashivault/tasks/quadlet_rootless.yml:54-64
@@ -66,6 +70,7 @@ Services modified:
 ### 3. Conditional Enable ✅
 
 Changed from hardcoded `traefik.enable: "true"` to conditional:
+
 ```yaml
 traefik.enable: "{{ <service>_enable_traefik | lower }}"
 ```
@@ -77,11 +82,13 @@ All 9 services now support runtime enable/disable via inventory override.
 Removed `,redirect-to-https@file` from all middlewares:
 
 **Before:**
+
 ```yaml
 traefik.http.routers.grafana.middlewares: "secHeaders@file,redirect-to-https@file"
 ```
 
 **After:**
+
 ```yaml
 traefik.http.routers.grafana.middlewares: "secHeaders@file"
 ```
@@ -93,6 +100,7 @@ traefik.http.routers.grafana.middlewares: "secHeaders@file"
 **File:** roles/traefik/tasks/quadlet_rootless.yml:60-62
 
 **Before:**
+
 ```yaml
 ports:
   - "0.0.0.0:{{ traefik_http_port }}:8080"     # HTTP/HTTPS
@@ -101,6 +109,7 @@ ports:
 ```
 
 **After:**
+
 ```yaml
 ports:
   - "0.0.0.0:{{ traefik_http_port }}:8080"     # HTTPS websecure entrypoint
@@ -108,6 +117,7 @@ ports:
 ```
 
 **Traefik config already correct:**
+
 - `websecure` entrypoint on internal port 8080 (maps to host 8080)
 - `web` entrypoint already commented out (no HTTP port 80)
 
@@ -218,6 +228,7 @@ grafana_enable_traefik: false  # Disable Traefik for this service only
 ```
 
 Or globally remove from pod mapping:
+
 ```yaml
 ports:
   - "127.0.0.1:3000:3000"  # Direct access, bypass Traefik
@@ -228,6 +239,7 @@ ports:
 ## Files Changed
 
 ### Defaults (Enable Flags)
+
 - roles/mattermost/defaults/main.yml
 - roles/grafana/defaults/main.yml
 - roles/hashivault/defaults/main.yml
@@ -239,6 +251,7 @@ ports:
 - roles/influxdb3/defaults/main.yml (already existed)
 
 ### Quadlets (Label Format)
+
 - roles/mattermost/tasks/quadlet_rootless.yml
 - roles/grafana/tasks/quadlet_rootless.yml
 - roles/hashivault/tasks/quadlet_rootless.yml
@@ -250,6 +263,7 @@ ports:
 - roles/traefik/tasks/quadlet_rootless.yml (conditional + port cleanup)
 
 ### Documentation
+
 - docs/Traefik-Label-Consolidation-Pattern.md (new)
 - docs/sprints/TRAEFIK_STANDARDIZATION_2025-01-20.md (this file)
 
@@ -258,16 +272,21 @@ ports:
 ## Impact Assessment
 
 ### Backward Compatibility
+
 ✅ **Compatible** - All changes are opt-in via enable flags defaulting to `true`
 
 ### Breaking Changes
+
 ❌ **None** - Existing deployments continue working without modification
 
 ### Performance
+
 ✅ **Neutral** - No performance impact, label format equivalent
 
 ### Security
+
 ✅ **Improved**:
+
 - No HTTP exposure (removed redirect middleware)
 - Explicit HTTPS-only configuration
 - Runtime disable capability for sensitive services
@@ -277,6 +296,7 @@ ports:
 ## Future Enhancements
 
 See [Traefik-Label-Consolidation-Pattern.md](../Traefik-Label-Consolidation-Pattern.md) for:
+
 - _base role consolidation pattern
 - Dynamic label generation
 - Further code reduction (80% potential)
@@ -289,17 +309,20 @@ See [Traefik-Label-Consolidation-Pattern.md](../Traefik-Label-Consolidation-Patt
 ## Lessons Learned
 
 ### What Worked Well
+
 ✅ Dict format cleaner than `Label=` strings
 ✅ Conditional enable provides flexibility
 ✅ Removing HTTP redirect simplifies architecture
 ✅ Consistent patterns easier to maintain
 
 ### Challenges
+
 ⚠️ Multi-container services (Minio, Redis) need special patterns
 ⚠️ Hostname aliases (Elasticsearch, HashiVault) require multiple routers
 ⚠️ Service-specific edge cases (Traefik dashboard TLS cert resolver)
 
 ### Recommendations
+
 - Keep dict format for new services
 - Document special patterns in service CLAUDE.md
 - Consider _base consolidation when service count exceeds 12

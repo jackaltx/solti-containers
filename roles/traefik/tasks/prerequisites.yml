@@ -5,12 +5,12 @@
 - name: Get directory ownership
   become: true
   ansible.builtin.stat:
-    path: "{{ traefik_data_dir }}/config"
+    path: "{{traefik_data_dir}}/config"
   register: dir_info
 
 - name: Debug ownership
   ansible.builtin.debug:
-    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+    msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
 
 # .......................................................................
 - name: Become root and change setting files
@@ -28,30 +28,30 @@
         msg:
           - "=========================================="
           - "TRAEFIK DEVELOPMENT SETUP REMINDER:"
-          - "1. Dashboard will be at: http://localhost:{{ traefik_dashboard_port }}"
-          - "2. Domain configured: {{ domain }}"
-          - "3. DNS provider: Linode (token: {{ 'SET' if lookup('env', 'LINODE_TOKEN') else 'NOT SET' }})"
-          - "4. Ensure *.{{ domain }} points to this machine"
+          - "1. Dashboard will be at: http://localhost:{{traefik_dashboard_port}}"
+          - "2. Domain configured: {{domain}}"
+          - "3. DNS provider: Linode (token: {{'SET' if lookup('env', 'LINODE_TOKEN') else 'NOT SET'}})"
+          - "4. Ensure *.{{domain}} points to this machine"
           - "=========================================="
 
     # .....................................................................................
     - name: Template Traefik configuration
       template:
         src: traefik.yaml.j2
-        dest: "{{ traefik_data_dir }}/config/traefik.yaml"
+        dest: "{{traefik_data_dir}}/config/traefik.yaml"
         mode: "0640"
-        owner: "{{ dir_info.stat.uid | default(ansible_user_id) }}"
-        group: "{{ dir_info.stat.gid | default(ansible_user_id) }}"
+        owner: "{{dir_info.stat.uid | default(ansible_user_id)}}"
+        group: "{{dir_info.stat.gid | default(ansible_user_id)}}"
       notify: restart traefik
 
     # .....................................................................................
     - name: Template Traefik dynamic configuration
       template:
         src: traefik-dynamic.yaml.j2
-        dest: "{{ traefik_data_dir }}/config/traefik-dynamic.yaml"
+        dest: "{{traefik_data_dir}}/config/traefik-dynamic.yaml"
         mode: "0640"
-        owner: "{{ dir_info.stat.uid | default(ansible_user_id) }}"
-        group: "{{ dir_info.stat.gid | default(ansible_user_id) }}"
+        owner: "{{dir_info.stat.uid | default(ansible_user_id)}}"
+        group: "{{dir_info.stat.gid | default(ansible_user_id)}}"
       notify: restart traefik
 
     # .....................................................................................
@@ -60,12 +60,12 @@
       block:
         - name: Set SELinux context for data directories
           ansible.builtin.sefcontext:
-            target: "{{ traefik_data_dir }}(/.*)?"
+            target: "{{traefik_data_dir}}(/.*)?"
             setype: container_file_t
             state: present
 
         - name: Apply SELinux context
-          ansible.builtin.command: restorecon -R -v "{{ traefik_data_dir }}"
+          ansible.builtin.command: restorecon -R -v "{{traefik_data_dir}}"
           register: restorecon_result
           changed_when: restorecon_result.rc == 0
 
@@ -81,11 +81,9 @@
                 content: |
                   module traefik-podman 1.0;
 
-                  require {
-                    type container_t;
+                  require {type container_t;
                     type container_runtime_t;
-                    class unix_stream_socket connectto;
-                  }
+                    class unix_stream_socket connectto;}
 
                   #============= container_t ==============
                   allow container_t container_runtime_t:unix_stream_socket connectto;

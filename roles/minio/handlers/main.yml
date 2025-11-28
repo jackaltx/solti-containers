@@ -1,8 +1,9 @@
 ---
 - name: reload systemd
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
     scope: user
+  become: false
 
 - name: restart minio
   ansible.builtin.systemd:
@@ -10,8 +11,10 @@
     state: restarted
     scope: user
   listen: "restart minio"
+  become: false
 
 - name: reload systemd user daemon
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
     scope: user
+  become: false

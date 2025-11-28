@@ -8,7 +8,7 @@
 
 - name: Validate state parameter
   ansible.builtin.fail:
-    msg: "redis_state must be one of: prepare, present, absent. Current value: {{ redis_state }}"
+    msg: "redis_state must be one of: prepare, present, absent. Current value: {{redis_state}}"
   when: redis_state not in ['prepare', 'present', 'absent']
 
 - name: Test become capability
@@ -25,9 +25,9 @@
 # Get real user info using environment variables (immune to become)
 - name: Get real user info from environment
   set_fact:
-    real_user: "{{ lookup('env', 'USER') }}"
-    real_user_dir: "{{ lookup('env', 'HOME') }}"
-    real_user_uid: "{{ lookup('pipe', 'id -u') }}"
+    real_user: "{{lookup('env', 'USER')}}"
+    real_user_dir: "{{lookup('env', 'HOME')}}"
+    real_user_uid: "{{lookup('pipe', 'id -u')}}"
 
 # =======================================================================
 # PREPARATION (one-time setup)
@@ -38,12 +38,12 @@
   block:
     - name: Check if already prepared
       ansible.builtin.stat:
-        path: "{{ redis_data_dir }}"
+        path: "{{redis_data_dir}}"
       register: data_dir_check
 
     - name: Fail if already prepared
       ansible.builtin.fail:
-        msg: "Redis appears to be already prepared. Directory {{ redis_data_dir }} exists."
+        msg: "Redis appears to be already prepared. Directory {{redis_data_dir}} exists."
       when: data_dir_check.stat.exists
 
     # ............................................................
@@ -61,7 +61,7 @@
     - name: Check if directories exist
       become: true
       ansible.builtin.stat:
-        path: "{{ redis_data_dir }}/{{ service_properties.config_dir }}"
+        path: "{{redis_data_dir}}/{{service_properties.config_dir}}"
       register: config_dir_check
       changed_when: false
 

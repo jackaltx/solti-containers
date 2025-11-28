@@ -253,6 +253,8 @@ all:
               # Optional host-specific minio vars can go here
               minio_api_port: 9000
               minio_console_port: 9001
+              minio_api_svc_name: "minio-test"
+              minio_console_svc_name: "minio-console-test"  # Console is built-in, this is just for Traefik routing
 
           # .......................................
           # _svc only vars

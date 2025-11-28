@@ -7,7 +7,7 @@
 
 - name: Validate state parameter
   ansible.builtin.fail:
-    msg: "minio_state must be one of: prepare, present, absent. Current value: {{ minio_state }}"
+    msg: "minio_state must be one of: prepare, present, absent. Current value: {{minio_state}}"
   when: minio_state not in ['prepare', 'present', 'absent']
 
 - name: Test become capability
@@ -18,9 +18,9 @@
 # Get real user info using environment variables (immune to become)
 - name: Get real user info from environment
   set_fact:
-    real_user: "{{ lookup('env', 'USER') }}"
-    real_user_dir: "{{ lookup('env', 'HOME') }}"
-    real_user_uid: "{{ lookup('pipe', 'id -u') }}"
+    real_user: "{{lookup('env', 'USER')}}"
+    real_user_dir: "{{lookup('env', 'HOME')}}"
+    real_user_uid: "{{lookup('pipe', 'id -u')}}"
 
 # =======================================================================
 # PREPARATION (one-time setup)
@@ -31,7 +31,7 @@
   block:
     - name: Check if already prepared
       ansible.builtin.stat:
-        path: "{{ real_user_dir }}/{{ minio_data_dir }}"
+        path: "{{real_user_dir}}/{{minio_data_dir}}"
       register: data_dir_check
 
     - debug:
@@ -39,7 +39,7 @@
 
     - name: Fail if already prepared
       ansible.builtin.fail:
-        msg: "MinIO appears to be already prepared. Directory {{ minio_data_dir }} exists."
+        msg: "MinIO appears to be already prepared. Directory {{minio_data_dir}} exists."
       when: data_dir_check.stat.exists
 
     # ............................................................
@@ -61,11 +61,11 @@
         minio_root_password == 'changeme'
 
     - debug:
-        msg: "{{ real_user_dir }}/{{ minio_data_dir }}/config"
+        msg: "{{real_user_dir}}/{{minio_data_dir}}/config"
 
     - name: Check if directories exist
       ansible.builtin.stat:
-        path: "{{ real_user_dir }}/{{ minio_data_dir }}/{{ service_properties.config_dir }}"
+        path: "{{real_user_dir}}/{{minio_data_dir}}/{{service_properties.config_dir}}"
       register: config_dir_check
       changed_when: false
 

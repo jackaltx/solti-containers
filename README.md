@@ -14,6 +14,8 @@ Modern development requires lightweight, ephemeral services that can be quickly 
 
 ## 🚀 Quick Start
 
+### Local Deployment
+
 ```bash
 # Deploy a complete development stack
 ./manage-svc.sh redis prepare && ./manage-svc.sh redis deploy
@@ -29,6 +31,20 @@ Modern development requires lightweight, ephemeral services that can be quickly 
 ./manage-svc.sh redis remove
 ./manage-svc.sh elasticsearch remove
 ./manage-svc.sh mattermost remove
+```
+
+### Remote Host Deployment
+
+```bash
+# Deploy to remote host (e.g., podma)
+./manage-svc.sh -h podma -i inventory/podma.yml redis prepare
+./manage-svc.sh -h podma -i inventory/podma.yml redis deploy
+
+# Verify remote service
+./svc-exec.sh -h podma -i inventory/podma.yml redis verify
+
+# Clean up remote host
+./manage-svc.sh -h podma -i inventory/podma.yml redis remove
 ```
 
 > **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
@@ -373,21 +389,25 @@ vim roles/elasticsearch/tasks/prerequisites.yml
 ```
 
 **Key Benefits**:
+
 - **Data persists across cycles**: Elasticsearch indices, Mattermost channels, database records remain intact
 - **Faster iteration**: No need to recreate test data after each change
 - **True testing**: Work with realistic data throughout development
 
 **Data-Centric Services** (benefit from persistence):
+
 - elasticsearch (indices, mappings)
 - mattermost (channels, messages, users)
 - minio (buckets, objects)
 - hashivault (secrets, policies)
 
 **Stateless Services** (less critical):
+
 - redis (just cache)
 - traefik (just proxy configuration)
 
 **When to Reset Data**:
+
 ```bash
 # Set in inventory.yml for full cleanup
 elasticsearch_delete_data: true
