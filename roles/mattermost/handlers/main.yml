@@ -6,13 +6,16 @@
     state: restarted
     scope: user
   listen: "restart mattermost"
+  become: false
 
 - name: reload systemd
   ansible.builtin.systemd:
     daemon_reload: true
     scope: user
+  become: false
 
 - name: reload systemd user daemon
   ansible.builtin.systemd:
     daemon_reload: true
     scope: user
+  become: false

@@ -7,15 +7,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Service Management
 
 ```bash
-# Primary lifecycle commands
+# Primary lifecycle commands (local)
 ./manage-svc.sh <service> prepare   # System preparation (one-time per service)
 ./manage-svc.sh <service> deploy    # Deploy and start service
 ./manage-svc.sh <service> remove    # Remove service (preserves data by default)
 
-# Task execution
+# Remote host operations
+./manage-svc.sh -h <hostname> -i inventory/<inventory>.yml <service> <action>
+./manage-svc.sh -h podma -i inventory/podma.yml redis deploy
+
+# Task execution (local)
 ./svc-exec.sh <service> verify      # Execute verification tasks
 ./svc-exec.sh <service> configure   # Run service-specific tasks
 ./svc-exec.sh -K <service> <task>   # Use sudo for privileged operations
+
+# Remote host task execution
+./svc-exec.sh -h <hostname> -i inventory/<inventory>.yml <service> <task>
+./svc-exec.sh -h podma -i inventory/podma.yml redis verify
 ```
 
 **Important**: `manage-svc.sh` automatically prompts for sudo password (`-K` flag is built-in) for two critical reasons:
@@ -172,7 +180,7 @@ This collection follows a standardized container deployment pattern with these c
 
 ### Directory Structure
 
-```
+```text
 ~/<service>-data/           # Service data (preserved on remove)
 ├── config/                 # Configuration files
 ├── data/                   # Application data

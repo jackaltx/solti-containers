@@ -14,6 +14,8 @@ Modern development requires lightweight, ephemeral services that can be quickly 
 
 ## 🚀 Quick Start
 
+### Local Deployment
+
 ```bash
 # Deploy a complete development stack
 ./manage-svc.sh redis prepare && ./manage-svc.sh redis deploy
@@ -29,6 +31,20 @@ Modern development requires lightweight, ephemeral services that can be quickly 
 ./manage-svc.sh redis remove
 ./manage-svc.sh elasticsearch remove
 ./manage-svc.sh mattermost remove
+```
+
+### Remote Host Deployment
+
+```bash
+# Deploy to remote host (e.g., podma)
+./manage-svc.sh -h podma -i inventory/podma.yml redis prepare
+./manage-svc.sh -h podma -i inventory/podma.yml redis deploy
+
+# Verify remote service
+./svc-exec.sh -h podma -i inventory/podma.yml redis verify
+
+# Clean up remote host
+./manage-svc.sh -h podma -i inventory/podma.yml redis remove
 ```
 
 > **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
