@@ -9,8 +9,8 @@ influxdb3_force_reload: false
 influxdb3_image: "docker.io/library/influxdb:3-core"
 
 # Port settings (configurable to avoid conflicts)
-influxdb3_port: 8181  # Host port (localhost binding)
-influxdb3_internal_port: 8181  # Container port (can override if needed)
+influxdb3_port: 8087  # Host port (localhost binding)
+influxdb3_internal_port: 8087  # Container port (matches host for consistency)
 
 # Directory settings
 influxdb3_data_dir: "{{lookup('env', 'HOME')}}/influxdb3-data"

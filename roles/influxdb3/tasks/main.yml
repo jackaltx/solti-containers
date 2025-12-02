@@ -23,6 +23,11 @@
     real_user_dir: "{{lookup('env', 'HOME')}}"
     real_user_uid: "{{lookup('pipe', 'id -u')}}"
 
+# Calculate FQDN from service name (after inventory vars are merged)
+- name: Calculate grafana_fqdn from service name
+  set_fact:
+    influxdb3_fqdn: "{{influxdb3_svc_name}}.{{domain}}"
+
 # =======================================================================
 # PREPARATION (one-time setup)
 # =======================================================================

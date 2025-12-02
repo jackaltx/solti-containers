@@ -28,7 +28,7 @@ Deploy InfluxDB 3 Core as a rootless Podman container following the SOLTI contai
 ### Key Technologies
 
 - **Container**: InfluxDB 3 Core (`docker.io/influxdata/influxdb:3-core`)
-- **Port**: 8181 (HTTP API)
+- **Port**: 8087 (HTTP API)
 - **Storage**: Parquet/Apache Arrow (not TSM)
 - **Auth**: Token-only (no username/password)
 - **SSL**: Traefik termination (transparent to container)
@@ -51,14 +51,14 @@ Deploy InfluxDB 3 Core as a rootless Podman container following the SOLTI contai
 | Method | URL/Command | SSL | Use Case |
 |--------|------------|-----|----------|
 | **Inside Container** | `podman exec influxdb3-svc influxdb3 ...` | ❌ No | **Primary**: Initialization, configuration |
-| **Host Localhost** | `http://127.0.0.1:8181` | ❌ No | **Secondary**: Verification, testing |
+| **Host Localhost** | `http://127.0.0.1:8087` | ❌ No | **Secondary**: Verification, testing |
 | **Traefik SSL** | `https://influxdb3.a0a0.org:8080` | ✅ Yes | **External**: Production access, clients |
 
 **Critical Understanding:**
 
-- Container always listens on plain HTTP (port 8181)
+- Container always listens on plain HTTP (port 8087)
 - Traefik handles SSL termination externally
-- All Ansible tasks use `podman exec` with `http://localhost:8181`
+- All Ansible tasks use `podman exec` with `http://localhost:8087`
 - Container has NO SSL awareness/configuration
 
 ### 2. Configuration Workflow
@@ -123,7 +123,7 @@ influxdb3_tokens:
 - "Label=traefik.enable=true"
 - "Label=traefik.http.routers.influxdb3.rule=Host(`influxdb3.{{ domain }}`)"
 - "Label=traefik.http.routers.influxdb3.entrypoints=websecure"
-- "Label=traefik.http.services.influxdb3.loadbalancer.server.port=8181"
+- "Label=traefik.http.services.influxdb3.loadbalancer.server.port=8087"
 - "Label=traefik.http.routers.influxdb3.middlewares=secHeaders@file"
 ```
 
@@ -133,7 +133,7 @@ influxdb3_tokens:
 
 | Aspect | InfluxDB v2 (solti-monitoring) | InfluxDB v3 Core (solti-containers) |
 |--------|-------------------------------|-------------------------------------|
-| **Port** | 8086 | 8181 |
+| **Port** | 8086 | 8087 |
 | **CLI** | `influx` | `influxdb3` |
 | **Storage** | TSM engine | Parquet/Apache Arrow |
 | **Auth Model** | Users + Tokens | **Tokens only** |
@@ -162,22 +162,22 @@ podman exec -e INFLUXDB3_AUTH_TOKEN=${TOKEN} \
 
 # Query (inside container)
 podman exec influxdb3-svc \
-  curl -s "http://localhost:8181/health"
+  curl -s "http://localhost:8087/health"
 ```
 
 ### Localhost Access (Testing)
 
 ```bash
 # Health check
-curl http://127.0.0.1:8181/health
+curl http://127.0.0.1:8087/health
 
 # Write data (v3 API)
-curl -X POST "http://127.0.0.1:8181/api/v3/write?db=telegraf" \
+curl -X POST "http://127.0.0.1:8087/api/v3/write?db=telegraf" \
   -H "Authorization: Bearer ${TOKEN}" \
   --data-binary "cpu,host=server01 usage=23.5"
 
 # Query data (v3 API)
-curl "http://127.0.0.1:8181/api/v3/query?db=telegraf&q=SELECT * FROM cpu" \
+curl "http://127.0.0.1:8087/api/v3/query?db=telegraf&q=SELECT * FROM cpu" \
   -H "Authorization: Bearer ${TOKEN}"
 ```
 
@@ -198,12 +198,12 @@ curl -X POST "https://influxdb3.a0a0.org:8080/api/v3/write?db=telegraf" \
 ```bash
 # v1 write endpoint (username ignored, password=token)
 curl --user "ignored:${TOKEN}" \
-  "http://127.0.0.1:8181/write?db=telegraf" \
+  "http://127.0.0.1:8087/write?db=telegraf" \
   --data-binary "cpu,host=server01 value=23.5"
 
 # v1 query endpoint
 curl --user "ignored:${TOKEN}" \
-  "http://127.0.0.1:8181/query?db=telegraf&q=SELECT * FROM cpu"
+  "http://127.0.0.1:8087/query?db=telegraf&q=SELECT * FROM cpu"
 ```
 
 ---
@@ -248,7 +248,7 @@ curl --user "ignored:${TOKEN}" \
 
 **Result:**
 
-- Container running on `127.0.0.1:8181`
+- Container running on `127.0.0.1:8087`
 - Operator token saved to `~/.secrets/influxdb3-secrets/admin-token.json`
 - Service accessible via Traefik at `https://influxdb3.a0a0.org:8080`
 
@@ -352,7 +352,7 @@ influxdb3_force_reload: false
 
 # Container settings
 influxdb3_image: "docker.io/influxdata/influxdb:3-core"
-influxdb3_port: 8181
+influxdb3_port: 8087
 
 # Directory settings
 influxdb3_data_dir: "{{ ansible_facts.user_dir }}/influxdb3-data"
@@ -543,7 +543,7 @@ State-driven entry point:
     network: "{{ service_network }}"
     quadlet_dir: "{{ ansible_facts.user_dir }}/.config/containers/systemd"
     ports:
-      - "127.0.0.1:{{ influxdb3_port }}:8181"
+      - "127.0.0.1:{{ influxdb3_port }}:8087"
     quadlet_options:
       - |
         [Service]
@@ -567,7 +567,7 @@ State-driven entry point:
       INFLUXDB3_NODE_IDENTIFIER_PREFIX: "{{ influxdb3_node_id }}"
     command:
       - "serve"
-      - "--http-bind=0.0.0.0:8181"
+      - "--http-bind=0.0.0.0:8087"
       - "--object-store={{ influxdb3_object_store }}"
       - "--data-dir=/var/lib/influxdb3/data"
     quadlet_options:
@@ -575,7 +575,7 @@ State-driven entry point:
       - "Label=traefik.enable={{ influxdb3_enable_traefik | lower }}"
       - "Label=traefik.http.routers.influxdb3.rule=Host(`influxdb3.{{ domain }}`)"
       - "Label=traefik.http.routers.influxdb3.entrypoints=websecure"
-      - "Label=traefik.http.services.influxdb3.loadbalancer.server.port=8181"
+      - "Label=traefik.http.services.influxdb3.loadbalancer.server.port=8087"
       - "Label=traefik.http.routers.influxdb3.middlewares=secHeaders@file"
       - |
         [Unit]
@@ -804,7 +804,7 @@ State-driven entry point:
 # Wait for API to be ready
 - name: Wait for InfluxDB3 to be ready
   ansible.builtin.command:
-    cmd: podman exec influxdb3-svc curl -s http://localhost:8181/health
+    cmd: podman exec influxdb3-svc curl -s http://localhost:8087/health
   register: health_check
   until: health_check.rc == 0
   retries: 30
@@ -852,7 +852,7 @@ State-driven entry point:
   ansible.builtin.command:
     cmd: >
       podman exec influxdb3-svc
-      curl -s -X POST "http://localhost:8181/api/v3/write?db=test-ansible"
+      curl -s -X POST "http://localhost:8087/api/v3/write?db=test-ansible"
       -H "Authorization: Bearer {{ verify_token }}"
       --data-binary "test_measurement,host={{ ansible_hostname }} value=123,status=\"ok\" {{ ansible_facts.date_time.epoch }}000000000"
   register: write_result
@@ -869,7 +869,7 @@ State-driven entry point:
   ansible.builtin.command:
     cmd: >
       podman exec influxdb3-svc
-      curl -s "http://localhost:8181/api/v3/query?db=test-ansible&q=SELECT%20*%20FROM%20test_measurement"
+      curl -s "http://localhost:8087/api/v3/query?db=test-ansible&q=SELECT%20*%20FROM%20test_measurement"
       -H "Authorization: Bearer {{ verify_token }}"
   register: query_result
   changed_when: false
@@ -919,7 +919,7 @@ INFLUXDB3_OBJECT_STORE={{ influxdb3_object_store }}
 INFLUXDB3_DATA_DIR=/var/lib/influxdb3/data
 
 # HTTP binding
-INFLUXDB3_HTTP_BIND=0.0.0.0:8181
+INFLUXDB3_HTTP_BIND=0.0.0.0:8087
 
 # Optional: AWS credentials (if using S3)
 {% if influxdb3_object_store == 's3' %}
@@ -940,7 +940,7 @@ influxdb3_svc:
   vars:
     debug_level: warn
     influxdb3_data_dir: "{{ ansible_facts.user_dir }}/influxdb3-data"
-    influxdb3_port: 8181
+    influxdb3_port: 8087
     influxdb3_delete_data: false
 
     # Secrets directory
@@ -1047,7 +1047,7 @@ Create `roles/influxdb3/README.md` with:
 | `INFLUXDB3_NODE_IDENTIFIER_PREFIX` | `{{ inventory_hostname }}-influxdb3` | Node identifier |
 | `INFLUXDB3_OBJECT_STORE` | `file` | Storage backend (file/memory/s3) |
 | `INFLUXDB3_DATA_DIR` | `/var/lib/influxdb3/data` | Data directory |
-| `INFLUXDB3_HTTP_BIND` | `0.0.0.0:8181` | HTTP API binding |
+| `INFLUXDB3_HTTP_BIND` | `0.0.0.0:8087` | HTTP API binding |
 
 ### Inventory Variables
 
@@ -1055,7 +1055,7 @@ Create `roles/influxdb3/README.md` with:
 |----------|---------|-------------|
 | `influxdb3_state` | `present` | Service state (prepare/present/absent) |
 | `influxdb3_image` | `docker.io/influxdata/influxdb:3-core` | Container image |
-| `influxdb3_port` | `8181` | API port |
+| `influxdb3_port` | `8087` | API port |
 | `influxdb3_data_dir` | `~/influxdb3-data` | Host data directory |
 | `influxdb3_secrets_dir` | `~/.secrets/influxdb3-secrets` | Token storage |
 | `influxdb3_delete_data` | `false` | Delete data on removal |
@@ -1092,9 +1092,9 @@ database:DATABASE_NAME:ACTIONS
 - [ ] `./manage-svc.sh influxdb3 deploy` succeeds
 - [ ] Container `influxdb3-svc` is running
 - [ ] Pod `influxdb3` is running
-- [ ] Port `127.0.0.1:8181` is listening
+- [ ] Port `127.0.0.1:8087` is listening
 - [ ] Operator token created in `~/.secrets/influxdb3-secrets/admin-token.json`
-- [ ] Health check responds: `curl http://127.0.0.1:8181/health`
+- [ ] Health check responds: `curl http://127.0.0.1:8087/health`
 
 ### Configuration Phase
 

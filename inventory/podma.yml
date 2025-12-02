@@ -353,7 +353,7 @@ all:
           vars:
             debug_level: warn
             influxdb3_data_dir: "{{ lookup('env', 'HOME') }}/influxdb3-data"
-            influxdb3_port: 8181
+            influxdb3_port: 8087
 
             # Secrets directory (under data dir for proper permissions)
             influxdb3_secrets_dir: "{{ lookup('env', 'HOME') }}/influxdb3-data/secrets"

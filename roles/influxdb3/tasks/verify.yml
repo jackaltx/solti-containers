@@ -28,22 +28,6 @@
     var: container_status.stdout_lines
 
 # ...................................................................................
-- name: Wait for InfluxDB3 to be ready
-  become: false
-  command: >
-    podman exec influxdb3-svc
-    curl -s http://localhost:{{influxdb3_internal_port}}/health
-  register: health_check
-  until: health_check.rc == 0
-  retries: 30
-  delay: 5
-  changed_when: false
-
-- name: Show health status
-  debug:
-    var: health_check.stdout
-
-# ...................................................................................
 # Load admin token for tests
 - name: Load admin token for verification
   block:
@@ -70,6 +54,24 @@
       when: not token_file_check.stat.exists
 
 # ...................................................................................
+- name: Wait for InfluxDB3 to be ready (authenticated health check)
+  become: false
+  command: >
+    podman exec influxdb3-svc
+    curl -s -f -H "Authorization: Bearer {{verify_token}}"
+    http://localhost:{{influxdb3_internal_port}}/health
+  register: health_check
+  until: health_check.rc == 0
+  retries: 30
+  delay: 5
+  changed_when: false
+  # no_log: true
+
+- name: Show health status
+  debug:
+    msg: "InfluxDB3 API responding on port {{influxdb3_internal_port}}"
+
+# ...................................................................................
 # Create test database
 - name: Create test database
   become: false
@@ -77,6 +79,7 @@
     podman exec
     -e INFLUXDB3_AUTH_TOKEN={{verify_token}}
     influxdb3-svc influxdb3 create database test-ansible
+    --host http://localhost:{{influxdb3_internal_port}}
   register: test_db
   changed_when: test_db.rc == 0
   failed_when:
@@ -126,6 +129,7 @@
     podman exec
     -e INFLUXDB3_AUTH_TOKEN={{verify_token}}
     influxdb3-svc influxdb3 delete database test-ansible
+    --host http://localhost:{{influxdb3_internal_port}}
   changed_when: false
   failed_when: false
   # no_log: true

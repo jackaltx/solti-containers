@@ -5,7 +5,7 @@ Deploys InfluxDB 3 Core as a rootless Podman container with token-based authenti
 ## Overview
 
 - **Image**: `docker.io/influxdata/influxdb:3-core`
-- **Port**: 8181 (HTTP API)
+- **Port**: 8087 (HTTP API, changed from InfluxDB3 default 8087 to avoid Redis conflict)
 - **Auth**: Token-only (no username/password)
 - **Storage**: Parquet/Apache Arrow
 - **SSL**: Traefik termination (container uses plain HTTP)
@@ -62,7 +62,7 @@ DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.
 - New admin token saved to `~/.secrets/influxdb3-secrets/admin-token.json`
 - Resource tokens saved to `./data/influxdb3-tokens-*.yml`
 - All verification tests pass
-- Service accessible at `http://127.0.0.1:8181`
+- Service accessible at `http://127.0.0.1:8087`
 
 **Localhost variant** (replace `-h podma -i inventory/podma.yml` with no flags):
 
@@ -85,7 +85,7 @@ influxdb3_svc:
   hosts:
     firefly:
   vars:
-    influxdb3_port: 8181                    # Host port (configurable)
+    influxdb3_port: 8087                    # Host port (configurable)
     influxdb3_data_dir: "~/influxdb3-data"  # Data directory
 
     # Databases to create
@@ -189,22 +189,22 @@ podman exec -e INFLUXDB3_AUTH_TOKEN=${TOKEN} \
 
 # Query via curl inside container
 podman exec influxdb3-svc \
-  curl -s "http://localhost:8181/health"
+  curl -s "http://localhost:8087/health"
 ```
 
 ### 2. Localhost Access (Testing)
 
 ```bash
 # Health check
-curl http://127.0.0.1:8181/health
+curl http://127.0.0.1:8087/health
 
 # Write data (v3 API)
-curl -X POST "http://127.0.0.1:8181/api/v3/write?db=telegraf" \
+curl -X POST "http://127.0.0.1:8087/api/v3/write?db=telegraf" \
   -H "Authorization: Bearer ${TOKEN}" \
   --data-binary "cpu,host=server01 usage=23.5"
 
 # Query data
-curl "http://127.0.0.1:8181/api/v3/query?db=telegraf&q=SELECT * FROM cpu" \
+curl "http://127.0.0.1:8087/api/v3/query?db=telegraf&q=SELECT * FROM cpu" \
   -H "Authorization: Bearer ${TOKEN}"
 ```
 
@@ -225,7 +225,7 @@ curl -X POST "https://influxdb3.a0a0.org:8080/api/v3/write?db=telegraf" \
 ```bash
 # v1 write (username ignored, password=token)
 curl --user "ignored:${TOKEN}" \
-  "http://127.0.0.1:8181/write?db=telegraf" \
+  "http://127.0.0.1:8087/write?db=telegraf" \
   --data-binary "cpu,host=server01 value=23.5"
 ```
 
@@ -262,13 +262,13 @@ Contains all created tokens with their permissions.
 ### Default Port
 
 ```yaml
-influxdb3_port: 8181  # Localhost binding
+influxdb3_port: 8087  # Localhost binding
 ```
 
 ### Check for Conflicts
 
 ```bash
-ss -tulpn | grep :8181
+ss -tulpn | grep :8087
 ```
 
 ### Override in Inventory
@@ -305,7 +305,7 @@ Automatically applied:
 traefik.enable=true
 traefik.http.routers.influxdb3.rule=Host(`influxdb3.{{ domain }}`)
 traefik.http.routers.influxdb3.entrypoints=websecure
-traefik.http.services.influxdb3.loadbalancer.server.port=8181
+traefik.http.services.influxdb3.loadbalancer.server.port=8087
 ```
 
 ## Troubleshooting
@@ -327,7 +327,7 @@ podman logs influxdb3-svc
 ### Health Check
 
 ```bash
-curl http://127.0.0.1:8181/health
+curl http://127.0.0.1:8087/health
 ```
 
 ### Verify Token
@@ -387,7 +387,7 @@ influxdb3_delete_data: true
 
 | Aspect | v2 | v3 Core |
 |--------|----|---------|
-| Port | 8086 | 8181 |
+| Port | 8086 | 8087 |
 | CLI | `influx` | `influxdb3` |
 | Auth | Users + Tokens | Tokens only |
 | Setup | `influx setup` | `influxdb3 create token --admin` |

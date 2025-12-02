@@ -249,8 +249,8 @@ all:
               # Optional host-specific minio vars can go here
               minio_api_port: 9000
               minio_console_port: 9001
-              minio_api_svc_name: "minio"
-              minio_console_svc_name: "minio-console"  # Console is built-in, this is just for Traefik routing
+              minio_api_svc_name: "s3-firefly"
+              minio_console_svc_name: "minio-firefly" # Console is built-in, this is just for Traefik routing
 
           # .......................................
           # _svc only vars
@@ -347,7 +347,7 @@ all:
           vars:
             debug_level: warn
             influxdb3_data_dir: "{{ lookup('env', 'HOME') }}/influxdb3-data"
-            influxdb3_port: 8181
+            influxdb3_port: 8087
 
             # Secrets directory (under data dir for proper permissions)
             influxdb3_secrets_dir: "{{ lookup('env', 'HOME') }}/influxdb3-data/secrets"
