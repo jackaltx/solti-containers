@@ -381,3 +381,29 @@ all:
 
             # Traefik integration
             influxdb3_enable_traefik: true
+
+        # ========================================
+        mongodb_svc:
+          hosts:
+            podma:
+              # host_vars
+              mongodb_svc_name: "mongodb-podma"
+
+          # .......................................
+          # mongodb_svc only vars
+          vars:
+            debug_level: warn
+            mongodb_data_dir: "{{ lookup('env', 'HOME') }}/mongodb-data"
+            mongodb_gui_port: 8082  # Avoid conflict with port 8081
+
+            # MongoDB credentials (loaded from environment)
+            mongodb_root_username: "{{ lookup('env', 'MONGODB_ROOT_USERNAME', default='') }}"
+            mongodb_root_password: "{{ lookup('env', 'MONGODB_ROOT_PASSWORD', default='') }}"
+            mongodb_database: "{{ lookup('env', 'MONGODB_DATABASE', default='admin') }}"
+
+            # Test/verification variables
+            test_collection: "test_ansible"
+            test_document: '{"test": "verification", "timestamp": "{{ ansible_facts.date_time.iso8601 }}"}'
+
+            # Traefik integration
+            mongodb_enable_traefik: true

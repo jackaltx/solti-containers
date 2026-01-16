@@ -1,0 +1,54 @@
+---
+# MongoDB container service defaults
+
+# Container images
+mongodb_image: "docker.io/library/mongo:7.0"
+mongodb_express_image: "docker.io/library/mongo-express:latest"
+
+# Data directory
+mongodb_data_dir: "{{ lookup('env', 'HOME') }}/mongodb-data"
+
+# Network ports
+mongodb_port: 27017
+mongodb_gui_port: 8081
+
+# MongoDB credentials
+mongodb_root_username: "{{ lookup('env', 'MONGODB_ROOT_USERNAME', default='admin') }}"
+mongodb_root_password: "{{ lookup('env', 'MONGODB_ROOT_PASSWORD', default='changeme') }}"
+mongodb_database: "{{ lookup('env', 'MONGODB_DATABASE', default='admin') }}"
+
+# Optional features
+mongodb_enable_gui: true
+mongodb_enable_traefik: false
+
+# Service properties - used by _base role
+service_properties:
+  root: "mongodb"
+  name: "mongodb-pod.service"
+  pod_key: "mongodb.pod"
+  quadlets:
+    - "mongodb-svc.container"
+    - "mongodb-gui.container"
+    - "mongodb.pod"
+  data_dir: "{{ mongodb_data_dir }}"
+  config_dir: "config"
+  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
+  delete_images: "{{ lookup('env', 'DELETE_IMAGES') | default(false) | bool }}"
+  container_images:
+    - "{{ mongodb_image }}"
+    - "{{ mongodb_express_image }}"
+  dirs:
+    - {path: "", mode: "0750"}
+    - {path: "config", mode: "0755"}
+    - {path: "data", mode: "0750"}
+    - {path: "logs", mode: "0755"}
+  ports:
+    - "127.0.0.1:{{ mongodb_port }}:27017"
+    - "127.0.0.1:{{ mongodb_gui_port }}:8081"
+  volumes:
+    - "{{ mongodb_data_dir }}/config:/data/configdb:Z"
+    - "{{ mongodb_data_dir }}/data:/data/db:Z"
+    - "{{ mongodb_data_dir }}/logs:/var/log/mongodb:Z"
+
+# State management
+mongodb_state: present

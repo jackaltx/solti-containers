@@ -1,0 +1,10 @@
+---
+# MongoDB handlers
+
+- name: Restart mongodb
+  ansible.builtin.systemd:
+    name: "{{ service_properties.name }}"
+    state: restarted
+    scope: user
+  listen: "restart mongodb"
+  become: false

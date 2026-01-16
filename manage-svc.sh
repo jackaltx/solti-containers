@@ -36,6 +36,7 @@ SUPPORTED_SERVICES=(
     "grafana"
     "gitea"
     "influxdb3"
+    "mongodb"
 )
 
 # Supported actions

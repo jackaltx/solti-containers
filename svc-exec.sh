@@ -35,6 +35,7 @@ SUPPORTED_SERVICES=(
     "grafana"
     "gitea"
     "influxdb3"
+    "mongodb"
 )
 
 # Default entry point if not specified
