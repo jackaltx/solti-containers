@@ -1,111 +1,166 @@
-# Redis Role - Fast Key-Value Store for Testing
+# Redis Role
 
-## Purpose
+Deploys Redis as a rootless Podman container with systemd integration using the quadlet pattern.
 
-Redis provides a fast in-memory key-value store ideal for collecting test results and data during development cycles. This lightweight deployment is perfect for rapid testing iterations where filesystem operations would add unnecessary latency.
+## Overview
 
-## Quick Start
+This role deploys:
 
-```bash
-# Prepare system directories and configuration
-./manage-svc.sh redis prepare
-
-# Deploy Redis with Commander GUI
-./manage-svc.sh redis deploy
-
-# Verify deployment is working
-./svc-exec.sh redis verify
-
-# Clean up (preserves data by default)
-./manage-svc.sh redis remove
-```
-
-> **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
+- **Redis Server** (`redis:latest`) - Fast in-memory key-value store
+- **Redis Commander** (optional) - Web-based GUI for data visualization
 
 ## Features
 
 - **High Performance**: In-memory storage for fastest possible data access
 - **Web GUI**: Redis Commander for easy data visualization and management
-- **SSL Termination**: Automatic HTTPS via Traefik integration
-- **Secure Access**: Password-protected with configurable authentication
+- **Rootless Containers**: Enhanced security with user-level Podman
+- **Systemd Integration**: Native service management
+- **Traefik Support**: Optional SSL termination and reverse proxy
+- **Upgrade Detection**: Built-in check for image updates
 - **Development Focused**: Optimized for rapid test iteration cycles
 
-## Architecture
+## Requirements
 
-```
-┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   Your Tests    │───▶│    Redis     │◀───│ Redis Commander │
-│                 │    │   (Port 6379)│    │   (Port 8081)   │
-└─────────────────┘    └──────────────┘    └─────────────────┘
-                              │                      │
-                              └──────────────────────┘
-                                       │
-                              ┌──────────────────┐
-                              │     Traefik      │
-                              │  (SSL Termination)│
-                              └──────────────────┘
-                                       │
-                              https://redis-ui.yourdomain.com
+- Podman installed and configured for rootless operation
+- User systemd services enabled (`loginctl enable-linger`)
+- Container network (`ct-net`) created by `_base` role
+
+## Quick Start
+
+### 1. Prepare (one-time setup)
+
+```bash
+./manage-svc.sh redis prepare
 ```
 
-## Access Points
+Creates directories, applies SELinux contexts, and configures the system.
 
-| Interface | URL | Purpose |
-|-----------|-----|---------|
-| Redis Server | `localhost:6379` | Direct Redis connection |
-| Redis Commander | `http://localhost:8081` | Local web interface |
-| SSL Endpoint | `https://redis-ui.{{ domain }}` | Traefik-proxied HTTPS access |
+### 2. Deploy
+
+```bash
+# Set Redis password (recommended)
+export REDIS_PASSWORD="your_secure_password"
+
+./manage-svc.sh redis deploy
+```
+
+Deploys and starts the service with Redis server and Commander GUI.
+
+### 3. Verify
+
+```bash
+./svc-exec.sh redis verify
+```
+
+Runs health checks and functional tests.
+
+### 4. Access
+
+- **Redis Server**: `localhost:6379` (direct connection)
+- **Redis Commander**: `http://localhost:8081` (web interface)
+- **With Traefik SSL**: `https://redis-ui.a0a0.org:8080`
 
 ## Configuration
 
 ### Environment Variables
 
 ```bash
-# Set Redis password (recommended)
-export REDIS_PASSWORD="your_secure_password"
+export REDIS_PASSWORD="your_secure_password"  # Redis authentication (default: changeme)
 ```
 
-### Key Configuration Options
+### Inventory Variables
 
 ```yaml
-# Memory and performance
-redis_maxmemory: "256mb"                    # Maximum memory usage
-redis_maxmemory_policy: "allkeys-lru"      # Eviction policy
+# Data and ports
+redis_data_dir: "{{ lookup('env', 'HOME') }}/redis-data"
+redis_port: 6379
+redis_gui_port: 8081
 
-# Security
-redis_password: "{{ lookup('env', 'REDIS_PASSWORD') | default('changeme') }}"
+# Service configuration
+redis_image: "docker.io/library/redis:latest"
+redis_gui_image: "docker.io/rediscommander/redis-commander:latest"
+redis_enable_gui: true
+redis_maxmemory: "256mb"
+redis_maxmemory_policy: "allkeys-lru"
 
-# GUI access
-redis_enable_gui: true                      # Enable Redis Commander
-redis_gui_port: 8081                       # Commander port
-
-# Data persistence
-redis_data_dir: "{{ ansible_facts.user_dir }}/redis-data"
+# Traefik integration
+redis_enable_traefik: false
 ```
 
-## Using with Traefik SSL
+See [defaults/main.yml](defaults/main.yml) for complete options.
 
-When Traefik is deployed, Redis Commander automatically gets SSL termination:
+## Directory Structure
 
-```yaml
-# Traefik labels automatically applied
-- "Label=traefik.enable=true"
-- "Label=traefik.http.routers.redis.rule=Host(`redis-ui.{{ domain }}`)"
-- "Label=traefik.http.services.redis.loadbalancer.server.port=8081"
+After deployment:
+
+```text
+~/redis-data/
+├── config/          # Redis configuration files
+├── data/            # Redis RDB/AOF files (persistent)
+└── logs/            # Redis server logs
 ```
 
-**Result**: Access Redis Commander securely at `https://redis-ui.yourdomain.com`
+## Service Management
 
-## Common Operations
-
-### Verification Tasks
+### Start/Stop/Status
 
 ```bash
-# Basic health check
-./svc-exec.sh redis verify
+# Check service status
+systemctl --user status redis-pod
 
-# Check specific functionality
-./svc-exec.sh redis test-connectivity
+# Start service
+systemctl --user start redis-pod
+
+# Stop service
+systemctl --user stop redis-pod
+
+# Restart service
+systemctl --user restart redis-pod
+
+# Enable on boot
+systemctl --user enable redis-pod
+```
+
+### Logs
+
+```bash
+# View pod logs
+journalctl --user -u redis-pod -f
+
+# View container logs
+podman logs redis-svc
+podman logs redis-gui
+
+# View last 50 lines
+podman logs --tail 50 redis-svc
+```
+
+### Remove
+
+```bash
+# Preserve data
+./manage-svc.sh redis remove
+
+# Delete all data and images
+DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh redis remove
+```
+
+## Verification
+
+Manual verification:
+
+```bash
+# Check service status
+systemctl --user status redis-pod
+
+# Check container logs
+podman logs redis-svc
+
+# Test Redis connection
+podman exec redis-svc redis-cli -a $REDIS_PASSWORD ping
+
+# Run verification tasks
+./svc-exec.sh redis verify
 ```
 
 ### Data Operations
@@ -117,24 +172,88 @@ podman exec redis-svc redis-cli -a $REDIS_PASSWORD GET test-key
 
 # View Redis info
 podman exec redis-svc redis-cli -a $REDIS_PASSWORD INFO
-```
-
-### Monitoring
-
-```bash
-# View container status
-systemctl --user status redis-pod
-
-# Monitor logs
-podman logs -f redis-svc
 
 # Resource usage
 podman stats redis-svc redis-gui
 ```
 
-## Integration Examples
+## Upgrade Management
 
-### Test Data Collection
+### Check for Updates
+
+```bash
+# Check if new container image version is available
+./svc-exec.sh redis check_upgrade
+```
+
+**Output when updates available:**
+
+```text
+TASK [redis : Display container status]
+ok: [firefly] => {
+    "msg": "redis-svc:UPDATE AVAILABLE - Current: abc123 | Latest: def456"
+}
+
+TASK [redis : Summary of upgrade status]
+ok: [firefly] => {
+    "msg": "UPDATES AVAILABLE for: redis-svc"
+}
+```
+
+**Output when up-to-date:**
+
+```text
+TASK [redis : Display container status]
+ok: [firefly] => {
+    "msg": "redis-svc:Up to date (abc123)"
+}
+
+TASK [redis : Summary of upgrade status]
+ok: [firefly] => {
+    "msg": "All containers up to date"
+}
+```
+
+### Perform Upgrade
+
+When updates are available:
+
+```bash
+# 1. Remove current deployment
+./manage-svc.sh redis remove
+
+# 2. Redeploy with latest image
+./manage-svc.sh redis deploy
+
+# 3. Verify new version
+./svc-exec.sh redis verify
+```
+
+**Note**: Data in `~/redis-data/` persists across upgrades.
+
+## Traefik Integration
+
+When Traefik is deployed with `redis_enable_traefik: true`, the service automatically gets SSL termination.
+
+### DNS Configuration
+
+1. Update DNS to point to your host:
+
+```bash
+source ~/.secrets/LabProvision
+./update-dns-auto.sh firefly
+```
+
+This creates: `redis-ui.a0a0.org` → `firefly.a0a0.org`
+
+1. Access via HTTPS:
+   - `https://redis-ui.a0a0.org:8080`
+
+## Advanced Usage
+
+### Integration Examples
+
+**Test Data Collection:**
 
 ```python
 import redis
@@ -154,7 +273,7 @@ r.set('test:result:1', json.dumps({
 results = r.keys('test:result:*')
 ```
 
-### Development Workflows
+**Development Workflows:**
 
 ```bash
 # Start testing session
@@ -164,27 +283,27 @@ results = r.keys('test:result:*')
 python run_tests.py
 
 # Analyze results via Redis Commander
-open https://redis-ui.yourdomain.com
+open https://redis-ui.a0a0.org:8080
 
 # Clean up when done
 ./manage-svc.sh redis remove
 ```
 
-## Performance Tuning
+### Performance Tuning
 
-### Memory Optimization
+**Memory Optimization:**
 
 ```yaml
 # For development/testing workloads
 redis_maxmemory: "128mb"        # Small footprint
 redis_maxmemory_policy: "allkeys-lru"
 
-# For data collection workloads  
+# For data collection workloads
 redis_maxmemory: "512mb"        # More storage
 redis_maxmemory_policy: "noeviction"
 ```
 
-### Persistence Settings
+**Persistence Settings:**
 
 ```yaml
 # Configuration in redis.conf template
@@ -193,11 +312,25 @@ appendonly: yes                 # Enable AOF for safety
 appendfsync: everysec          # Balance safety/performance
 ```
 
+### Resource Limits
+
+Add resource limits in `quadlet_rootless.yml`:
+
+```yaml
+quadlet_options:
+  - |
+    [Container]
+    Memory=512M
+    CPUQuota=100%
+```
+
 ## Troubleshooting
 
-### Common Issues
+### Issue: Connection Refused
 
-**Connection Refused**
+**Problem**: Cannot connect to Redis on port 6379
+
+**Detection:**
 
 ```bash
 # Check if Redis is running
@@ -207,7 +340,18 @@ podman ps | grep redis
 ss -tlnp | grep 6379
 ```
 
-**Authentication Errors**
+**Resolution**: Ensure Redis container is running and port is correctly bound
+
+```bash
+systemctl --user status redis-pod
+podman logs redis-svc
+```
+
+### Issue: Authentication Errors
+
+**Problem**: NOAUTH Authentication required or wrong password
+
+**Detection:**
 
 ```bash
 # Verify password is set
@@ -217,7 +361,18 @@ echo $REDIS_PASSWORD
 podman exec redis-svc redis-cli -a $REDIS_PASSWORD ping
 ```
 
-**Memory Issues**
+**Resolution**: Set REDIS_PASSWORD environment variable before deployment
+
+```bash
+export REDIS_PASSWORD="your_secure_password"
+./manage-svc.sh redis deploy
+```
+
+### Issue: Memory Errors
+
+**Problem**: OOM errors or Redis running out of memory
+
+**Detection:**
 
 ```bash
 # Check memory usage
@@ -227,33 +382,90 @@ podman exec redis-svc redis-cli -a $REDIS_PASSWORD INFO memory
 podman stats redis-svc
 ```
 
-### Log Analysis
+**Resolution**: Increase `redis_maxmemory` or change eviction policy
 
-```bash
-# Redis server logs
-podman logs redis-svc | grep -i error
-
-# Container startup issues
-journalctl --user -u redis-pod -f
+```yaml
+redis_maxmemory: "512mb"
+redis_maxmemory_policy: "allkeys-lru"  # or "volatile-lru", "noeviction"
 ```
 
-## Development Notes
+## Remote Host Deployment
 
-- **Data Lifecycle**: Data persists between container restarts but is removed with `remove` command
-- **Testing Integration**: Ideal for storing test metrics, results, and temporary data
-- **Performance**: In-memory storage provides sub-millisecond access times
-- **Scaling**: Single-instance deployment suitable for development workloads
+Deploy to remote hosts using specific inventory:
+
+```bash
+# Add to inventory/podma.yml with unique service name
+redis_svc:
+  hosts:
+    podma:
+      redis_svc_name: "redis-podma"
+  vars:
+    redis_port: 6379
+    redis_gui_port: 8081
+
+# Deploy
+./manage-svc.sh -h podma -i inventory/podma.yml redis prepare
+./manage-svc.sh -h podma -i inventory/podma.yml redis deploy
+```
+
+## Architecture
+
+This role follows the SOLTI container pattern:
+
+1. **_base role inheritance**: Common functionality (directories, network, cleanup)
+2. **Podman quadlets**: Declarative container-to-systemd integration
+3. **State-based flow**: prepare → present → absent
+4. **Dynamic playbook generation**: Single script handles all operations
+
+**Component Architecture:**
+
+```text
+┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
+│   Your Tests    │───▶│    Redis     │◀───│ Redis Commander │
+│                 │    │   (Port 6379)│    │   (Port 8081)   │
+└─────────────────┘    └──────────────┘    └─────────────────┘
+                              │                      │
+                              └──────────────────────┘
+                                       │
+                              ┌──────────────────┐
+                              │     Traefik      │
+                              │  (SSL Termination)│
+                              └──────────────────┘
+                                       │
+                              https://redis-ui.a0a0.org:8080
+```
+
+See [docs/Claude-new-quadlet.md](../docs/Claude-new-quadlet.md) for complete pattern documentation.
+
+## Security Considerations
+
+- Containers run rootless under your user account
+- Ports bind to `127.0.0.1` only (not publicly accessible)
+- SELinux contexts applied automatically on RHEL-based systems
+- Traefik provides SSL termination for external access
+- Password authentication required for Redis access
+- Redis Commander access should be restricted to trusted networks
+
+## Links
+
+- [Redis Official Documentation](https://redis.io/docs/)
+- [Redis Docker Hub Image](https://hub.docker.com/_/redis)
+- [Redis Commander GitHub](https://github.com/joeferner/redis-commander)
+- [Podman Documentation](https://docs.podman.io/)
+- [Quadlet Documentation](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)
+
+## Support
+
+For issues specific to this role, check:
+
+1. Container logs: `podman logs redis-svc`
+2. Systemd logs: `journalctl --user -u redis-pod`
+3. Verification output: `./svc-exec.sh redis verify`
+
+For Redis application issues, consult the [official documentation](https://redis.io/docs/).
 
 ## Related Services
 
 - **Elasticsearch**: For searchable log analysis alongside Redis caching
 - **Traefik**: Provides SSL termination and routing for Redis Commander
 - **HashiVault**: Can store Redis passwords and connection credentials
-
-## License
-
-MIT
-
-## Maintained By
-
-Jackaltx - Part of the SOLTI containers collection for development testing workflows.

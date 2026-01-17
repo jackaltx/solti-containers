@@ -1,4 +1,8 @@
-You've hit on a common pain point in Ansible. While it doesn't have traditional programming inheritance or function parameters, there are several patterns we can use to achieve similar goals. Let me outline some approaches:
+# Ansible Patterns emulating inheritance
+
+Ansible doesn't have traditional programming inheritance or function parameters, there are several patterns we can use to achieve similar goals. Let me outline some approaches:
+
+## Patterns
 
 1. **Reusable Task Files with `vars` include:**
 

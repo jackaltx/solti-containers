@@ -4,6 +4,8 @@
 
 The `check_upgrade.yml` task file provides a standardized, **generic** way to check if container image updates are available for a service, without requiring shell access inside containers. The pattern automatically discovers all containers in the pod and checks each one.
 
+This has not been implemented.
+
 ## Purpose
 
 As container images evolve (e.g., Mattermost v11 removing shell access), traditional verification methods that rely on executing commands inside containers become unreliable. The check_upgrade pattern:

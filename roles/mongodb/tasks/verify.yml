@@ -1,0 +1,108 @@
+---
+# MongoDB verification tasks
+# All verification must run as user (not root) to see user pods
+
+- name: Verify MongoDB pod is running
+  become: false
+  ansible.builtin.command: podman pod ps --format "{%raw%}{{.Name}}{%endraw%}"
+  register: pod_status
+  until: "'mongodb' in pod_status.stdout"
+  retries: 10
+  delay: 2
+  changed_when: false
+
+- name: Verify MongoDB container is running
+  become: false
+  ansible.builtin.command: podman ps --format "{%raw%}{{.Names}}{%endraw%}" --filter "pod=mongodb"
+  register: container_status
+  changed_when: false
+
+- name: Display running containers
+  ansible.builtin.debug:
+    msg: "Running containers: {{ container_status.stdout_lines }}"
+
+- name: Wait for MongoDB to be ready
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ mongodb_port }}"
+    state: started
+    delay: 5
+    timeout: 60
+
+- name: Test MongoDB connection
+  become: false
+  ansible.builtin.command: >
+    podman exec mongodb-svc
+    mongosh -u {{ mongodb_root_username }} -p {{ mongodb_root_password }} --authenticationDatabase admin
+    --quiet --eval "db.adminCommand('ping')"
+  register: mongo_ping
+  changed_when: false
+  retries: 5
+  delay: 3
+  until: mongo_ping.rc == 0
+  no_log: true
+
+- name: Test MongoDB write operation
+  become: false
+  ansible.builtin.command: >
+    podman exec mongodb-svc
+    mongosh -u {{ mongodb_root_username }} -p {{ mongodb_root_password }} --authenticationDatabase admin
+    --quiet --eval "db.{{ test_collection | default('test') }}.insertOne({test: 'verification', timestamp: new Date()})"
+  register: mongo_write
+  changed_when: false
+  no_log: true
+
+- name: Test MongoDB read operation
+  become: false
+  ansible.builtin.command: >
+    podman exec mongodb-svc
+    mongosh -u {{ mongodb_root_username }} -p {{ mongodb_root_password }} --authenticationDatabase admin
+    --quiet --eval "db.{{ test_collection | default('test') }}.findOne()"
+  register: mongo_read
+  changed_when: false
+  no_log: true
+
+- name: Get MongoDB version
+  become: false
+  ansible.builtin.command: >
+    podman exec mongodb-svc
+    mongosh -u {{ mongodb_root_username }} -p {{ mongodb_root_password }} --authenticationDatabase admin
+    --quiet --eval "db.version()"
+  register: mongo_version
+  changed_when: false
+  no_log: true
+
+- name: Display MongoDB version
+  ansible.builtin.debug:
+    msg: "MongoDB version: {{ mongo_version.stdout }}"
+
+- name: Get MongoDB server status
+  become: false
+  ansible.builtin.command: >
+    podman exec mongodb-svc
+    mongosh -u {{ mongodb_root_username }} -p {{ mongodb_root_password }} --authenticationDatabase admin
+    --quiet --eval "JSON.stringify(db.serverStatus().connections)"
+  register: mongo_status
+  changed_when: false
+  no_log: true
+
+- name: Display MongoDB connection info
+  ansible.builtin.debug:
+    msg: "MongoDB connections: {{ mongo_status.stdout }}"
+
+- name: Verify Mongo Express GUI (if enabled)
+  when: mongodb_enable_gui | bool
+  block:
+    - name: Check Mongo Express is running
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ mongodb_gui_port }}"
+        method: GET
+        status_code: 200
+      register: gui_check
+      retries: 5
+      delay: 3
+      until: gui_check.status == 200
+
+    - name: Display Mongo Express status
+      ansible.builtin.debug:
+        msg: "Mongo Express GUI is accessible at http://127.0.0.1:{{ mongodb_gui_port }}"

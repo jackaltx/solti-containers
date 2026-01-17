@@ -1,0 +1,21 @@
+---
+- name: Get directory info for ownership
+  ansible.builtin.stat:
+    path: "{{ obsidian_data_dir }}"
+  register: dir_info
+
+- name: Ensure vaults directory exists with proper permissions
+  ansible.builtin.file:
+    path: "{{ obsidian_data_dir }}/vaults"
+    state: directory
+    mode: "0750"
+    owner: "{{ dir_info.stat.uid }}"
+    group: "{{ dir_info.stat.gid }}"
+
+- name: Ensure config directory exists with proper permissions
+  ansible.builtin.file:
+    path: "{{ obsidian_data_dir }}/config"
+    state: directory
+    mode: "0755"
+    owner: "{{ dir_info.stat.uid }}"
+    group: "{{ dir_info.stat.gid }}"

@@ -12,26 +12,56 @@ Modern development requires lightweight, ephemeral services that can be quickly 
 - **Standardized configuration** with security best practices
 - **Rapid iteration** for development and testing workflows
 
+I always use the latest version of the container. This can be painful sometimes. I did not intend for these to be long running services. They are here to satisfy a need for rapid development on the developer machine.
+
+You may ask why not a Debian distro? That is because Podman is RHEL-focused and the versions on Debian are behind. Debian distributions are generally better at Docker. I prefer to have non-privileged containers.
+
 ## 🚀 Quick Start
+
+There are two places I test: localhost and a Fedora server VM named podman.
+
+There are two scripts that manage container lifecycle:
+
+1. **`manage-svc.sh`** - Service lifecycle management:
+   - `prepare`: Create data directories and apply SELinux contexts (RHEL/Fedora)
+   - `deploy`: Deploy pod and containers using Podman quadlets
+   - `remove`: Stop and remove containers (preserves data by default)
+
+2. **`svc-exec.sh`** - Task execution (verify, check_upgrade, configure)
 
 ### Local Deployment
 
 ```bash
-# Deploy a complete development stack
-./manage-svc.sh redis prepare && ./manage-svc.sh redis deploy
-./manage-svc.sh elasticsearch prepare && ./manage-svc.sh elasticsearch deploy
-./manage-svc.sh mattermost prepare && ./manage-svc.sh mattermost deploy
+# Deploy container stack
+./manage-svc.sh <service> prepare && ./manage-svc.sh <service> deploy
 
-# Verify all services
-./svc-exec.sh redis verify
-./svc-exec.sh elasticsearch verify
-./svc-exec.sh mattermost verify
+# Verify the container stack
+./svc-exec.sh <service> verify
+
+# Check for updated container
+./svc-exec.sh <service> check_upgrade
 
 # Clean up (preserves data)
-./manage-svc.sh redis remove
-./manage-svc.sh elasticsearch remove
-./manage-svc.sh mattermost remove
+./manage-svc.sh <service> remove
+
+# Full removal using env variables
+DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh <service> remove
 ```
+
+**Available services:**
+
+- elasticsearch
+- hashivault
+- redis
+- mattermost
+- traefik
+- minio
+- wazuh
+- grafana
+- gitea
+- influxdb3
+- mongodb
+- obsidian
 
 ### Remote Host Deployment
 

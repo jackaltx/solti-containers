@@ -1,131 +1,260 @@
-# Elasticsearch Role - Search and Analytics Engine
+# Elasticsearch Role
 
-## Purpose
+Deploys Elasticsearch as a rootless Podman container with systemd integration using the quadlet pattern.
 
-Elasticsearch provides powerful search and analytics capabilities for development and testing. This deployment includes Elasticvue for easy data visualization and is optimized for log analysis, test result indexing, and document search during development cycles.
+## Overview
+
+This role deploys:
+
+- **Elasticsearch** (`docker.io/elasticsearch:8.12.1`) - Search and analytics engine
+- **Elasticvue** (`docker.io/cars10/elasticvue:latest`) - Web-based data visualization GUI
 
 ## Quick Start
+
+### 1. Prepare (one-time setup)
+
+```bash
+./manage-svc.sh elasticsearch prepare
+```
+
+Creates directories, applies SELinux contexts, and configures the system.
+
+### 2. Deploy
 
 ```bash
 # Set required password
 export ELASTIC_PASSWORD="your_secure_password"
 
-# Prepare system directories and configuration
-./manage-svc.sh elasticsearch prepare
-
-# Deploy Elasticsearch with Elasticvue GUI
 ./manage-svc.sh elasticsearch deploy
+```
 
-# Verify deployment and test indexing
+Deploys and starts Elasticsearch with Elasticvue GUI.
+
+### 3. Verify
+
+```bash
 ./svc-exec.sh elasticsearch verify
-
-# Create API tokens for applications
-ansible-playbook create-elasticsearch-tokens.yml
-
-# Clean up (preserves data by default)
-./manage-svc.sh elasticsearch remove
 ```
 
-> **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
+Runs health checks and functional tests.
 
-## Features
+### 4. Access
 
-- **Full-Text Search**: Advanced search capabilities for documents and logs
-- **Analytics Engine**: Aggregations and analytics for test data
-- **Elasticvue GUI**: Modern web interface for data visualization
-- **SSL Integration**: Automatic HTTPS via Traefik
-- **API Token Management**: Secure API access with role-based tokens
-- **X-Pack Security**: Built-in authentication and authorization
-
-## Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
-│   Your Apps     │───▶│  Elasticsearch   │◀───│    Elasticvue      │
-│                 │    │   API (9200)     │    │   GUI (8088)       │
-└─────────────────┘    └──────────────────┘    └─────────────────────┘
-                              │                           │
-                              └───────────────────────────┘
-                                           │
-                              ┌──────────────────────┐
-                              │       Traefik        │
-                              │   (SSL Termination)  │
-                              └──────────────────────┘
-                                           │
-                    ┌────────────────────────────────────────┐
-                    │  https://elasticsearch.yourdomain.com │
-                    │  https://es.yourdomain.com             │
-                    └────────────────────────────────────────┘
-```
-
-## Access Points
-
-| Interface | URL | Purpose |
-|-----------|-----|---------|
-| Elasticsearch API | `http://localhost:9200` | Direct API access |
-| Elasticvue GUI | `http://localhost:8088` | Local web interface |
-| SSL API | `https://elasticsearch.{{ domain }}` | Traefik-proxied HTTPS API |
-| SSL API (Short) | `https://es.{{ domain }}` | Alternative HTTPS endpoint |
+- **Elasticsearch API**: `http://localhost:9200` (direct API access)
+- **Elasticvue GUI**: `http://localhost:8088` (web interface)
+- **With Traefik SSL**: `https://elasticsearch.example.com` or `https://es.example.com`
 
 ## Configuration
 
-### Required Environment Variables
+### Environment Variables
 
 ```bash
-# Elasticsearch requires a strong password
-export ELASTIC_PASSWORD="your_secure_password_here"
+export ELASTIC_PASSWORD="your_secure_password"  # Required for deployment
 ```
 
-### Key Configuration Options
+### Inventory Variables
 
 ```yaml
-# Container settings
+# Data and ports
+elasticsearch_data_dir: "{{ lookup('env', 'HOME') }}/elasticsearch-data"
+elasticsearch_port: 9200
+elasticsearch_gui_port: 8088
+
+# Service configuration
 elasticsearch_image: "docker.io/elasticsearch:8.12.1"
-elasticsearch_memory: "1g"                    # JVM heap size
-elasticsearch_port: 9200                      # API port
-elasticsearch_gui_port: 8088                  # Elasticvue port
+elasticsearch_gui_image: "docker.io/cars10/elasticvue:latest"
+elasticsearch_memory: "1g"                      # JVM heap size
+elasticsearch_discovery_type: "single-node"     # Single node cluster
 
 # Security settings
-elasticsearch_enable_security: true          # X-Pack security
+elasticsearch_enable_security: true             # X-Pack security
 elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD') }}"
 
-# Data persistence
-elasticsearch_data_dir: "{{ ansible_facts.user_dir }}/elasticsearch-data"
-
-# Performance tuning
-elasticsearch_discovery_type: "single-node"  # Single node cluster
+# Traefik integration
+elasticsearch_enable_traefik: false
 ```
 
-### Optional TLS Configuration
+See [defaults/main.yml](defaults/main.yml) for complete options.
 
-```yaml
-# Enable TLS for API (in addition to Traefik SSL)
-elasticsearch_enable_tls: true
-elasticsearch_tls_cert_file: "/path/to/cert.pem"
-elasticsearch_tls_key_file: "/path/to/key.pem"
+## Directory Structure
+
+After deployment:
+
+```text
+~/elasticsearch-data/
+├── config/          # Elasticsearch configuration files
+├── data/            # Indexed data and cluster state (persistent)
+├── logs/            # Elasticsearch server logs
+└── certs/           # TLS certificates (if TLS enabled)
 ```
 
-## Using with Traefik SSL
+## Service Management
 
-Elasticsearch automatically integrates with Traefik for SSL termination:
-
-```yaml
-# Multiple domains automatically configured
-- "Label=traefik.http.routers.elasticsearch0.rule=Host(`elasticsearch.{{ domain }}`)"
-- "Label=traefik.http.routers.elasticsearch1.rule=Host(`es.{{ domain }}`)"
-```
-
-**Result**: Access Elasticsearch API securely at:
-
-- `https://elasticsearch.yourdomain.com`
-- `https://es.yourdomain.com` (short alias)
-
-## API Token Management
-
-### Creating API Tokens
+### Start/Stop/Status
 
 ```bash
-# Create read-only and read-write tokens
+# Check service status
+systemctl --user status elasticsearch-pod
+
+# Start service
+systemctl --user start elasticsearch-pod
+
+# Stop service
+systemctl --user stop elasticsearch-pod
+
+# Restart service
+systemctl --user restart elasticsearch-pod
+
+# Enable on boot
+systemctl --user enable elasticsearch-pod
+```
+
+### Logs
+
+```bash
+# View pod logs
+journalctl --user -u elasticsearch-pod -f
+
+# View container logs
+podman logs elasticsearch-svc
+podman logs elasticsearch-gui
+
+# View last 50 lines
+podman logs --tail 50 elasticsearch-svc
+```
+
+### Remove
+
+```bash
+# Preserve data
+./manage-svc.sh elasticsearch remove
+
+# Delete all data and images
+DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh elasticsearch remove
+```
+
+## Verification
+
+Manual verification:
+
+```bash
+# Check service status
+systemctl --user status elasticsearch-pod
+
+# Check cluster health
+curl -u elastic:$ELASTIC_PASSWORD http://localhost:9200/_cluster/health
+
+# Test indexing
+curl -u elastic:$ELASTIC_PASSWORD -X POST http://localhost:9200/test/_doc \
+  -H "Content-Type: application/json" \
+  -d '{"message": "test"}'
+
+# Run verification tasks
+./svc-exec.sh elasticsearch verify
+```
+
+### Data Operations
+
+```bash
+# List indices
+curl -u elastic:$ELASTIC_PASSWORD http://localhost:9200/_cat/indices?v
+
+# Create index with test data
+curl -u elastic:$ELASTIC_PASSWORD -X POST http://localhost:9200/logs/_doc \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Application started", "level": "INFO", "timestamp": "2024-01-01T00:00:00Z"}'
+
+# Search index
+curl -u elastic:$ELASTIC_PASSWORD http://localhost:9200/logs/_search?pretty
+
+# Resource usage
+podman stats elasticsearch-svc elasticsearch-gui
+```
+
+## Upgrade Management
+
+### Check for Updates
+
+```bash
+# Check if new container image version is available
+./svc-exec.sh elasticsearch check_upgrade
+```
+
+**Output when updates available:**
+
+```text
+TASK [elasticsearch : Display container status]
+ok: [firefly] => {
+    "msg": "elasticsearch-svc:UPDATE AVAILABLE - Current: abc123 | Latest: def456"
+}
+
+TASK [elasticsearch : Summary of upgrade status]
+ok: [firefly] => {
+    "msg": "UPDATES AVAILABLE for: elasticsearch-svc"
+}
+```
+
+**Output when up-to-date:**
+
+```text
+TASK [elasticsearch : Display container status]
+ok: [firefly] => {
+    "msg": "elasticsearch-svc:Up to date (abc123)"
+}
+
+TASK [elasticsearch : Summary of upgrade status]
+ok: [firefly] => {
+    "msg": "All containers up to date"
+}
+```
+
+### Perform Upgrade
+
+When updates are available:
+
+```bash
+# 1. Remove current deployment
+./manage-svc.sh elasticsearch remove
+
+# 2. Redeploy with latest image
+./manage-svc.sh elasticsearch deploy
+
+# 3. Verify new version
+./svc-exec.sh elasticsearch verify
+```
+
+**Note**: Data in `~/elasticsearch-data/` persists across upgrades.
+
+## Traefik Integration
+
+When Traefik is deployed with `elasticsearch_enable_traefik: true`, the service automatically gets SSL termination.
+
+### DNS Configuration
+
+1. Update DNS to point to your host:
+
+```bash
+source ~/.secrets/LabProvision
+./update-dns-auto.sh firefly
+```
+
+This creates:
+
+- `elasticsearch.example.com` → `firefly.example.com`
+- `es.example.com` → `firefly.example.com` (short alias)
+
+1. Access via HTTPS:
+   - `https://elasticsearch.example.com`
+   - `https://es.example.com`
+
+## Advanced Usage
+
+### API Token Management
+
+Create read-only and read-write API tokens for secure application access:
+
+```bash
+# Create tokens (requires separate playbook)
 ansible-playbook create-elasticsearch-tokens.yml
 ```
 
@@ -135,48 +264,18 @@ This creates:
 - **Read-write token**: For indexing and data manipulation
 - Tokens saved to `~/data/elasticsearch_api_keys.txt`
 
-### Using API Tokens
+**Using API tokens:**
 
 ```bash
 # Using read-only token
 curl -H "Authorization: ApiKey $ES_RO_TOKEN" \
-  https://elasticsearch.yourdomain.com/_cluster/health
+  https://elasticsearch.example.com/_cluster/health
 
-# Using read-write token  
+# Using read-write token
 curl -H "Authorization: ApiKey $ES_RW_TOKEN" \
-  -X POST https://elasticsearch.yourdomain.com/logs/_doc \
+  -X POST https://elasticsearch.example.com/logs/_doc \
   -H "Content-Type: application/json" \
   -d '{"message": "Test log entry", "timestamp": "2024-01-01T00:00:00Z"}'
-```
-
-## Common Operations
-
-### Verification and Testing
-
-```bash
-# Basic health and functionality check
-./svc-exec.sh elasticsearch verify
-
-# Verify via localhost
-./svc-exec.sh elasticsearch verify-localhost
-
-# Verify via Traefik proxy (requires tokens)
-./svc-exec.sh elasticsearch verify-proxy
-```
-
-### Data Operations
-
-```bash
-# Check cluster health
-curl -u elastic:$ELASTIC_PASSWORD http://localhost:9200/_cluster/health
-
-# Create an index with test data
-curl -u elastic:$ELASTIC_PASSWORD -X POST http://localhost:9200/logs/_doc \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Application started", "level": "INFO", "timestamp": "2024-01-01T00:00:00Z"}'
-
-# Search the index
-curl -u elastic:$ELASTIC_PASSWORD http://localhost:9200/logs/_search?pretty
 ```
 
 ### Index Management
@@ -202,17 +301,17 @@ curl -u elastic:$ELASTIC_PASSWORD -X PUT http://localhost:9200/app-logs \
   }'
 ```
 
-## Integration Examples
+### Integration Examples
 
-### Log Analysis Workflow
+**Log Analysis Workflow:**
 
 ```python
 from elasticsearch import Elasticsearch
 
 # Connect to Elasticsearch
 es = Elasticsearch(
-    ['https://elasticsearch.yourdomain.com'],
-    api_key=('ES_RW_TOKEN', ''),  # Use your API key
+    ['https://elasticsearch.example.com'],
+    api_key=('ES_RW_TOKEN', ''),
     verify_certs=False
 )
 
@@ -235,12 +334,12 @@ results = es.search(
 )
 ```
 
-### Test Result Collection
+**Test Result Collection:**
 
 ```bash
 # Index test results during CI/CD
 curl -H "Authorization: ApiKey $ES_RW_TOKEN" \
-  -X POST https://elasticsearch.yourdomain.com/test-results/_doc \
+  -X POST https://elasticsearch.example.com/test-results/_doc \
   -H "Content-Type: application/json" \
   -d '{
     "test_suite": "unit_tests",
@@ -249,27 +348,11 @@ curl -H "Authorization: ApiKey $ES_RW_TOKEN" \
     "duration": 120.5,
     "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
   }'
-
-# Query test trends
-curl -H "Authorization: ApiKey $ES_RO_TOKEN" \
-  https://elasticsearch.yourdomain.com/test-results/_search?pretty \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": {"range": {"timestamp": {"gte": "now-7d"}}},
-    "aggs": {
-      "daily_results": {
-        "date_histogram": {
-          "field": "timestamp",
-          "calendar_interval": "day"
-        }
-      }
-    }
-  }'
 ```
 
-## Performance Tuning
+### Performance Tuning
 
-### Memory Configuration
+**Memory Configuration:**
 
 ```yaml
 # For development workloads
@@ -282,7 +365,7 @@ elasticsearch_memory: "2g"      # Better performance
 elasticsearch_memory: "4g"      # Maximum performance
 ```
 
-### System Resources
+**System Resources:**
 
 The role automatically configures:
 
@@ -290,56 +373,45 @@ The role automatically configures:
 - File descriptor limits (`ulimit nofile=65535`)
 - Virtual memory settings (`vm.max_map_count=262144`)
 
-## Monitoring and Maintenance
+### Resource Limits
 
-### Health Monitoring
+Add resource limits in quadlet configuration:
 
-```bash
-# Container status
-systemctl --user status elasticsearch-pod
-
-# Resource usage
-podman stats elasticsearch-svc elasticsearch-gui
-
-# Elasticsearch metrics
-curl -u elastic:$ELASTIC_PASSWORD http://localhost:9200/_nodes/stats?pretty
-```
-
-### Log Analysis
-
-```bash
-# Container logs
-podman logs elasticsearch-svc | grep -i error
-
-# Elasticsearch slow logs
-podman exec elasticsearch-svc tail -f /usr/share/elasticsearch/logs/elasticsearch.log
-```
-
-### Data Management
-
-```bash
-# Check disk usage
-curl -u elastic:$ELASTIC_PASSWORD http://localhost:9200/_cat/allocation?v
-
-# Clean up old indices
-curl -u elastic:$ELASTIC_PASSWORD -X DELETE http://localhost:9200/old-logs-*
+```yaml
+quadlet_options:
+  - |
+    [Container]
+    Memory=2G
+    CPUQuota=200%
 ```
 
 ## Troubleshooting
 
-### Common Issues
+### Issue: Memory Errors
 
-**Memory Errors**
+**Problem**: OOM errors or Elasticsearch out of memory
+
+**Detection:**
 
 ```bash
 # Check JVM heap usage
 curl -u elastic:$ELASTIC_PASSWORD http://localhost:9200/_nodes/stats/jvm?pretty
 
-# Adjust memory settings
-# Edit elasticsearch_memory in inventory
+# Monitor container resources
+podman stats elasticsearch-svc
 ```
 
-**Connection Issues**
+**Resolution**: Increase `elasticsearch_memory` setting
+
+```yaml
+elasticsearch_memory: "2g"  # or higher
+```
+
+### Issue: Connection Refused
+
+**Problem**: Cannot connect to Elasticsearch on port 9200
+
+**Detection:**
 
 ```bash
 # Check if Elasticsearch is running
@@ -347,12 +419,41 @@ podman ps | grep elasticsearch
 
 # Test local connectivity
 curl http://localhost:9200
+```
 
-# Check authentication
+**Resolution**: Ensure Elasticsearch container is running
+
+```bash
+systemctl --user status elasticsearch-pod
+podman logs elasticsearch-svc
+```
+
+### Issue: Authentication Errors
+
+**Problem**: 401 Unauthorized or authentication failures
+
+**Detection:**
+
+```bash
+# Verify password is set
+echo $ELASTIC_PASSWORD
+
+# Test connection
 curl -u elastic:$ELASTIC_PASSWORD http://localhost:9200
 ```
 
-**Index Problems**
+**Resolution**: Set ELASTIC_PASSWORD environment variable before deployment
+
+```bash
+export ELASTIC_PASSWORD="your_secure_password"
+./manage-svc.sh elasticsearch deploy
+```
+
+### Issue: Index Health Problems
+
+**Problem**: Red cluster health or unavailable indices
+
+**Detection:**
 
 ```bash
 # Check cluster health
@@ -362,62 +463,91 @@ curl -u elastic:$ELASTIC_PASSWORD http://localhost:9200/_cluster/health?pretty
 curl -u elastic:$ELASTIC_PASSWORD http://localhost:9200/_cat/indices?v&health=red
 ```
 
-## Development Workflows
-
-### Development Testing
+**Resolution**: Check disk space and logs, may need to delete and recreate index
 
 ```bash
-# Quick deployment for testing
-export ELASTIC_PASSWORD="dev_password_123"
-./manage-svc.sh elasticsearch deploy
+# Check disk usage
+curl -u elastic:$ELASTIC_PASSWORD http://localhost:9200/_cat/allocation?v
 
-# Create test index and data
-curl -u elastic:$ELASTIC_PASSWORD -X POST http://localhost:9200/test/_doc \
-  -H "Content-Type: application/json" \
-  -d '{"test": "data"}'
-
-# Use Elasticvue for visual inspection
-open http://localhost:8088
-
-# Clean up when done
-./manage-svc.sh elasticsearch remove
+# View Elasticsearch logs
+podman logs elasticsearch-svc
 ```
 
-### CI/CD Integration
+## Remote Host Deployment
+
+Deploy to remote hosts using specific inventory:
 
 ```bash
-# Deploy for testing
-./manage-svc.sh elasticsearch deploy
+# Add to inventory/podma.yml with unique service name
+elasticsearch_svc:
+  hosts:
+    podma:
+      elasticsearch_svc_name: "elasticsearch-podma"
+  vars:
+    elasticsearch_port: 9200
+    elasticsearch_gui_port: 8088
 
-# Run tests that index results
-pytest tests/ --elasticsearch-url=http://localhost:9200
-
-# Analyze results
-./svc-exec.sh elasticsearch verify
-
-# Archive and clean up
-./manage-svc.sh elasticsearch remove
+# Deploy
+./manage-svc.sh -h podma -i inventory/podma.yml elasticsearch prepare
+./manage-svc.sh -h podma -i inventory/podma.yml elasticsearch deploy
 ```
 
-## Security Best Practices
+## Architecture
 
-1. **Strong Passwords**: Always set `ELASTIC_PASSWORD` to a strong value
-2. **API Tokens**: Use role-specific API tokens instead of elastic user
-3. **Network Access**: Elasticsearch binds to localhost by default
-4. **SSL/TLS**: Use Traefik for SSL termination in development
-5. **Regular Updates**: Keep Elasticsearch image updated
+This role follows the SOLTI container pattern:
 
-## Related Services
+1. **_base role inheritance**: Common functionality (directories, network, cleanup)
+2. **Podman quadlets**: Declarative container-to-systemd integration
+3. **State-based flow**: prepare → present → absent
+4. **Dynamic playbook generation**: Single script handles all operations
 
-- **Redis**: Use for fast caching alongside Elasticsearch search
-- **Traefik**: Provides SSL termination and routing
-- **HashiVault**: Can store Elasticsearch passwords and API tokens
-- **Mattermost**: Can send search results and alerts
+**Component Architecture:**
 
-## License
+```text
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
+│   Your Apps     │───▶│  Elasticsearch   │◀───│    Elasticvue      │
+│                 │    │   API (9200)     │    │   GUI (8088)       │
+└─────────────────┘    └──────────────────┘    └─────────────────────┘
+                              │                           │
+                              └───────────────────────────┘
+                                           │
+                              ┌──────────────────────┐
+                              │       Traefik        │
+                              │   (SSL Termination)  │
+                              └──────────────────────┘
+                                           │
+                    ┌────────────────────────────────────────┐
+                    │  https://elasticsearch.example.com    │
+                    │  https://es.example.com                │
+                    └────────────────────────────────────────┘
+```
 
-MIT
+See [docs/Claude-new-quadlet.md](../docs/Claude-new-quadlet.md) for complete pattern documentation.
 
-## Maintained By
+## Security Considerations
 
-Jackaltx - Part of the SOLTI containers collection for development testing workflows.
+- Containers run rootless under your user account
+- Ports bind to `127.0.0.1` only (not publicly accessible)
+- SELinux contexts applied automatically on RHEL-based systems
+- Traefik provides SSL termination for external access
+- X-Pack security enabled by default with password authentication
+- API tokens recommended for application access over password
+- Elasticsearch GUI (Elasticvue) should be restricted to trusted networks
+
+## Links
+
+- [Elasticsearch Official Documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html)
+- [Elasticsearch Docker Hub Image](https://hub.docker.com/_/elasticsearch)
+- [Elasticvue GitHub](https://github.com/cars10/elasticvue)
+- [Podman Documentation](https://docs.podman.io/)
+- [Quadlet Documentation](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)
+
+## Support
+
+For issues specific to this role, check:
+
+1. Container logs: `podman logs elasticsearch-svc`
+2. Systemd logs: `journalctl --user -u elasticsearch-pod`
+3. Verification output: `./svc-exec.sh elasticsearch verify`
+
+For Elasticsearch application issues, consult the [official documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html).

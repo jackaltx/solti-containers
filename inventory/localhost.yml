@@ -375,3 +375,51 @@ all:
 
             # Traefik integration
             influxdb3_enable_traefik: true
+
+        # ========================================
+        mongodb_svc:
+          hosts:
+            firefly:
+              # host_vars
+              mongodb_svc_name: "mongodb"
+
+          # .......................................
+          # mongodb_svc only vars
+          vars:
+            debug_level: warn
+            mongodb_data_dir: "{{ lookup('env', 'HOME') }}/mongodb-data"
+            mongodb_gui_port: 8082
+
+            # MongoDB credentials (loaded from environment)
+            mongodb_root_username: "{{ lookup('env', 'MONGODB_ROOT_USERNAME', default='') }}"
+            mongodb_root_password: "{{ lookup('env', 'MONGODB_ROOT_PASSWORD', default='') }}"
+            mongodb_database: "{{ lookup('env', 'MONGODB_DATABASE', default='admin') }}"
+
+            # Optional: Store credentials in HashiVault (future enhancement)
+            # mongodb_root_password: "{{ lookup('hashivault', 'kv/services/mongodb', 'root_password') }}"
+
+            # Test/verification variables
+            test_collection: "test_ansible"
+            test_document: '{"test": "verification", "timestamp": "{{ ansible_facts.date_time.iso8601 }}"}'
+
+            # Traefik integration
+            mongodb_enable_traefik: true
+
+        # ========================================
+        obsidian_svc:
+          hosts:
+            firefly:
+              # host_vars
+              obsidian_svc_name: "obsidian"
+
+          # .......................................
+          # obsidian_svc only vars
+          vars:
+            debug_level: warn
+            obsidian_data_dir: "{{ lookup('env', 'HOME') }}/obsidian-data"
+            obsidian_port: 3010
+            obsidian_https_port: 3011
+            obsidian_tz: "America/Chicago"
+
+            # Traefik integration
+            obsidian_enable_traefik: true

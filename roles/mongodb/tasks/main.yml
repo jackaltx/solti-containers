@@ -1,0 +1,47 @@
+---
+# MongoDB container service - main entry point
+
+- name: Validate state parameter
+  ansible.builtin.fail:
+    msg: "mongodb_state must be one of: prepare, present, absent"
+  when: mongodb_state not in ['prepare', 'present', 'absent']
+
+# Get real user info (immune to become)
+- name: Get real user info from environment
+  ansible.builtin.set_fact:
+    real_user: "{{ lookup('env', 'USER') }}"
+    real_user_dir: "{{ lookup('env', 'HOME') }}"
+    real_user_uid: "{{ lookup('pipe', 'id -u') }}"
+
+# Prepare block - one-time setup
+- name: Prepare MongoDB (one-time setup)
+  when: mongodb_state == 'prepare'
+  block:
+    - name: Include base preparation tasks
+      ansible.builtin.include_tasks: ../_base/tasks/prepare.yml
+
+# Install block - deploy and start service
+- name: Install MongoDB
+  when: mongodb_state == 'present'
+  block:
+    - name: Include prerequisites
+      ansible.builtin.include_tasks: prerequisites.yml
+
+    - name: Include network setup
+      ansible.builtin.include_tasks: ../_base/tasks/networks.yml
+
+    - name: Include quadlet deployment
+      ansible.builtin.include_tasks: quadlet_rootless.yml
+
+    - name: Include verification tasks
+      ansible.builtin.include_tasks: verify.yml
+      when: mongodb_verify | default(true)
+
+# Remove block - stop and remove service
+- name: Remove MongoDB
+  when: mongodb_state == 'absent'
+  block:
+    - name: Include cleanup tasks
+      ansible.builtin.include_tasks: ../_base/tasks/cleanup.yml
+      vars:
+        service_state: absent

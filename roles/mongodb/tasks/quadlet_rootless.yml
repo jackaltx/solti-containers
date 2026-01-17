@@ -1,0 +1,97 @@
+---
+# MongoDB quadlet deployment - rootless containers with systemd
+
+- name: Create MongoDB pod Quadlet
+  become: false
+  containers.podman.podman_pod:
+    name: mongodb
+    state: quadlet
+    dns: "{{ service_dns_servers }}"
+    dns_search: "{{ service_dns_search }}"
+    network: "{{ service_network }}"
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    ports:
+      - "127.0.0.1:{{ mongodb_port }}:27017"
+      - "127.0.0.1:{{ mongodb_gui_port }}:8081"
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+      - |
+        [Install]
+        WantedBy=default.target
+
+- name: Create MongoDB server container Quadlet
+  become: false
+  containers.podman.podman_container:
+    name: mongodb-svc
+    pod: mongodb.pod
+    image: "{{ mongodb_image }}"
+    state: quadlet
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    volume:
+      - "{{ mongodb_data_dir }}/config:/data/configdb:Z"
+      - "{{ mongodb_data_dir }}/data:/data/db:Z"
+      - "{{ mongodb_data_dir }}/logs:/var/log/mongodb:Z"
+    command:
+      - "mongod"
+      - "--config"
+      - "/data/configdb/mongod.conf"
+    quadlet_options:
+      - "EnvironmentFile={{ real_user_dir }}/.config/containers/systemd/env/mongodb.env"
+      - |
+        [Unit]
+        Description=MongoDB Server Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+
+- name: URL-encode MongoDB password for connection string
+  when: mongodb_enable_gui | bool
+  become: false
+  ansible.builtin.set_fact:
+    mongodb_password_encoded: "{{ mongodb_root_password | urlencode | replace('%', '%%') }}"
+
+- name: Create Mongo Express GUI container Quadlet
+  when: mongodb_enable_gui | bool
+  become: false
+  containers.podman.podman_container:
+    name: mongodb-gui
+    pod: mongodb.pod
+    image: "{{ mongodb_express_image }}"
+    state: quadlet
+    quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
+    env:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: "{{ mongodb_root_username }}"
+      ME_CONFIG_MONGODB_ADMINPASSWORD: "{{ mongodb_root_password }}"
+      ME_CONFIG_MONGODB_URL: "mongodb://{{ mongodb_root_username }}:{{ mongodb_password_encoded }}@mongodb-svc:27017/"
+      ME_CONFIG_BASICAUTH: "false"
+    label:
+      traefik.enable: "{{ mongodb_enable_traefik | lower }}"
+      traefik.http.routers.mongodb.rule: "Host(`{{ mongodb_svc_name | default('mongodb') }}.{{ domain }}`)"
+      traefik.http.services.mongodb.loadbalancer.server.port: "8081"
+    quadlet_options:
+      - |
+        [Unit]
+        Description=Mongo Express Web Interface
+        After=mongodb-svc.service
+      - |
+        [Service]
+        Restart=always
+
+- name: Reload systemd user daemon
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user daemon-reload
+  become: false
+  changed_when: false
+
+- name: Start rootless pod with systemd
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user start {{ service_properties.name }}
+  become: false
+  changed_when: true
