@@ -1,0 +1,46 @@
+---
+# Service-specific variables
+obsidian_image: "lscr.io/linuxserver/obsidian:latest"
+obsidian_data_dir: "{{ lookup('env', 'HOME') }}/obsidian-data"
+obsidian_port: 3000
+obsidian_https_port: 3001
+
+# LinuxServer.io base image variables
+obsidian_puid: "{{ lookup('pipe', 'id -u') }}"
+obsidian_pgid: "{{ lookup('pipe', 'id -g') }}"
+obsidian_tz: "America/Chicago"
+
+# Custom arguments for Obsidian
+obsidian_custom_args: ""
+
+# Feature flags
+obsidian_enable_traefik: false
+
+# Service properties - used by _base role
+service_properties:
+  root: "obsidian"
+  name: "obsidian-pod.service"
+  pod_key: "obsidian.pod"
+  quadlets:
+    - "obsidian-svc.container"
+    - "obsidian.pod"
+  data_dir: "{{ obsidian_data_dir }}"
+  config_dir: "config"
+  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
+  delete_images: "{{ lookup('env', 'DELETE_IMAGES') | default(false) | bool }}"
+  container_images:
+    - "{{ obsidian_image }}"
+  dirs:
+    - { path: "", mode: "0750" }
+    - { path: "config", mode: "0755" }
+    - { path: "vaults", mode: "0750" }
+  ports:
+    - "127.0.0.1:{{ obsidian_port }}:3000"
+    - "127.0.0.1:{{ obsidian_https_port }}:3001"
+  volumes:
+    - "{{ obsidian_data_dir }}/config:/config:Z"
+    - "{{ obsidian_data_dir }}/vaults:/vaults:Z"
+
+# State management
+obsidian_state: present
+obsidian_verify: true

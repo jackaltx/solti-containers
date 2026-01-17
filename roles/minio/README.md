@@ -1,446 +1,570 @@
-# Mattermost Role - Team Communication Platform
+# MinIO Role
 
-## Purpose
+Deploys MinIO S3-compatible object storage as a rootless Podman container with systemd integration using the quadlet pattern.
 
-Mattermost provides a private team communication platform ideal for collecting notifications, test results, and debugging information during development. This deployment includes PostgreSQL database and is perfect for creating dedicated channels for automated reporting and team coordination.
+## Overview
 
-## Quick Start
+This role deploys:
 
-```bash
-# Set required database password
-export MM_DB_PASSWORD="your_secure_db_password"
-
-# Prepare system directories and configuration
-./manage-svc.sh mattermost prepare
-
-# Deploy Mattermost with PostgreSQL
-./manage-svc.sh mattermost deploy
-
-# Initialize admin user and lock down registration
-./svc-exec.sh mattermost initialize
-
-# Verify deployment and security settings
-./svc-exec.sh mattermost verify
-
-# Verify security configuration
-./svc-exec.sh mattermost verify-security
-
-# Clean up (preserves data by default)
-./manage-svc.sh mattermost remove
-```
-
-> **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
+- **MinIO Server** (`minio/minio:latest`) - S3-compatible object storage
+- **MinIO Console** (built-in web UI) - Browser-based management interface
 
 ## Features
 
-- **Private Communication**: Self-hosted team messaging platform
-- **PostgreSQL Integration**: Dedicated database for data persistence
-- **Admin User Creation**: Automated admin account setup
-- **Security Lockdown**: Automatic registration disabling after setup
-- **SSL Integration**: Automatic HTTPS via Traefik
-- **Mobile/Desktop Apps**: Native client support
-- **Webhook Integration**: Perfect for automated notifications
+- **S3 API Compatibility**: Drop-in replacement for Amazon S3
+- **Web Console**: Built-in browser interface for bucket management
+- **MinIO Client (mc)**: Command-line tool for bucket operations
+- **Rootless Containers**: Enhanced security with user-level Podman
+- **Systemd Integration**: Native service management
+- **Traefik Support**: SSL termination and reverse proxy
+- **Upgrade Detection**: Built-in check for image updates
+- **Development Focused**: Perfect for testing S3 integrations
+- **HashiVault Integration**: Optional credential storage
 
-## Architecture
+## Requirements
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
-│   Your Apps     │───▶│   Mattermost     │◀───│   PostgreSQL DB     │
-│   (Webhooks)    │    │   Web (8065)     │    │   (Internal)        │
-└─────────────────┘    └──────────────────┘    └─────────────────────┘
-                              │                           │
-                              └───────────────────────────┘
-                                           │
-                              ┌──────────────────────┐
-                              │       Traefik        │
-                              │   (SSL Termination)  │
-                              └──────────────────────┘
-                                           │
-                              https://mattermost.yourdomain.com
+- Podman installed and configured for rootless operation
+- User systemd services enabled (`loginctl enable-linger`)
+- Container network (`ct-net`) created by `_base` role
+
+## Quick Start
+
+### 1. Prepare (one-time setup)
+
+```bash
+./manage-svc.sh minio prepare
 ```
 
-## Access Points
+Creates directories, applies SELinux contexts, and configures the system.
 
-| Interface | URL | Purpose |
-|-----------|-----|---------|
-| Mattermost Web | `http://localhost:8065` | Local web interface |
-| SSL Endpoint | `https://mattermost.{{ domain }}` | Traefik-proxied HTTPS access |
-| PostgreSQL | `internal:5432` | Database (pod-internal only) |
+### 2. Deploy
+
+```bash
+# Set MinIO credentials (recommended)
+export MINIO_ROOT_USER="admin"
+export MINIO_ROOT_PASSWORD="your_secure_password"
+
+./manage-svc.sh minio deploy
+```
+
+Deploys and starts the service with MinIO server and console.
+
+### 3. Verify
+
+```bash
+./svc-exec.sh minio verify
+```
+
+Runs health checks and functional tests.
+
+### 4. Access
+
+- **MinIO API**: `http://localhost:9000` (S3-compatible endpoint)
+- **MinIO Console**: `http://localhost:9001` (web interface)
+- **With Traefik SSL**:
+  - API: `https://minio-svc.example.com:8080`
+  - Console: `https://minio-ui.example.com:8080`
 
 ## Configuration
 
-### Required Environment Variables
+### Environment Variables
 
 ```bash
-# Database password (required)
-export MM_DB_PASSWORD="your_secure_database_password"
-
-# Optional: Admin user configuration
-export MM_USER="admin"
-export MM_PASSWORD="your_admin_password"
+export MINIO_ROOT_USER="admin"                  # MinIO admin username (default: minioadmin)
+export MINIO_ROOT_PASSWORD="your_secure_pass"   # MinIO admin password (default: changeme)
+export USE_VAULT=true                           # Enable HashiVault integration (optional)
 ```
 
-### Key Configuration Options
+### Inventory Variables
 
 ```yaml
-# Database settings
-mattermost_postgres_password: "{{ lookup('env', 'MM_DB_PASSWORD') }}"
-mattermost_db_name: "mattermost"
-mattermost_db_user: "mmuser"
+# Data and ports
+minio_data_dir: "{{ lookup('env', 'HOME') }}/minio-data"
+minio_api_port: 9000
+minio_console_port: 9001
 
-# Application settings
-mattermost_port: 8065
-mattermost_site_url: "http://localhost:{{ mattermost_port }}"
-mattermost_site_name: "Mattermost"
+# Service configuration
+minio_image: "docker.io/minio/minio:latest"
+minio_root_user: "{{ lookup('env', 'MINIO_ROOT_USER') | default('minioadmin') }}"
+minio_root_password: "{{ lookup('env', 'MINIO_ROOT_PASSWORD') | default('changeme') }}"
+minio_browser: "on"
 
-# Admin user creation
-mattermost_admin_email: "admin@{{ domain }}"
-mattermost_admin_username: "{{ lookup('env', 'MM_USER') | default('admin') }}"
-mattermost_admin_password: "{{ lookup('env', 'MM_PASSWORD') | default('changemeplease') }}"
+# TLS configuration
+minio_enable_tls: false
+minio_tls_cert_file: ""  # Path relative to config dir
+minio_tls_key_file: ""   # Path relative to config dir
 
-# Security settings
-mattermost_enable_user_creation: true   # Disabled after initialization
-mattermost_enable_open_server: true     # Disabled after initialization
-
-# Data persistence
-mattermost_data_dir: "{{ ansible_facts.user_dir }}/mattermost-data"
+# Traefik integration
+minio_enable_traefik: true
+minio_api_domain: "{{ minio_api_svc_name }}.{{ domain }}"
+minio_console_domain: "{{ minio_console_svc_name }}.{{ domain }}"
 ```
 
-### Optional TLS Configuration
+See [defaults/main.yml](defaults/main.yml) for complete options.
 
-```yaml
-# Enable TLS for direct access (in addition to Traefik SSL)
-mattermost_enable_tls: true
-mattermost_tls_cert_file: "/path/to/cert.pem"
-mattermost_tls_key_file: "/path/to/key.pem"
+## Directory Structure
+
+After deployment:
+
+```text
+~/minio-data/
+├── config/          # MinIO configuration files
+├── data/            # Object storage data (persistent)
+├── tls/             # TLS certificates (if enabled)
+└── logs/            # MinIO server logs
 ```
 
-## Using with Traefik SSL
+## Service Management
 
-Mattermost automatically integrates with Traefik for SSL termination:
-
-```yaml
-# Traefik labels automatically applied
-- "Label=traefik.http.routers.mattermost.rule=Host(`mattermost.{{ domain }}`)"
-- "Label=traefik.http.services.mattermost.loadbalancer.server.port=8065"
-```
-
-**Result**: Access Mattermost securely at `https://mattermost.yourdomain.com`
-
-## Security Initialization
-
-### Admin User Creation and Lockdown
+### Start/Stop/Status
 
 ```bash
-# Initialize with admin user and disable public registration
-./svc-exec.sh mattermost initialize
+# Check service status
+systemctl --user status minio-pod
+
+# Start service
+systemctl --user start minio-pod
+
+# Stop service
+systemctl --user stop minio-pod
+
+# Restart service
+systemctl --user restart minio-pod
+
+# Enable on boot
+systemctl --user enable minio-pod
 ```
 
-This process:
-
-1. Creates first admin user (becomes system admin automatically)
-2. Disables user registration for security
-3. Disables open server mode
-4. Updates configuration to prevent unauthorized access
-
-### Security Verification
+### Logs
 
 ```bash
-# Verify security settings are properly configured
-./svc-exec.sh mattermost verify-security
+# View pod logs
+journalctl --user -u minio-pod -f
+
+# View container logs
+podman logs minio-svc
+
+# View last 50 lines
+podman logs --tail 50 minio-svc
 ```
 
-Tests performed:
-
-- Confirms user registration is disabled
-- Verifies open server mode is disabled
-- Tests that unauthenticated users cannot create accounts
-- Confirms admin user can still create users
-- Validates API security settings
-
-## Common Operations
-
-### Verification and Testing
+### Remove
 
 ```bash
-# Basic health and functionality check
-./svc-exec.sh mattermost verify
+# Preserve data
+./manage-svc.sh minio remove
 
-# Test with user creation and security validation
-./svc-exec.sh mattermost verify-user
-
-# Comprehensive security audit
-./svc-exec.sh mattermost verify-security
+# Delete all data and images
+DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh minio remove
 ```
 
-### User Management
+## Verification
+
+Manual verification:
 
 ```bash
-# Access via web interface at https://mattermost.yourdomain.com
-# Or use the API:
+# Check service status
+systemctl --user status minio-pod
 
-# Create additional users (admin only)
-curl -X POST https://mattermost.yourdomain.com/api/v4/users \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "username": "newuser",
-    "password": "secure_password",
-    "first_name": "New",
-    "last_name": "User"
-  }'
+# Check container logs
+podman logs minio-svc
 
-# Create teams
-curl -X POST https://mattermost.yourdomain.com/api/v4/teams \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "development",
-    "display_name": "Development Team",
-    "type": "O"
-  }'
+# Test MinIO health endpoint
+curl http://localhost:9000/minio/health/live
+
+# Run verification tasks
+./svc-exec.sh minio verify
 ```
 
-### Database Operations
+### MinIO Client Operations
 
 ```bash
-# Connect to PostgreSQL
-podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
-  psql -U mmuser -d mattermost
+# Configure MinIO client and create test bucket
+./svc-exec.sh minio configure
 
-# Backup database
-podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
-  pg_dump -U mmuser mattermost > mattermost_backup.sql
-
-# Check database size
-podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
-  psql -U mmuser -d mattermost -c "SELECT pg_size_pretty(pg_database_size('mattermost'));"
+# Manual mc operations (after configure)
+podman exec minio-svc mc alias list
+podman exec minio-svc mc ls local
+podman exec minio-svc mc mb local/test-bucket
+podman exec minio-svc mc cp /etc/hosts local/test-bucket/
 ```
 
-## Integration Examples
+## Upgrade Management
 
-### Webhook Notifications
+### Check for Updates
+
+```bash
+# Check if new container image version is available
+./svc-exec.sh minio check_upgrade
+```
+
+**Output when updates available:**
+
+```text
+TASK [minio : Display container status]
+ok: [firefly] => {
+    "msg": "minio-svc:UPDATE AVAILABLE - Current: abc123 | Latest: def456"
+}
+
+TASK [minio : Summary of upgrade status]
+ok: [firefly] => {
+    "msg": "UPDATES AVAILABLE for: minio-svc"
+}
+```
+
+**Output when up-to-date:**
+
+```text
+TASK [minio : Display container status]
+ok: [firefly] => {
+    "msg": "minio-svc:Up to date (abc123)"
+}
+
+TASK [minio : Summary of upgrade status]
+ok: [firefly] => {
+    "msg": "All containers up to date"
+}
+```
+
+### Perform Upgrade
+
+When updates are available:
+
+```bash
+# 1. Remove current deployment
+./manage-svc.sh minio remove
+
+# 2. Redeploy with latest image
+./manage-svc.sh minio deploy
+
+# 3. Verify new version
+./svc-exec.sh minio verify
+```
+
+**Note**: Data in `~/minio-data/` persists across upgrades.
+
+## Traefik Integration
+
+When Traefik is deployed with `minio_enable_traefik: true`, the service automatically gets SSL termination.
+
+### DNS Configuration
+
+1. Update DNS to point to your host:
+
+   ```bash
+   source ~/.secrets/LabProvision
+   ./update-dns-auto.sh firefly
+   ```
+
+   This creates:
+   - `minio-svc.example.com` → `firefly.example.com` (API endpoint)
+   - `minio-ui.example.com` → `firefly.example.com` (Console)
+
+2. Access via HTTPS:
+   - API: `https://minio-svc.example.com:8080`
+   - Console: `https://minio-ui.example.com:8080`
+
+## Advanced Usage
+
+### S3 API Integration Examples
+
+**Python (boto3):**
 
 ```python
-import requests
+import boto3
 
-def send_notification(message, channel="testing"):
-    webhook_url = "https://mattermost.yourdomain.com/hooks/your_webhook_id"
-    
-    payload = {
-        "channel": channel,
-        "username": "TestBot",
-        "text": message,
-        "icon_emoji": ":robot_face:"
-    }
-    
-    response = requests.post(webhook_url, json=payload)
-    return response.status_code == 200
+# Configure S3 client for MinIO
+s3 = boto3.client('s3',
+    endpoint_url='http://localhost:9000',
+    aws_access_key_id='admin',
+    aws_secret_access_key='your_secure_password',
+    region_name='us-east-1'
+)
 
-# Send test results
-send_notification("✅ All tests passed in build #123", "ci-cd")
-send_notification("❌ Test failure in authentication module", "alerts")
+# Create bucket
+s3.create_bucket(Bucket='test-data')
+
+# Upload file
+s3.upload_file('/path/to/file.txt', 'test-data', 'file.txt')
+
+# List objects
+response = s3.list_objects_v2(Bucket='test-data')
+for obj in response.get('Contents', []):
+    print(f"  {obj['Key']} - {obj['Size']} bytes")
+
+# Download file
+s3.download_file('test-data', 'file.txt', '/tmp/downloaded.txt')
 ```
 
-### CI/CD Integration
+**AWS CLI:**
 
 ```bash
-# Send build notifications
-curl -X POST https://mattermost.yourdomain.com/hooks/your_webhook_id \
-  -H "Content-Type: application/json" \
-  -d '{
-    "channel": "ci-cd",
-    "username": "BuildBot",
-    "text": "🚀 Deployment to staging completed successfully",
-    "attachments": [{
-      "color": "good",
-      "fields": [{
-        "title": "Build",
-        "value": "'$BUILD_NUMBER'",
-        "short": true
-      }, {
-        "title": "Duration",
-        "value": "'$BUILD_DURATION's",
-        "short": true
-      }]
-    }]
-  }'
+# Configure AWS CLI for MinIO
+aws configure set aws_access_key_id admin
+aws configure set aws_secret_access_key your_secure_password
+aws configure set default.region us-east-1
+
+# Use with --endpoint-url flag
+aws --endpoint-url http://localhost:9000 s3 ls
+aws --endpoint-url http://localhost:9000 s3 mb s3://my-bucket
+aws --endpoint-url http://localhost:9000 s3 cp file.txt s3://my-bucket/
 ```
 
-### API Client Example
+### Bucket Management with mc Client
 
-```python
-from mattermostdriver import Driver
-
-# Connect to Mattermost
-mm = Driver({
-    'url': 'https://mattermost.yourdomain.com',
-    'login_id': 'admin@example.com',
-    'password': 'your_admin_password',
-    'scheme': 'https',
-    'verify': False  # For development
-})
-
-mm.login()
-
-# Create a channel
-channel = mm.channels.create_channel({
-    'team_id': 'your_team_id',
-    'name': 'test-results',
-    'display_name': 'Test Results',
-    'type': 'O'  # Open channel
-})
-
-# Post a message
-mm.posts.create_post({
-    'channel_id': channel['id'],
-    'message': 'Test automation results are in!'
-})
-```
-
-## Development Workflows
-
-### Development Communication Setup
+**After running `./svc-exec.sh minio configure`:**
 
 ```bash
-# Deploy for team communication
-export MM_DB_PASSWORD="dev_secure_password"
-./manage-svc.sh mattermost deploy
-./svc-exec.sh mattermost initialize
+# List buckets
+podman exec minio-svc mc ls local
 
-# Create development channels
-# - Access web interface at https://mattermost.yourdomain.com
-# - Create channels: #general, #development, #testing, #alerts
+# Create bucket with versioning
+podman exec minio-svc mc mb local/versioned-bucket
+podman exec minio-svc mc version enable local/versioned-bucket
 
-# Set up webhooks for automated notifications
-# - Go to Integrations > Incoming Webhooks
-# - Create webhooks for each notification type
+# Set bucket quota
+podman exec minio-svc mc admin quota local/test-bucket --hard 10GB
+
+# Mirror directory to bucket
+podman exec minio-svc mc mirror /data/source local/backup-bucket
+
+# Get bucket statistics
+podman exec minio-svc mc stat local/test-bucket
+
+# Set bucket policy (public read)
+podman exec minio-svc mc policy set download local/public-bucket
 ```
 
-### Testing Notification Systems
+### Development Workflows
+
+**Test Data Storage:**
 
 ```bash
-# Deploy test instance
-./manage-svc.sh mattermost deploy
-./svc-exec.sh mattermost initialize
+# Start MinIO for testing
+./manage-svc.sh minio deploy
+./svc-exec.sh minio configure
 
-# Test webhook integration
-curl -X POST http://localhost:8065/hooks/webhook_id \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Test notification from development"}'
+# Run tests that use S3 API
+python test_s3_integration.py
 
-# Clean up
-./manage-svc.sh mattermost remove
+# Inspect data via console
+open http://localhost:9001
+
+# Clean up when done
+./manage-svc.sh minio remove
 ```
 
-## Monitoring and Maintenance
+**Loki Log Storage Backend:**
 
-### Health Monitoring
-
-```bash
-# Container status
-systemctl --user status mattermost-pod
-
-# Resource usage
-podman stats mattermost-svc mattermost-db
-
-# Mattermost system status
-curl https://mattermost.yourdomain.com/api/v4/system/ping
-```
-
-### Log Analysis
-
-```bash
-# Mattermost application logs
-podman logs mattermost-svc | grep -i error
-
-# PostgreSQL logs
-podman logs mattermost-db
-
-# Real-time monitoring
-podman logs -f mattermost-svc
+```yaml
+# Configure Loki to use MinIO for storage
+storage_config:
+  aws:
+    endpoint: http://minio-svc:9000
+    bucketnames: loki-chunks
+    access_key_id: admin
+    secret_access_key: your_secure_password
+    s3forcepathstyle: true
 ```
 
 ### Performance Tuning
 
-```bash
-# Database performance
-podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
-  psql -U mmuser -d mattermost -c "SELECT * FROM pg_stat_activity;"
+**Resource Limits:**
 
-# Check slow queries
-podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
-  psql -U mmuser -d mattermost -c "SELECT query, mean_time FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 5;"
+Add to quadlet configuration:
+
+```yaml
+quadlet_options:
+  - |
+    [Container]
+    Memory=1G
+    CPUQuota=200%
+```
+
+**Erasure Coding (Production):**
+
+For production deployments with multiple drives:
+
+```bash
+# Set MINIO_VOLUMES to multiple paths
+minio_volumes: "/data1 /data2 /data3 /data4"
 ```
 
 ## Troubleshooting
 
-### Common Issues
+### Issue: Connection Refused
 
-**Database Connection Errors**
+**Problem**: Cannot connect to MinIO on ports 9000/9001
 
-```bash
-# Check PostgreSQL is running
-podman ps | grep mattermost-db
-
-# Test database connectivity
-podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
-  psql -U mmuser -d mattermost -c "SELECT version();"
-```
-
-**Configuration Issues**
+**Detection:**
 
 ```bash
-# Check Mattermost configuration
-podman exec mattermost-svc cat /mattermost/config/config.json
+# Check if MinIO is running
+podman ps | grep minio
 
-# Restart with new configuration
-systemctl --user restart mattermost-pod
+# Check port binding
+ss -tlnp | grep 9000
+ss -tlnp | grep 9001
 ```
 
-**Permission Problems**
+**Resolution**: Ensure MinIO container is running and ports are correctly bound
 
 ```bash
-# Check data directory permissions
-ls -la ~/mattermost-data/
-
-# Fix SELinux contexts (RHEL/CentOS)
-sudo restorecon -Rv ~/mattermost-data/
+systemctl --user status minio-pod
+podman logs minio-svc
 ```
 
-### Security Troubleshooting
+### Issue: Authentication Errors
+
+**Problem**: Access denied or invalid credentials
+
+**Detection:**
 
 ```bash
-# Verify security settings
-./svc-exec.sh mattermost verify-security
+# Verify credentials are set
+echo $MINIO_ROOT_USER
+echo $MINIO_ROOT_PASSWORD
 
-# Check user registration status
-curl https://mattermost.yourdomain.com/api/v4/users \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "username": "testuser", "password": "password"}'
-# Should return 501 (Not Implemented) if properly secured
+# Test API endpoint
+curl -I http://localhost:9000/minio/health/live
 ```
 
-## Security Best Practices
+**Resolution**: Set credentials before deployment
 
-1. **Strong Passwords**: Set secure database and admin passwords
-2. **Registration Lockdown**: Always run initialization to disable public registration
-3. **HTTPS Only**: Use Traefik SSL termination for production access
-4. **Regular Backups**: Backup PostgreSQL database regularly
-5. **Update Management**: Keep Mattermost image updated for security patches
+```bash
+export MINIO_ROOT_USER="admin"
+export MINIO_ROOT_PASSWORD="your_secure_password"
+./manage-svc.sh minio deploy
+```
+
+### Issue: Bucket Access Errors
+
+**Problem**: Cannot access buckets or objects
+
+**Detection:**
+
+```bash
+# Check MinIO server logs
+podman logs minio-svc | grep -i error
+
+# Test with mc client
+podman exec minio-svc mc ls local
+```
+
+**Resolution**: Verify bucket policies and credentials
+
+```bash
+# List buckets and permissions
+podman exec minio-svc mc admin policy list local
+
+# Set appropriate policy
+podman exec minio-svc mc policy set public local/my-bucket
+```
+
+### Issue: Console Not Loading
+
+**Problem**: MinIO console returns errors or won't load
+
+**Detection:**
+
+```bash
+# Check console redirect URL
+curl -I http://localhost:9001
+
+# Check browser redirect configuration
+podman exec minio-svc printenv | grep BROWSER
+```
+
+**Resolution**: Verify `minio_browser_redirect_url` is correct
+
+```yaml
+minio_browser_redirect_url: "https://{{ minio_console_domain }}:{{ traefik_http_port }}"
+```
+
+## Remote Host Deployment
+
+Deploy to remote hosts using specific inventory:
+
+```bash
+# Add to inventory/podma.yml with unique service name
+minio_svc:
+  hosts:
+    podma:
+      minio_svc_name: "minio-podma"
+  vars:
+    minio_api_port: 9000
+    minio_console_port: 9001
+
+# Deploy
+./manage-svc.sh -h podma -i inventory/podma.yml minio prepare
+./manage-svc.sh -h podma -i inventory/podma.yml minio deploy
+```
+
+## Architecture
+
+This role follows the SOLTI container pattern:
+
+1. **_base role inheritance**: Common functionality (directories, network, cleanup)
+2. **Podman quadlets**: Declarative container-to-systemd integration
+3. **State-based flow**: prepare → present → absent
+4. **Dynamic playbook generation**: Single script handles all operations
+
+**Component Architecture:**
+
+```text
+┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│   S3 Clients    │───▶│   MinIO Server   │◀───│  MinIO Console   │
+│  (boto3, AWS)   │    │   (Port 9000)    │    │   (Port 9001)    │
+└─────────────────┘    └──────────────────┘    └──────────────────┘
+                              │                         │
+                              └─────────────────────────┘
+                                       │
+                              ┌──────────────────┐
+                              │     Traefik      │
+                              │  (SSL Termination)│
+                              └──────────────────┘
+                                       │
+                      https://minio-svc.example.com:8080 (API)
+                      https://minio-ui.example.com:8080 (Console)
+```
+
+See [docs/Claude-new-quadlet.md](../docs/Claude-new-quadlet.md) for complete pattern documentation.
+
+## Security Considerations
+
+- Containers run rootless under your user account
+- API and Console ports bind to `127.0.0.1` only (not publicly accessible)
+- SELinux contexts applied automatically on RHEL-based systems
+- Traefik provides SSL termination for external access
+- Strong credentials required (deployment fails with default password)
+- HashiVault integration available for credential management
+- TLS can be enabled for direct connections (`minio_enable_tls: true`)
+- Bucket policies control object access permissions
+
+## Links
+
+- [MinIO Official Documentation](https://min.io/docs/minio/linux/index.html)
+- [MinIO Docker Hub Image](https://hub.docker.com/r/minio/minio)
+- [MinIO Client (mc) Documentation](https://min.io/docs/minio/linux/reference/minio-mc.html)
+- [AWS S3 API Compatibility](https://docs.aws.amazon.com/AmazonS3/latest/API/Welcome.html)
+- [Podman Documentation](https://docs.podman.io/)
+- [Quadlet Documentation](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)
+
+## Support
+
+For issues specific to this role, check:
+
+1. Container logs: `podman logs minio-svc`
+2. Systemd logs: `journalctl --user -u minio-pod`
+3. Verification output: `./svc-exec.sh minio verify`
+4. Health endpoint: `curl http://localhost:9000/minio/health/live`
+
+For MinIO application issues, consult the [official documentation](https://min.io/docs/).
 
 ## Related Services
 
-- **HashiVault**: Can store Mattermost database passwords and API tokens
-- **Traefik**: Provides SSL termination and routing
-- **Redis**: Can be used for session storage and caching
-- **Elasticsearch**: Can index Mattermost messages for search
-
-## License
-
-MIT
-
-## Maintained By
-
-Jackaltx - Part of the SOLTI containers collection for development testing workflows.
+- **Loki**: Can use MinIO as log storage backend
+- **InfluxDB**: Can use MinIO for data persistence
+- **Traefik**: Provides SSL termination and routing for API/Console
+- **HashiVault**: Can store MinIO credentials and access keys
+- **Elasticsearch**: Alternative object storage for snapshots

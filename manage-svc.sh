@@ -37,6 +37,7 @@ SUPPORTED_SERVICES=(
     "gitea"
     "influxdb3"
     "mongodb"
+    "obsidian"
 )
 
 # Supported actions

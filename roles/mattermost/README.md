@@ -1,10 +1,35 @@
-# Mattermost Role - Team Communication Platform
+# Mattermost Role
 
-## Purpose
+Deploys Mattermost team communication platform with PostgreSQL as rootless Podman containers using the quadlet pattern.
 
-Mattermost provides a private team communication platform ideal for collecting notifications, test results, and debugging information during development. This deployment includes PostgreSQL database and is perfect for creating dedicated channels for automated reporting and team coordination.
+## Overview
+
+This role deploys:
+
+- **Mattermost Team Edition** (`docker.io/mattermost/mattermost-team-edition:latest`) - Team communication platform
+- **PostgreSQL** (`postgres:16-alpine`) - Dedicated database backend
+
+## Features
+
+- **Private Team Communication**: Self-hosted messaging platform
+- **PostgreSQL Integration**: Dedicated database for data persistence
+- **Automated Admin Setup**: Admin user creation and security lockdown
+- **Security Hardening**: Registration disabled after initialization
+- **Rootless Containers**: Enhanced security with user-level Podman
+- **Systemd Integration**: Native service management
+- **Traefik Support**: Optional SSL termination and reverse proxy
+- **Webhook Integration**: Perfect for CI/CD notifications and automated reporting
+- **Mobile/Desktop Apps**: Native client support
+
+## Requirements
+
+- Podman installed and configured for rootless operation
+- User systemd services enabled (`loginctl enable-linger`)
+- Container network (`ct-net`) created by `_base` role
 
 ## Quick Start
+
+### 1. Prepare (one-time setup)
 
 ```bash
 # Set required environment variables
@@ -12,12 +37,22 @@ export MM_DB_PASSWORD="your_secure_db_password"
 export MM_USER="admin"
 export MM_PASSWORD="your_admin_password"
 
-# Prepare system directories and configuration
 ./manage-svc.sh mattermost prepare
+```
 
-# Deploy Mattermost with PostgreSQL
+Creates directories, applies SELinux contexts, and configures the system.
+
+### 2. Deploy
+
+```bash
 ./manage-svc.sh mattermost deploy
+```
 
+Deploys and starts PostgreSQL and Mattermost containers.
+
+### 3. Verify
+
+```bash
 # Initialize admin user and lock down registration
 ./svc-exec.sh mattermost initialize-mattermost
 
@@ -27,121 +62,34 @@ export MM_PASSWORD="your_admin_password"
 # Verify user configuration
 ./svc-exec.sh mattermost verify-user
 
-# Verify security configuration
+# Verify security lockdown
 ./svc-exec.sh mattermost verify-security
-
-# Clean up (preserves data by default)
-./manage-svc.sh mattermost remove
 ```
 
-> **Note**: `manage-svc.sh` will prompt for your sudo password. This is required because containers create files with elevated ownership that your user cannot modify without privileges.
+Runs health checks, creates admin user, and validates security configuration.
 
-## Full Redeploy
+### 4. Access
 
-Complete removal and fresh installation with latest container images. Useful for testing, upgrades, or recovering from corruption.
-
-```bash
-# Set required environment variables
-export MM_DB_PASSWORD="your_secure_db_password"
-export MM_USER="admin"
-export MM_PASSWORD="your_admin_password"
-
-# Step 1: Complete removal (data + images)
-DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh -h podma -i inventory/podma.yml mattermost remove
-
-# Step 2: Prepare system
-./manage-svc.sh -h podma -i inventory/podma.yml mattermost prepare
-
-# Step 3: Deploy with fresh images
-./manage-svc.sh -h podma -i inventory/podma.yml mattermost deploy
-
-# Step 4: Initialize admin user and lock down registration
-./svc-exec.sh -h podma -i inventory/podma.yml mattermost initialize-mattermost
-
-# Step 5: Verify deployment
-./svc-exec.sh -h podma -i inventory/podma.yml mattermost verify
-```
-
-**What this does**:
-
-- **Step 1**: Removes service, data directories, AND container images (Mattermost + PostgreSQL)
-- **Step 2**: Creates fresh directory structure with proper permissions
-- **Step 3**: Pulls latest container images and deploys service
-- **Step 4**: Creates admin user and disables public registration
-- **Step 5**: Validates deployment (health checks, security settings)
-
-**Expected results**:
-
-- Fresh `docker.io/mattermost/mattermost-team-edition:latest` and `postgres:16-alpine` images pulled
-- Clean database with no existing channels or users
-- Admin user created and registration disabled
-- All verification tests pass
-- Service accessible at `http://127.0.0.1:8065`
-
-**Localhost variant** (replace `-h podma -i inventory/podma.yml` with no flags):
-
-```bash
-DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh mattermost remove
-./manage-svc.sh mattermost prepare
-./manage-svc.sh mattermost deploy
-./svc-exec.sh mattermost initialize-mattermost
-./svc-exec.sh mattermost verify
-```
-
-> **Warning**: `DELETE_DATA=true` permanently destroys all channels, messages, users, and configuration. Only use for testing or fresh installations.
-
-## Features
-
-- **Private Communication**: Self-hosted team messaging platform
-- **PostgreSQL Integration**: Dedicated database for data persistence
-- **Admin User Creation**: Automated admin account setup
-- **Security Lockdown**: Automatic registration disabling after setup
-- **SSL Integration**: Automatic HTTPS via Traefik
-- **Mobile/Desktop Apps**: Native client support
-- **Webhook Integration**: Perfect for automated notifications
-
-## Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
-│   Your Apps     │───▶│   Mattermost     │◀───│   PostgreSQL DB     │
-│   (Webhooks)    │    │   Web (8065)     │    │   (Internal)        │
-└─────────────────┘    └──────────────────┘    └─────────────────────┘
-                              │                           │
-                              └───────────────────────────┘
-                                           │
-                              ┌──────────────────────┐
-                              │       Traefik        │
-                              │   (SSL Termination)  │
-                              └──────────────────────┘
-                                           │
-                              https://mattermost.yourdomain.com
-```
-
-## Access Points
-
-| Interface | URL | Purpose |
-|-----------|-----|---------|
-| Mattermost Web | `http://localhost:8065` | Local web interface |
-| SSL Endpoint | `https://mattermost.{{ domain }}` | Traefik-proxied HTTPS access |
-| PostgreSQL | `internal:5432` | Database (pod-internal only) |
+- **Mattermost Web**: `http://localhost:8065`
+- **With Traefik SSL**: `https://mattermost.example.com`
+- **PostgreSQL**: Internal pod network only (port 5432)
 
 ## Configuration
 
-### Required Environment Variables
+### Environment Variables
 
 ```bash
 # Database password (required for deploy)
 export MM_DB_PASSWORD="your_secure_database_password"
 
 # Admin user configuration (required for initialize-mattermost task)
-export MM_USER="admin"
-export MM_PASSWORD="your_admin_password"
+export MM_USER="admin"                    # Admin username (default: admin)
+export MM_PASSWORD="your_admin_password"  # Admin password (default: changemeplease)
 ```
 
-> **Note**: All three variables should be set before running `initialize-mattermost`. Defaults (admin/changemeplease) are insecure and not recommended.
+All three variables should be set before running `initialize-mattermost`. Defaults are insecure and not recommended.
 
-### Key Configuration Options
+### Inventory Variables
 
 ```yaml
 # Database settings
@@ -167,6 +115,8 @@ mattermost_enable_open_server: true     # Disabled after initialization
 mattermost_data_dir: "{{ ansible_facts.user_dir }}/mattermost-data"
 ```
 
+See [defaults/main.yml](defaults/main.yml) for complete options.
+
 ### Optional TLS Configuration
 
 ```yaml
@@ -176,126 +126,239 @@ mattermost_tls_cert_file: "/path/to/cert.pem"
 mattermost_tls_key_file: "/path/to/key.pem"
 ```
 
-## Using with Traefik SSL
+## Directory Structure
 
-Mattermost automatically integrates with Traefik for SSL termination:
+After deployment:
 
-```yaml
-# Traefik labels automatically applied
-- "Label=traefik.http.routers.mattermost.rule=Host(`mattermost.{{ domain }}`)"
-- "Label=traefik.http.services.mattermost.loadbalancer.server.port=8065"
+```text
+~/mattermost-data/
+├── config/          # Mattermost configuration (config.json)
+├── data/            # Application data (uploads, plugins, etc.)
+├── logs/            # Mattermost server logs
+├── plugins/         # Installed plugins
+└── db-data/         # PostgreSQL database files
 ```
 
-**Result**: Access Mattermost securely at `https://mattermost.yourdomain.com`
+## Service Management
 
-## Security Initialization
-
-### Admin User Creation and Lockdown
+### Start/Stop/Status
 
 ```bash
-# Initialize with admin user and disable public registration
-./svc-exec.sh mattermost initialize
+# Check service status
+systemctl --user status mattermost-pod
+
+# Start service
+systemctl --user start mattermost-pod
+
+# Stop service
+systemctl --user stop mattermost-pod
+
+# Restart service
+systemctl --user restart mattermost-pod
+
+# Enable on boot
+systemctl --user enable mattermost-pod
 ```
 
-This process:
+### Logs
 
-1. Creates first admin user (becomes system admin automatically)
-2. Disables user registration for security
-3. Disables open server mode
-4. Updates configuration to prevent unauthorized access
+```bash
+# View pod logs
+journalctl --user -u mattermost-pod -f
+
+# View Mattermost container logs
+podman logs mattermost-svc
+
+# View PostgreSQL logs
+podman logs mattermost-db
+
+# View last 50 lines
+podman logs --tail 50 mattermost-svc
+```
+
+### Remove
+
+```bash
+# Preserve data
+./manage-svc.sh mattermost remove
+
+# Delete all data and images
+DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh mattermost remove
+```
+
+**Warning**: `DELETE_DATA=true` permanently destroys all channels, messages, users, and configuration.
+
+## Verification
+
+Mattermost provides three levels of verification:
+
+### Basic Health Check
+
+```bash
+# Health and connectivity tests
+./svc-exec.sh mattermost verify
+```
+
+Validates:
+
+- Service running
+- HTTP endpoint responding
+- Database connectivity
+- API accessibility
+
+### User Verification
+
+```bash
+# Test user creation and authentication
+./svc-exec.sh mattermost verify-user
+```
+
+Validates:
+
+- Admin user exists
+- User creation works
+- Authentication succeeds
+- API token generation
 
 ### Security Verification
 
 ```bash
-# Verify security settings are properly configured
-./svc-exec.sh mattermost verify-security
-```
-
-Tests performed:
-
-- Confirms user registration is disabled
-- Verifies open server mode is disabled
-- Tests that unauthenticated users cannot create accounts
-- Confirms admin user can still create users
-- Validates API security settings
-
-## Common Operations
-
-### Verification and Testing
-
-```bash
-# Basic health and functionality check
-./svc-exec.sh mattermost verify
-
-# Test with user creation and security validation
-./svc-exec.sh mattermost verify-user
-
 # Comprehensive security audit
 ./svc-exec.sh mattermost verify-security
 ```
 
-### User Management
+Validates:
+
+- User registration disabled
+- Open server mode disabled
+- Unauthenticated access blocked
+- Admin privileges working
+- API security configured
+
+### Manual Verification
 
 ```bash
-# Access via web interface at https://mattermost.yourdomain.com
-# Or use the API:
+# Check service status
+systemctl --user status mattermost-pod
 
-# Create additional users (admin only)
-curl -X POST https://mattermost.yourdomain.com/api/v4/users \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "username": "newuser",
-    "password": "secure_password",
-    "first_name": "New",
-    "last_name": "User"
-  }'
+# Test API connectivity
+curl http://localhost:8065/api/v4/system/ping
 
-# Create teams
-curl -X POST https://mattermost.yourdomain.com/api/v4/teams \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "development",
-    "display_name": "Development Team",
-    "type": "O"
-  }'
+# Verify database
+podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
+  psql -U mmuser -d mattermost -c "SELECT version();"
 ```
 
-### Database Operations
+## Upgrade Management
+
+### Check for Updates
 
 ```bash
-# Connect to PostgreSQL
-podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
-  psql -U mmuser -d mattermost
-
-# Backup database
-podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
-  pg_dump -U mmuser mattermost > mattermost_backup.sql
-
-# Check database size
-podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
-  psql -U mmuser -d mattermost -c "SELECT pg_size_pretty(pg_database_size('mattermost'));"
+# Check if new container image versions are available
+./svc-exec.sh mattermost check_upgrade
 ```
 
-## Integration Examples
+**Output when updates available:**
+
+```text
+TASK [mattermost : Display container status]
+ok: [firefly] => {
+    "msg": "mattermost-svc:UPDATE AVAILABLE - Current: abc123 | Latest: def456"
+}
+ok: [firefly] => {
+    "msg": "mattermost-db:UPDATE AVAILABLE - Current: xyz789 | Latest: uvw101"
+}
+
+TASK [mattermost : Summary of upgrade status]
+ok: [firefly] => {
+    "msg": "UPDATES AVAILABLE for: mattermost-svc, mattermost-db"
+}
+```
+
+**Output when up-to-date:**
+
+```text
+TASK [mattermost : Display container status]
+ok: [firefly] => {
+    "msg": "mattermost-svc:Up to date (abc123)"
+}
+ok: [firefly] => {
+    "msg": "mattermost-db:Up to date (xyz789)"
+}
+
+TASK [mattermost : Summary of upgrade status]
+ok: [firefly] => {
+    "msg": "All containers up to date"
+}
+```
+
+### Perform Upgrade
+
+When updates are available:
+
+```bash
+# 1. Backup database (recommended)
+podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
+  pg_dump -U mmuser mattermost > mattermost_backup_$(date +%Y%m%d).sql
+
+# 2. Remove current deployment
+./manage-svc.sh mattermost remove
+
+# 3. Redeploy with latest images
+./manage-svc.sh mattermost deploy
+
+# 4. Verify new version
+./svc-exec.sh mattermost verify
+```
+
+**Note**: Data in `~/mattermost-data/` persists across upgrades. Admin user already exists, no need to re-run initialize.
+
+## Traefik Integration
+
+When Traefik is deployed, Mattermost automatically gets SSL termination.
+
+### DNS Configuration
+
+1. Update DNS to point to your host:
+
+```bash
+source ~/.secrets/LabProvision
+./update-dns-auto.sh firefly
+```
+
+This creates: `mattermost.example.com` → `firefly.example.com`
+
+1. Access via HTTPS:
+   - `https://mattermost.example.com`
+
+### Automatic Configuration
+
+Traefik labels automatically applied:
+
+```yaml
+- "Label=traefik.http.routers.mattermost.rule=Host(`mattermost.{{ domain }}`)"
+- "Label=traefik.http.services.mattermost.loadbalancer.server.port=8065"
+```
+
+## Advanced Usage
 
 ### Webhook Notifications
+
+Create incoming webhooks for automated notifications:
 
 ```python
 import requests
 
 def send_notification(message, channel="testing"):
-    webhook_url = "https://mattermost.yourdomain.com/hooks/your_webhook_id"
-    
+    webhook_url = "https://mattermost.example.com/hooks/your_webhook_id"
+
     payload = {
         "channel": channel,
         "username": "TestBot",
         "text": message,
         "icon_emoji": ":robot_face:"
     }
-    
+
     response = requests.post(webhook_url, json=payload)
     return response.status_code == 200
 
@@ -306,9 +369,10 @@ send_notification("❌ Test failure in authentication module", "alerts")
 
 ### CI/CD Integration
 
+Send build notifications with formatted attachments:
+
 ```bash
-# Send build notifications
-curl -X POST https://mattermost.yourdomain.com/hooks/your_webhook_id \
+curl -X POST https://mattermost.example.com/hooks/your_webhook_id \
   -H "Content-Type: application/json" \
   -d '{
     "channel": "ci-cd",
@@ -318,11 +382,11 @@ curl -X POST https://mattermost.yourdomain.com/hooks/your_webhook_id \
       "color": "good",
       "fields": [{
         "title": "Build",
-        "value": "'$BUILD_NUMBER'",
+        "value": "'"$BUILD_NUMBER"'",
         "short": true
       }, {
         "title": "Duration",
-        "value": "'$BUILD_DURATION's",
+        "value": "'"$BUILD_DURATION"'s",
         "short": true
       }]
     }]
@@ -331,16 +395,18 @@ curl -X POST https://mattermost.yourdomain.com/hooks/your_webhook_id \
 
 ### API Client Example
 
+Python client for programmatic access:
+
 ```python
 from mattermostdriver import Driver
 
 # Connect to Mattermost
 mm = Driver({
-    'url': 'https://mattermost.yourdomain.com',
+    'url': 'https://mattermost.example.com',
     'login_id': 'admin@example.com',
     'password': 'your_admin_password',
     'scheme': 'https',
-    'verify': False  # For development
+    'verify': True
 })
 
 mm.login()
@@ -360,107 +426,130 @@ mm.posts.create_post({
 })
 ```
 
-## Development Workflows
-
-### Development Communication Setup
+### Database Operations
 
 ```bash
-# Deploy for team communication
-export MM_DB_PASSWORD="dev_secure_password"
-./manage-svc.sh mattermost deploy
-./svc-exec.sh mattermost initialize
-
-# Create development channels
-# - Access web interface at https://mattermost.yourdomain.com
-# - Create channels: #general, #development, #testing, #alerts
-
-# Set up webhooks for automated notifications
-# - Go to Integrations > Incoming Webhooks
-# - Create webhooks for each notification type
-```
-
-### Testing Notification Systems
-
-```bash
-# Deploy test instance
-./manage-svc.sh mattermost deploy
-./svc-exec.sh mattermost initialize
-
-# Test webhook integration
-curl -X POST http://localhost:8065/hooks/webhook_id \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Test notification from development"}'
-
-# Clean up
-./manage-svc.sh mattermost remove
-```
-
-## Monitoring and Maintenance
-
-### Health Monitoring
-
-```bash
-# Container status
-systemctl --user status mattermost-pod
-
-# Resource usage
-podman stats mattermost-svc mattermost-db
-
-# Mattermost system status
-curl https://mattermost.yourdomain.com/api/v4/system/ping
-```
-
-### Log Analysis
-
-```bash
-# Mattermost application logs
-podman logs mattermost-svc | grep -i error
-
-# PostgreSQL logs
-podman logs mattermost-db
-
-# Real-time monitoring
-podman logs -f mattermost-svc
-```
-
-### Performance Tuning
-
-```bash
-# Database performance
+# Connect to PostgreSQL
 podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
-  psql -U mmuser -d mattermost -c "SELECT * FROM pg_stat_activity;"
+  psql -U mmuser -d mattermost
+
+# Backup database
+podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
+  pg_dump -U mmuser mattermost > mattermost_backup.sql
+
+# Check database size
+podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
+  psql -U mmuser -d mattermost -c "SELECT pg_size_pretty(pg_database_size('mattermost'));"
 
 # Check slow queries
 podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
   psql -U mmuser -d mattermost -c "SELECT query, mean_time FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 5;"
 ```
 
+### User Management
+
+```bash
+# Create additional users (admin only)
+curl -X POST https://mattermost.example.com/api/v4/users \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "username": "newuser",
+    "password": "secure_password",
+    "first_name": "New",
+    "last_name": "User"
+  }'
+
+# Create teams
+curl -X POST https://mattermost.example.com/api/v4/teams \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "development",
+    "display_name": "Development Team",
+    "type": "O"
+  }'
+```
+
 ## Troubleshooting
 
-### Common Issues
+### Issue: Database Connection Errors
 
-**Database Connection Errors**
+**Problem**: Mattermost cannot connect to PostgreSQL
+
+**Detection**:
 
 ```bash
 # Check PostgreSQL is running
 podman ps | grep mattermost-db
 
+# Check logs for connection errors
+podman logs mattermost-svc | grep -i "database"
+```
+
+**Resolution**: Ensure PostgreSQL is healthy and credentials match
+
+```bash
 # Test database connectivity
 podman exec -e PGPASSWORD="$MM_DB_PASSWORD" mattermost-db \
   psql -U mmuser -d mattermost -c "SELECT version();"
-```
 
-**Configuration Issues**
-
-```bash
-# Check Mattermost configuration
-podman exec mattermost-svc cat /mattermost/config/config.json
-
-# Restart with new configuration
+# Restart pod if needed
 systemctl --user restart mattermost-pod
 ```
 
-**Permission Problems**
+### Issue: Cannot Create Admin User
+
+**Problem**: initialize-mattermost fails with user already exists
+
+**Detection**:
+
+```bash
+# Check if admin user exists
+./svc-exec.sh mattermost verify-user
+```
+
+**Resolution**: Admin user already created, skip initialization
+
+```bash
+# Reset admin password if forgotten
+podman exec mattermost-svc mattermost user password admin new_password
+```
+
+### Issue: Registration Not Disabled
+
+**Problem**: Public registration still enabled after initialization
+
+**Detection**:
+
+```bash
+# Test registration endpoint
+curl -X POST http://localhost:8065/api/v4/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com", "username": "testuser", "password": "password"}'
+# Should return 501 (Not Implemented) if properly secured
+```
+
+**Resolution**: Re-run security initialization
+
+```bash
+./svc-exec.sh mattermost initialize-mattermost
+./svc-exec.sh mattermost verify-security
+```
+
+### Issue: Configuration Not Persisting
+
+**Problem**: Configuration changes lost after restart
+
+**Detection**:
+
+```bash
+# Check if config file exists
+ls -la ~/mattermost-data/config/config.json
+```
+
+**Resolution**: Ensure configuration directory is mounted and writable
 
 ```bash
 # Check data directory permissions
@@ -468,40 +557,149 @@ ls -la ~/mattermost-data/
 
 # Fix SELinux contexts (RHEL/CentOS)
 sudo restorecon -Rv ~/mattermost-data/
+
+# Restart service
+systemctl --user restart mattermost-pod
 ```
 
-### Security Troubleshooting
+### Issue: Permission Denied Errors
+
+**Problem**: Cannot write to data directories
+
+**Detection**:
 
 ```bash
-# Verify security settings
-./svc-exec.sh mattermost verify-security
+# Check container logs
+podman logs mattermost-svc | grep -i "permission"
 
-# Check user registration status
-curl https://mattermost.yourdomain.com/api/v4/users \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "username": "testuser", "password": "password"}'
-# Should return 501 (Not Implemented) if properly secured
+# Check directory ownership
+ls -lan ~/mattermost-data/
 ```
 
-## Security Best Practices
+**Resolution**: Fix directory permissions
 
-1. **Strong Passwords**: Set secure database and admin passwords
-2. **Registration Lockdown**: Always run initialization to disable public registration
-3. **HTTPS Only**: Use Traefik SSL termination for production access
-4. **Regular Backups**: Backup PostgreSQL database regularly
-5. **Update Management**: Keep Mattermost image updated for security patches
+```bash
+# Prepare task creates correct permissions
+./manage-svc.sh mattermost prepare
+
+# Manual fix if needed
+chmod -R u+rwX ~/mattermost-data/
+```
+
+## Remote Host Deployment
+
+Deploy to remote hosts using specific inventory:
+
+```bash
+# Add to inventory/podma.yml with unique service name
+mattermost_svc:
+  hosts:
+    podma:
+      mattermost_svc_name: "mattermost-podma"
+  vars:
+    mattermost_port: 8065
+
+# Set environment variables
+export MM_DB_PASSWORD="your_secure_db_password"
+export MM_USER="admin"
+export MM_PASSWORD="your_admin_password"
+
+# Deploy
+./manage-svc.sh -h podma -i inventory/podma.yml mattermost prepare
+./manage-svc.sh -h podma -i inventory/podma.yml mattermost deploy
+./svc-exec.sh -h podma -i inventory/podma.yml mattermost initialize-mattermost
+./svc-exec.sh -h podma -i inventory/podma.yml mattermost verify
+```
+
+**Multi-Host Considerations**:
+
+- Use unique service names to avoid conflicts
+- Ensure ports don't conflict (default 8065)
+- PostgreSQL is pod-internal, no port conflicts
+- Each host gets independent database and data
+
+## Architecture
+
+This role follows the SOLTI container pattern:
+
+1. **_base role inheritance**: Common functionality (directories, network, cleanup)
+2. **Podman quadlets**: Declarative container-to-systemd integration
+3. **Multi-container pod**: Mattermost + PostgreSQL in shared pod network
+4. **State-based flow**: prepare → present → absent
+5. **Security-first**: Admin creation and lockdown after deployment
+
+**Component Architecture**:
+
+```text
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
+│   Your Apps     │───▶│   Mattermost     │◀───│   PostgreSQL DB     │
+│   (Webhooks)    │    │   Web (8065)     │    │   (Internal:5432)   │
+└─────────────────┘    └──────────────────┘    └─────────────────────┘
+                              │                           │
+                              └───────────────────────────┘
+                                           │
+                              ┌──────────────────────┐
+                              │       Traefik        │
+                              │   (SSL Termination)  │
+                              └──────────────────────┘
+                                           │
+                              https://mattermost.example.com
+```
+
+**Key Components**:
+
+- **Mattermost**: Team communication frontend
+- **PostgreSQL**: Database backend (pod-internal)
+- **Shared Pod Network**: Containers communicate via pod networking
+- **Traefik**: Optional SSL termination and routing
+
+See [docs/Container-Role-Architecture.md](../../docs/Container-Role-Architecture.md) for complete pattern documentation.
+
+## Security Considerations
+
+- Containers run rootless under your user account
+- Mattermost port binds to `127.0.0.1` only (not publicly accessible)
+- PostgreSQL accessible only within pod network (no external port)
+- SELinux contexts applied automatically on RHEL-based systems
+- Traefik provides SSL termination for external access
+- Admin user created with strong password (via environment variable)
+- Public registration disabled after initialization
+- Open server mode disabled after initialization
+- Database credentials stored in environment variables
+
+**Security Best Practices**:
+
+1. Set strong `MM_DB_PASSWORD` before deployment
+2. Set strong `MM_PASSWORD` for admin user
+3. Always run `initialize-mattermost` to lock down registration
+4. Use Traefik SSL for production access
+5. Backup database regularly
+6. Keep container images updated
+
+## Links
+
+- [Mattermost Official Documentation](https://docs.mattermost.com/)
+- [Mattermost Docker Hub Image](https://hub.docker.com/r/mattermost/mattermost-team-edition)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [Mattermost API Reference](https://api.mattermost.com/)
+- [Podman Documentation](https://docs.podman.io/)
+- [Quadlet Documentation](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)
+
+## Support
+
+For issues specific to this role, check:
+
+1. Container logs: `podman logs mattermost-svc` and `podman logs mattermost-db`
+2. Systemd logs: `journalctl --user -u mattermost-pod`
+3. Verification output: `./svc-exec.sh mattermost verify`
+4. Security verification: `./svc-exec.sh mattermost verify-security`
+
+For Mattermost application issues, consult the [official documentation](https://docs.mattermost.com/).
 
 ## Related Services
 
-- **HashiVault**: Can store Mattermost database passwords and API tokens
+- **PostgreSQL**: Bundled database backend
 - **Traefik**: Provides SSL termination and routing
+- **HashiVault**: Can store Mattermost database passwords and API tokens
 - **Redis**: Can be used for session storage and caching
-- **Elasticsearch**: Can index Mattermost messages for search
-
-## License
-
-MIT
-
-## Maintained By
-
-Jackaltx - Part of the SOLTI containers collection for development testing workflows.
+- **Elasticsearch**: Can index Mattermost messages for advanced search

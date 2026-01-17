@@ -407,3 +407,22 @@ all:
 
             # Traefik integration
             mongodb_enable_traefik: true
+
+        # ========================================
+        obsidian_svc:
+          hosts:
+            podma:
+              # host_vars
+              obsidian_svc_name: "obsidian-podma"
+
+          # .......................................
+          # obsidian_svc only vars
+          vars:
+            debug_level: warn
+            obsidian_data_dir: "{{ lookup('env', 'HOME') }}/obsidian-data"
+            obsidian_port: 3010
+            obsidian_https_port: 3011
+            obsidian_tz: "America/Chicago"
+
+            # Traefik integration
+            obsidian_enable_traefik: true

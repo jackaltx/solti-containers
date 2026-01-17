@@ -1,0 +1,61 @@
+---
+- name: Verify Obsidian pod is running
+  ansible.builtin.command: podman pod ps --format "{%raw%}{{.Name}}{%endraw%}"
+  register: pod_status
+  failed_when: "'obsidian' not in pod_status.stdout"
+  changed_when: false
+
+- name: Verify Obsidian container is running
+  ansible.builtin.command: podman ps --format "{%raw%}{{.Names}}{%endraw%}" --filter "pod=obsidian"
+  register: container_status
+  changed_when: false
+
+- name: Display running containers
+  ansible.builtin.debug:
+    msg: "Running containers: {{ container_status.stdout_lines }}"
+
+- name: Wait for Obsidian to be ready (HTTP port)
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ obsidian_port }}"
+    state: started
+    delay: 5
+    timeout: 120
+
+- name: Wait for Obsidian to be ready (HTTPS port)
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ obsidian_https_port }}"
+    state: started
+    delay: 5
+    timeout: 120
+
+- name: Test Obsidian web interface (HTTP)
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ obsidian_port }}"
+    method: GET
+    status_code: [200, 301, 302]
+    validate_certs: false
+  register: http_check
+  retries: 10
+  delay: 5
+  until: http_check.status in [200, 301, 302]
+
+- name: Display Obsidian access information
+  ansible.builtin.debug:
+    msg:
+      - "Obsidian is now running!"
+      - "HTTP URL: http://127.0.0.1:{{ obsidian_port }}"
+      - "HTTPS URL: https://127.0.0.1:{{ obsidian_https_port }}"
+      - "Vaults directory: {{ obsidian_data_dir }}/vaults"
+      - "Config directory: {{ obsidian_data_dir }}/config"
+
+- name: Check systemd service status
+  ansible.builtin.command: systemctl --user status {{ service_properties.name }}
+  register: systemd_status
+  changed_when: false
+  failed_when: false
+
+- name: Display systemd service status
+  ansible.builtin.debug:
+    msg: "{{ systemd_status.stdout_lines }}"

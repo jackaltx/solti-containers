@@ -23,7 +23,8 @@ roles/<service>/
 │   ├── main.yml          # Entry point with state-based flow
 │   ├── prerequisites.yml # Config file generation and validation
 │   ├── quadlet_rootless.yml # Container/pod deployment
-│   └── verify.yml        # Health checks and functional tests
+│   ├── verify.yml        # Health checks and functional tests
+│   └── check_upgrade.yml # Check for container image updates
 ├── templates/
 │   ├── <service>.env.j2  # Environment file for credentials (mode 0600)
 │   └── <service>.conf.j2 # Service configuration file
@@ -433,6 +434,58 @@ processManagement:
   listen: "restart mongodb"
   become: false
 ```
+
+## Phase 5a: Upgrade Check (Optional but Recommended)
+
+### tasks/check_upgrade.yml
+
+This task file enables checking for container image updates without shell access to containers. It uses the common implementation from the `_base` role.
+
+**Why include this:**
+
+- Allows checking for updates via: `./svc-exec.sh <service> check_upgrade`
+- Works without shell access to containers (important for modern images)
+- Auto-discovers all containers in the pod
+- Provides programmatic upgrade status
+
+**Implementation:**
+
+```yaml
+---
+# check_upgrade.yml - Check if container image updates are available
+# This role uses the common implementation from _base
+
+- name: Include _base check_upgrade implementation
+  ansible.builtin.include_tasks:
+    file: ../_base/tasks/check_upgrade.yml
+```
+
+**That's it!** The wrapper is identical for all services. The `_base` implementation:
+
+- Auto-discovers containers using `service_properties.root`
+- Pulls latest images and compares IDs
+- Shows per-container status
+- Provides summary output
+
+**Example Usage:**
+
+```bash
+# Check for updates
+./svc-exec.sh mongodb check_upgrade
+
+# Output when updates available:
+# mongodb-svc:UPDATE AVAILABLE - Current: bda0ac478a7f | Latest: 33f64e748731
+# Summary: UPDATES AVAILABLE for: mongodb-svc
+
+# Output when up-to-date:
+# mongodb-svc:Up to date (33f64e748731)
+# Summary: All containers up to date
+```
+
+**See Also:**
+
+- [docs/Check-Upgrade-Pattern.md](Check-Upgrade-Pattern.md) - Complete pattern documentation
+- [roles/_base/tasks/check_upgrade.yml](../roles/_base/tasks/check_upgrade.yml) - Common implementation
 
 ## Phase 6: Integration with Management Scripts
 

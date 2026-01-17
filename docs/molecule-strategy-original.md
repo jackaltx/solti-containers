@@ -1,4 +1,47 @@
-# Molecule Testing Strategy for Container Roles
+# Molecule Testing Strategy for Container Roles (ARCHIVED)
+
+**Status**: This document represents the original testing strategy from the early planning phase. The actual implementation evolved significantly.
+
+**See current documentation**:
+
+- [molecule/README.md](../molecule/README.md) - User guide for running tests
+- [molecule/shared/README.md](../molecule/shared/README.md) - Developer guide for testing infrastructure
+- [molecule/podman/README.md](../molecule/podman/README.md) - Podman scenario details
+
+## What Changed
+
+### Original Plan
+
+- **Per-role testing**: Each role would have its own `molecule/` directory
+- **Individual scenarios**: Separate test setup per role
+- **Platform matrix**: Test across distributions but one role at a time
+
+### Actual Implementation
+
+- **Collection-level testing**: Single `molecule/` at collection root
+- **Shared infrastructure**: Common playbooks in `molecule/shared/`
+- **Dynamic service selection**: Test any combination via `MOLECULE_SERVICES` env var
+- **Verification matrix**: Multi-dimensional results (services × platforms × stages)
+- **Nested containers**: Test container → Podman → service containers
+- **Services registry**: Central `molecule/vars/services.yml` for all services
+
+### Why It Evolved
+
+The actual implementation mirrors the `_base` role pattern:
+
+- **DRY principle**: Shared playbooks eliminate duplication across 10+ services
+- **Flexibility**: Test any combination of services dynamically
+- **Comprehensive**: Matrix view across all test dimensions
+- **Maintainable**: Fix verification logic once, applies everywhere
+- **Scalable**: Adding new service only requires updating `services.yml`
+
+See [molecule/shared/README.md](../molecule/shared/README.md) for detailed explanation of the shared infrastructure pattern and verification matrix collection.
+
+---
+
+## Original Plan (Historical Reference)
+
+This section preserves the original planning for historical context.
 
 ## Current Setup Analysis
 

@@ -1,0 +1,8 @@
+---
+- name: Restart obsidian
+  ansible.builtin.systemd:
+    name: "{{ service_properties.name }}"
+    state: restarted
+    scope: user
+  listen: "restart obsidian"
+  become: false

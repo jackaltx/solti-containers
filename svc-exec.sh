@@ -36,6 +36,7 @@ SUPPORTED_SERVICES=(
     "gitea"
     "influxdb3"
     "mongodb"
+    "obsidian"
 )
 
 # Default entry point if not specified
