@@ -53,7 +53,7 @@
   when: mongodb_enable_gui | bool
   become: false
   ansible.builtin.set_fact:
-    mongodb_password_encoded: "{{ mongodb_root_password | urlencode }}"
+    mongodb_password_encoded: "{{ mongodb_root_password | urlencode | replace('%', '%%') }}"
 
 - name: Create Mongo Express GUI container Quadlet
   when: mongodb_enable_gui | bool
