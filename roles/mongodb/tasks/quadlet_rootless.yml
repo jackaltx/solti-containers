@@ -49,6 +49,12 @@
         TimeoutStartSec=300
         TimeoutStopSec=70
 
+- name: URL-encode MongoDB password for connection string
+  when: mongodb_enable_gui | bool
+  become: false
+  ansible.builtin.set_fact:
+    mongodb_password_encoded: "{{ mongodb_root_password | urlencode }}"
+
 - name: Create Mongo Express GUI container Quadlet
   when: mongodb_enable_gui | bool
   become: false
@@ -61,7 +67,7 @@
     env:
       ME_CONFIG_MONGODB_ADMINUSERNAME: "{{ mongodb_root_username }}"
       ME_CONFIG_MONGODB_ADMINPASSWORD: "{{ mongodb_root_password }}"
-      ME_CONFIG_MONGODB_URL: "mongodb://{{ mongodb_root_username }}:{{ mongodb_root_password }}@mongodb-svc:27017/"
+      ME_CONFIG_MONGODB_URL: "mongodb://{{ mongodb_root_username }}:{{ mongodb_password_encoded }}@mongodb-svc:27017/"
       ME_CONFIG_BASICAUTH: "false"
     label:
       traefik.enable: "{{ mongodb_enable_traefik | lower }}"
