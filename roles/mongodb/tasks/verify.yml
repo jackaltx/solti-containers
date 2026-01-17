@@ -1,7 +1,9 @@
 ---
 # MongoDB verification tasks
+# All verification must run as user (not root) to see user pods
 
 - name: Verify MongoDB pod is running
+  become: false
   ansible.builtin.command: podman pod ps --format "{%raw%}{{.Name}}{%endraw%}"
   register: pod_status
   until: "'mongodb' in pod_status.stdout"
@@ -10,6 +12,7 @@
   changed_when: false
 
 - name: Verify MongoDB container is running
+  become: false
   ansible.builtin.command: podman ps --format "{%raw%}{{.Names}}{%endraw%}" --filter "pod=mongodb"
   register: container_status
   changed_when: false
@@ -27,6 +30,7 @@
     timeout: 60
 
 - name: Test MongoDB connection
+  become: false
   ansible.builtin.command: >
     podman exec mongodb-svc
     mongosh -u {{ mongodb_root_username }} -p {{ mongodb_root_password }} --authenticationDatabase admin
@@ -39,6 +43,7 @@
   no_log: true
 
 - name: Test MongoDB write operation
+  become: false
   ansible.builtin.command: >
     podman exec mongodb-svc
     mongosh -u {{ mongodb_root_username }} -p {{ mongodb_root_password }} --authenticationDatabase admin
@@ -48,6 +53,7 @@
   no_log: true
 
 - name: Test MongoDB read operation
+  become: false
   ansible.builtin.command: >
     podman exec mongodb-svc
     mongosh -u {{ mongodb_root_username }} -p {{ mongodb_root_password }} --authenticationDatabase admin
@@ -57,6 +63,7 @@
   no_log: true
 
 - name: Get MongoDB version
+  become: false
   ansible.builtin.command: >
     podman exec mongodb-svc
     mongosh -u {{ mongodb_root_username }} -p {{ mongodb_root_password }} --authenticationDatabase admin
@@ -70,6 +77,7 @@
     msg: "MongoDB version: {{ mongo_version.stdout }}"
 
 - name: Get MongoDB server status
+  become: false
   ansible.builtin.command: >
     podman exec mongodb-svc
     mongosh -u {{ mongodb_root_username }} -p {{ mongodb_root_password }} --authenticationDatabase admin
