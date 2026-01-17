@@ -2,6 +2,22 @@
 
 > **A comprehensive Ansible collection for deploying containerized development and testing services using Podman, Quadlets, and systemd integration.**
 
+**Part of the [SOLTI Ansible Collections Suite](../README.md)** - This collection provides containerized testing and development infrastructure services.
+
+## 📖 Quick Reference
+
+| Attribute | Value |
+|-----------|-------|
+| **Collection** | `jackaltx.solti_containers` |
+| **Container Runtime** | Podman (rootless) |
+| **Service Management** | Systemd user services via Quadlets |
+| **Network** | `ct-net` (shared container network with DNS) |
+| **Management Scripts** | `manage-svc.sh` (lifecycle), `svc-exec.sh` (operations) |
+| **Deployment Targets** | localhost, remote hosts via SSH |
+| **Configuration Files** | [inventory.yml](inventory.yml), [ansible.cfg](ansible.cfg) |
+| **Orchestrator** | [../mylab/](../mylab/) (site-specific deployment automation) |
+| **Related Collections** | [solti-monitoring](../solti-monitoring/), [solti-ensemble](../solti-ensemble/) |
+
 ## 🎯 Project Philosophy
 
 Modern development requires lightweight, ephemeral services that can be quickly deployed, tested, and removed. Virtual machines are too heavy for rapid iteration cycles. This collection addresses the need for:
@@ -50,18 +66,29 @@ DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh <service> remove
 
 **Available services:**
 
-- elasticsearch
-- hashivault
-- redis
-- mattermost
-- traefik
-- minio
-- wazuh
-- grafana
-- gitea
-- influxdb3
-- mongodb
-- obsidian
+Core Infrastructure:
+
+- **traefik** - SSL reverse proxy with automatic Let's Encrypt
+- **hashivault** - Secrets management
+
+Data Stores:
+
+- **redis** - Key-value cache and message broker
+- **elasticsearch** - Search and analytics engine
+- **minio** - S3-compatible object storage
+- **mongodb** - Document database
+- **influxdb3** - Time-series metrics database
+
+Applications:
+
+- **mattermost** - Team communication platform
+- **grafana** - Metrics visualization dashboards
+- **gitea** - Lightweight Git hosting
+- **obsidian** - Note-taking and knowledge management
+
+Legacy/Disabled:
+
+- **wazuh** - Security monitoring (disabled - container issues)
 
 ### Remote Host Deployment
 
@@ -81,29 +108,53 @@ DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh <service> remove
 
 ## 📋 Service Catalog
 
-### Production-Ready Services
+### Infrastructure Services
 
-| Service | Purpose | Ports | SSL Domain | Status |
-|---------|---------|-------|------------|--------|
-| **[Redis](roles/redis/README.md)** | Fast key-value store for test data collection | 6379, 8081 | `redis-ui.domain.com` | ✅ Ready |
-| **[Elasticsearch](roles/elasticsearch/README.md)** | Search and analytics engine for logs | 9200, 8088 | `elasticsearch.domain.com` | ✅ Ready |
-| **[HashiVault](roles/hashivault/README.md)** | Comprehensive secrets management | 8200, 8201 | `vault.domain.com` | ✅ Ready |
-| **[Mattermost](roles/mattermost/README.md)** | Team communication and notifications | 8065 | `mattermost.domain.com` | ✅ Ready |
-| **[Traefik](roles/traefik/README.md)** | HTTP reverse proxy with SSL termination | 8080, 8443, 9999 | `*.domain.com` | ✅ Ready |
-| **[MinIO](roles/minio/README.md)** | S3-compatible object storage | 9000, 9001 | `minio.domain.com` | ✅ Ready |
-| **[Gitea](roles/gitea/README.md)** | Lightweight Git hosting service | 3000, 2222 | `gitea.domain.com` | ✅ Ready |
-| **[Grafana](roles/grafana/README.md)** | Metrics visualization and dashboards | 3001 | `grafana.domain.com` | ✅ Ready |
-| **[InfluxDB3](roles/influxdb3/README.md)** | Time-series database for metrics storage | 8086 | `influxdb.domain.com` | ✅ Ready |
+| Service | Purpose | Ports | SSL Domain | Role Path |
+|---------|---------|-------|------------|-----------|
+| **[Traefik](roles/traefik/README.md)** | HTTP reverse proxy with SSL termination | 8080, 8443, 9999 | `*.domain.com` | [roles/traefik](roles/traefik) |
+| **[HashiVault](roles/hashivault/README.md)** | Secrets management and credential storage | 8200, 8201 | `vault.domain.com` | [roles/hashivault](roles/hashivault) |
 
-### Development Status
+### Data Storage Services
 
-| Service | Status | Notes |
-|---------|--------|-------|
-| **Wazuh** | 🚧 Disabled | Container issues, will be removed in next version |
-| **Jepson** | 📋 Planned | Fuzzing framework |
-| **Trivy** | 📋 Planned | Vulnerability scanner |
+| Service | Purpose | Ports | SSL Domain | Role Path |
+|---------|---------|-------|------------|-----------|
+| **[Redis](roles/redis/README.md)** | Key-value cache and message broker | 6379, 8081 | `redis-ui.domain.com` | [roles/redis](roles/redis) |
+| **[Elasticsearch](roles/elasticsearch/README.md)** | Search and analytics engine for logs | 9200, 8088 | `elasticsearch.domain.com` | [roles/elasticsearch](roles/elasticsearch) |
+| **[MinIO](roles/minio/README.md)** | S3-compatible object storage | 9000, 9001 | `minio.domain.com` | [roles/minio](roles/minio) |
+| **[MongoDB](roles/mongodb/README.md)** | NoSQL document database | 27017 | `mongodb.domain.com` | [roles/mongodb](roles/mongodb) |
+| **[InfluxDB3](roles/influxdb3/README.md)** | Time-series database for metrics | 8086 | `influxdb.domain.com` | [roles/influxdb3](roles/influxdb3) |
+
+### Application Services
+
+| Service | Purpose | Ports | SSL Domain | Role Path |
+|---------|---------|-------|------------|-----------|
+| **[Mattermost](roles/mattermost/README.md)** | Team communication and notifications | 8065 | `mattermost.domain.com` | [roles/mattermost](roles/mattermost) |
+| **[Grafana](roles/grafana/README.md)** | Metrics visualization and dashboards | 3001 | `grafana.domain.com` | [roles/grafana](roles/grafana) |
+| **[Gitea](roles/gitea/README.md)** | Lightweight Git hosting service | 3000, 2222 | `gitea.domain.com` | [roles/gitea](roles/gitea) |
+| **[Obsidian](roles/obsidian/README.md)** | Note-taking and knowledge management | TBD | `obsidian.domain.com` | [roles/obsidian](roles/obsidian) |
+
+### Planned Services
+
+| Service | Status | Purpose |
+|---------|--------|---------|
+| **Jepson** | 📋 Planned | Fuzzing framework for security testing |
+| **Trivy** | 📋 Planned | Container vulnerability scanner |
 
 ## 🏗️ Architecture Overview
+
+### Relationship with SOLTI Orchestrator
+
+This collection is designed to work both **standalone** and **integrated** with the SOLTI orchestrator:
+
+- **Standalone Mode**: Use `manage-svc.sh` and `svc-exec.sh` directly in this repository
+- **Orchestrator Mode**: The [../mylab/](../mylab/) orchestrator provides:
+  - Centralized inventory management across all SOLTI collections
+  - Workflow automation (e.g., [deploy-fleur-workflow.sh](../mylab/deploy-fleur-workflow.sh))
+  - Site-specific credentials and tokens (kept out of this collection)
+  - Cross-collection service coordination
+
+**Key Principle**: This collection contains **generic, reusable roles**. Site-specific data lives in `../mylab/`.
 
 ### The SOLTI Pattern
 
@@ -633,6 +684,27 @@ ansible-playbook --syntax-check roles/<service>/tasks/main.yml
 ./manage-svc.sh <service> remove
 ```
 
+### Molecule Testing
+
+Test services across multiple platforms (Debian 12, Rocky 9, Ubuntu 24) using nested containers:
+
+```bash
+# Test service on all platforms
+./run-podman-tests.sh --services redis
+
+# Test specific platform
+./run-podman-tests.sh --platform uut-deb12 --services redis
+
+# Test multiple services
+./run-podman-tests.sh --services "redis,traefik,hashivault"
+
+# View test results
+tail -f verify_output/latest_test.out
+cat verify_output/debian/consolidated_test_report.md
+```
+
+See [molecule/README.md](molecule/README.md) for comprehensive testing documentation.
+
 ## 📚 Additional Resources
 
 ### Documentation
@@ -672,6 +744,85 @@ This project aims to provide:
 - **Issues**: Report bugs or request features via GitHub issues
 - **Documentation**: Comprehensive README files in each role
 - **Community**: Share your service implementations and improvements
+
+---
+
+## 🤖 Metadata for AI Tools
+
+This section provides structured information for AI documentation tools and code assistants.
+
+### Collection Metadata
+
+```yaml
+collection_name: jackaltx.solti_containers
+collection_type: ansible_collection
+namespace: jackaltx
+version: 1.0.0
+container_runtime: podman
+service_manager: systemd
+deployment_mode: rootless
+network_model: shared_bridge
+```
+
+### Key Files Reference
+
+| File | Purpose | Used By |
+|------|---------|---------|
+| [manage-svc.sh](manage-svc.sh) | Service lifecycle (prepare/deploy/remove) | Human operators, orchestrator |
+| [svc-exec.sh](svc-exec.sh) | Task execution (verify/configure) | Human operators, CI/CD |
+| [inventory.yml](inventory.yml) | Service configuration variables | Ansible playbooks |
+| [ansible.cfg](ansible.cfg) | Ansible settings and vault config | Ansible engine |
+| [roles/_base/](roles/_base/) | Common functionality for all services | All service roles |
+| [CLAUDE.md](CLAUDE.md) | AI assistant context and patterns | Claude Code, AI tools |
+
+### Service Role Structure
+
+All service roles follow this standard structure:
+
+```text
+roles/<service>/
+├── defaults/main.yml          # Default variables
+├── handlers/main.yml          # systemd restart handlers
+├── tasks/
+│   ├── main.yml              # Entry point (includes other tasks)
+│   ├── prepare.yml           # Directory/permission setup
+│   ├── prerequisites.yml     # Service-specific config
+│   ├── quadlet_rootless.yml  # Container deployment
+│   └── verify.yml            # Health checks
+├── templates/
+│   ├── <service>.conf.j2     # Configuration files
+│   └── <service>.env.j2      # Environment variables
+└── README.md                 # Service-specific documentation
+```
+
+### Common Ansible Variables
+
+```yaml
+# Network Configuration
+service_network: "ct-net"
+service_dns_servers: ["1.1.1.1", "8.8.8.8"]
+service_dns_search: "{{ domain }}"
+domain: "example.com"
+
+# Service Paths
+<service>_data_dir: "{{ ansible_env.HOME }}/<service>-data"
+<service>_config_dir: "{{ <service>_data_dir }}/config"
+
+# Container Lifecycle
+<service>_delete_data: false    # Preserve data on remove
+<service>_delete_images: false  # Preserve images on remove
+
+# Security
+ansible_become: true            # Required for prepare/deploy/remove
+secure_logging: true            # Hide credentials in logs
+```
+
+### Related Documentation
+
+- **Parent Project**: [../README.md](../README.md) - SOLTI Collections Suite overview
+- **Orchestrator**: [../mylab/README.md](../mylab/README.md) - Deployment automation
+- **Monitoring**: [../solti-monitoring/README.md](../solti-monitoring/README.md) - Metrics and logging
+- **Ensemble**: [../solti-ensemble/README.md](../solti-ensemble/README.md) - Shared infrastructure services
 
 ---
 
