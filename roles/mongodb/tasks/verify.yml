@@ -1,14 +1,12 @@
 ---
 # MongoDB verification tasks
 
-- name: Wait for systemd to start services
-  ansible.builtin.pause:
-    seconds: 3
-
 - name: Verify MongoDB pod is running
   ansible.builtin.command: podman pod ps --format "{%raw%}{{.Name}}{%endraw%}"
   register: pod_status
-  failed_when: "'mongodb' not in pod_status.stdout"
+  until: "'mongodb' in pod_status.stdout"
+  retries: 10
+  delay: 2
   changed_when: false
 
 - name: Verify MongoDB container is running

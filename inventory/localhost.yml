@@ -388,6 +388,7 @@ all:
           vars:
             debug_level: warn
             mongodb_data_dir: "{{ lookup('env', 'HOME') }}/mongodb-data"
+            mongodb_gui_port: 8082
 
             # MongoDB credentials (loaded from environment)
             mongodb_root_username: "{{ lookup('env', 'MONGODB_ROOT_USERNAME', default='') }}"
