@@ -1,0 +1,86 @@
+---
+#
+# Conduit role - supports prepare, present, and absent states
+# States:
+#   prepare: First-time setup of directories and system configuration
+#   present: Deploy and configure Conduit containers
+#   absent: Remove containers (optionally remove data)
+
+- name: Validate state parameter
+  ansible.builtin.fail:
+    msg: "conduit_state must be one of: prepare, present, absent. Current value: {{ conduit_state }}"
+  when: conduit_state not in ['prepare', 'present', 'absent']
+
+- name: Test become capability
+  ansible.builtin.command: whoami
+  register: become_test
+  changed_when: false
+
+# Get real user info using environment variables (immune to become)
+- name: Get real user info from environment
+  set_fact:
+    real_user: "{{ lookup('env', 'USER') }}"
+    real_user_dir: "{{ lookup('env', 'HOME') }}"
+    real_user_uid: "{{ lookup('pipe', 'id -u') }}"
+
+# =======================================================================
+# PREPARATION (one-time setup)
+# =======================================================================
+
+- name: Prepare Conduit (one-time setup)
+  when: conduit_state == 'prepare'
+  block:
+    - name: Check if already prepared
+      ansible.builtin.stat:
+        path: "{{ conduit_data_dir }}"
+      register: data_dir_check
+
+    - name: Fail if already prepared
+      ansible.builtin.fail:
+        msg: "Conduit appears to be already prepared. Directory {{ conduit_data_dir }} exists."
+      when: data_dir_check.stat.exists
+
+    - name: Base prepare
+      ansible.builtin.include_tasks:
+        file: ../_base/tasks/prepare.yml
+
+# =======================================================================
+# DEPLOYMENT
+# =======================================================================
+
+- name: Install Conduit
+  when: conduit_state == 'present'
+  block:
+    - name: Check if directories exist
+      become: true
+      ansible.builtin.stat:
+        path: "{{ conduit_data_dir }}/{{ service_properties.config_dir }}"
+      register: config_dir_check
+      changed_when: false
+
+    - name: Auto-prepare if directories don't exist (for molecule/testing)
+      ansible.builtin.include_tasks: prepare.yml
+      when: not config_dir_check.stat.exists
+
+    - name: Include prerequisites tasks
+      ansible.builtin.include_tasks: prerequisites.yml
+
+    - name: Ensure network setup
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/networks.yml"
+
+    - name: Include container tasks
+      ansible.builtin.include_tasks: quadlet_rootless.yml
+
+# =======================================================================
+# CLEANUP
+# =======================================================================
+
+- name: Remove Conduit
+  when: conduit_state == 'absent'
+  block:
+    - name: Include cleanup tasks
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/cleanup.yml"
+      vars:
+        service_state: absent

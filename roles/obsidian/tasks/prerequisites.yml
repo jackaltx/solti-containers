@@ -19,3 +19,23 @@
     mode: "0755"
     owner: "{{ dir_info.stat.uid }}"
     group: "{{ dir_info.stat.gid }}"
+
+- name: Ensure custom-cont-init.d directory exists
+  ansible.builtin.file:
+    path: "{{ obsidian_data_dir }}/config/custom-cont-init.d"
+    state: directory
+    mode: "0755"
+    owner: "{{ dir_info.stat.uid }}"
+    group: "{{ dir_info.stat.gid }}"
+
+- name: Create custom init script to fix vaults permissions
+  ansible.builtin.copy:
+    dest: "{{ obsidian_data_dir }}/config/custom-cont-init.d/99-fix-vaults-perms"
+    mode: "0755"
+    owner: "{{ dir_info.stat.uid }}"
+    group: "{{ dir_info.stat.gid }}"
+    content: |
+      #!/usr/bin/with-contenv bash
+      echo "[custom-init] Fixing /vaults permissions for PUID=${PUID} PGID=${PGID}"
+      chown -R abc:abc /vaults
+      chmod 750 /vaults

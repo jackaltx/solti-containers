@@ -32,12 +32,18 @@
     volume:
       - "{{ obsidian_data_dir }}/config:/config:Z"
       - "{{ obsidian_data_dir }}/vaults:/vaults:Z"
+      - "{{ obsidian_data_dir }}/config/custom-cont-init.d:/custom-cont-init.d:Z,ro"
     env:
       PUID: "{{ obsidian_puid }}"
       PGID: "{{ obsidian_pgid }}"
       TZ: "{{ obsidian_tz }}"
       CUSTOM_ARGS: "{{ obsidian_custom_args }}"
+      KEYBOARD_LAYOUT: "en-us-qwerty"
     shm_size: "1gb"
+    security_opt:
+      - "seccomp=unconfined"
+    cap_add:
+      - "SYS_ADMIN"
     label:
       traefik.enable: "{{ obsidian_enable_traefik | lower }}"
       traefik.http.routers.obsidian.rule: "Host(`{{ obsidian_svc_name | default('obsidian') }}.{{ domain }}`)"
@@ -67,3 +73,9 @@
     systemctl --user start {{ service_properties.name }}
   become: false
   changed_when: true
+
+- name: Wait for container to be ready
+  ansible.builtin.wait_for:
+    port: "{{ obsidian_port }}"
+    delay: 5
+    timeout: 60

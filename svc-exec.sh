@@ -37,6 +37,7 @@ SUPPORTED_SERVICES=(
     "influxdb3"
     "mongodb"
     "obsidian"
+    "conduit"
 )
 
 # Default entry point if not specified

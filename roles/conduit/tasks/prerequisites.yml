@@ -1,0 +1,57 @@
+---
+#
+# Conduit prerequisites - configuration deployment
+# This runs every time the service is deployed
+#
+# Flow:
+#   1. Validate required variables
+#   2. Get directory ownership for proper file permissions
+#   3. Deploy configuration with correct ownership
+#   4. Apply SELinux contexts (if applicable)
+#
+
+- name: Verify prerequisite variables
+  assert:
+    that:
+      - conduit_server_name is defined
+      - conduit_data_dir is defined
+      - conduit_port is defined
+    fail_msg: "Required variables not properly configured"
+
+# Get container user mapping first
+- name: Get directory ownership
+  ansible.builtin.stat:
+    path: "{{ conduit_data_dir }}/config"
+  register: dir_info
+
+- name: Debug ownership
+  ansible.builtin.debug:
+    msg: "uid: {{ dir_info.stat.uid }}, gid: {{ dir_info.stat.gid }}"
+
+# Deploy configuration with proper ownership
+- name: Become root and configure Conduit
+  become: true
+  block:
+    - name: Template Conduit configuration
+      ansible.builtin.template:
+        src: conduit.toml.j2
+        dest: "{{ conduit_data_dir }}/config/conduit.toml"
+        mode: "0644"
+        owner: "{{ dir_info.stat.uid }}"
+        group: "{{ dir_info.stat.gid }}"
+      notify: restart conduit
+
+    # Configure SELinux for data directories
+    - name: Configure SELinux for data directories
+      when: ansible_facts.os_family == "RedHat" and ansible_facts.selinux.status == "enabled"
+      block:
+        - name: Set SELinux context for Conduit directories
+          ansible.builtin.sefcontext:
+            target: "{{ conduit_data_dir }}(/.*)?"
+            setype: container_file_t
+            state: present
+
+        - name: Apply SELinux context
+          ansible.builtin.command: restorecon -R -v "{{ conduit_data_dir }}"
+          register: restorecon_result
+          changed_when: restorecon_result.rc == 0

@@ -1,0 +1,94 @@
+---
+# Conduit verification tasks
+# Verifies pod, container, and Matrix homeserver functionality
+
+# ....................................................................................
+- name: Verify Conduit pod is running
+  command: podman pod ps --format {% raw %}"{{.Name}}"{% endraw %}
+  register: pod_status
+  failed_when: "'conduit' not in pod_status.stdout"
+  changed_when: false
+
+- name: Show pod status
+  debug:
+    var: pod_status.stdout_lines
+
+# ....................................................................................
+- name: Verify Conduit container is running
+  command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=conduit"
+  register: container_status
+  failed_when: "'conduit-svc' not in container_status.stdout"
+  changed_when: false
+
+- name: Show container status
+  debug:
+    var: container_status.stdout_lines
+
+# ....................................................................................
+- name: Wait for Conduit to be ready
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ conduit_port }}"
+    state: started
+    delay: 5
+    timeout: 60
+
+# ....................................................................................
+- name: Check Conduit version endpoint
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ conduit_port }}/_matrix/client/versions"
+    method: GET
+    status_code: 200
+    return_content: true
+  register: conduit_version
+  changed_when: false
+
+- name: Show Conduit version info
+  debug:
+    msg: "Conduit supports Matrix versions: {{ conduit_version.json.versions | join(', ') }}"
+
+# ....................................................................................
+- name: Check server federation endpoint
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ conduit_port }}/_matrix/federation/v1/version"
+    method: GET
+    status_code: 200
+    return_content: true
+  register: conduit_federation
+  changed_when: false
+  when: conduit_allow_federation | bool
+
+- name: Show federation info
+  debug:
+    var: conduit_federation.json
+  when: conduit_allow_federation | bool
+
+# ....................................................................................
+- name: Get Conduit container logs (last 20 lines)
+  command: podman logs --tail 20 conduit-svc
+  register: conduit_logs
+  changed_when: false
+
+- name: Show recent Conduit logs
+  debug:
+    var: conduit_logs.stdout_lines
+
+# ....................................................................................
+- name: Check configuration file exists
+  ansible.builtin.stat:
+    path: "{{ conduit_data_dir }}/config/conduit.toml"
+  register: config_file
+
+- name: Verify configuration file
+  debug:
+    msg: "Configuration file exists: {{ config_file.stat.exists }}"
+
+# ....................................................................................
+- name: Check database directory
+  ansible.builtin.stat:
+    path: "{{ conduit_data_dir }}/data"
+  register: db_dir
+
+- name: Show database directory info
+  debug:
+    msg: "Database directory exists: {{ db_dir.stat.exists }}, Size: {{ db_dir.stat.size | default('unknown') }} bytes"
