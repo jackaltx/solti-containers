@@ -30,7 +30,7 @@
     state: quadlet
     quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     volume:
-      - "{{ obsidian_data_dir }}/config:/config:Z"
+      # - "{{ obsidian_data_dir }}/config:/config:Z"
       - "{{ obsidian_data_dir }}/vaults:/vaults:Z"
     env:
       PUID: "{{ obsidian_puid }}"

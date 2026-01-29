@@ -1,6 +1,10 @@
-# CLAUDE.md
+# CLAUDE.md - solti-containers Collection
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working in the **solti-containers** collection.
+
+**Context**: This is one collection within the [SOLTI Ansible Collections Suite](../CLAUDE.md). The parent project coordinates multiple collections (solti-monitoring, solti-containers, solti-ensemble) with the [mylab orchestrator](../mylab/).
+
+**Scope**: This CLAUDE.md covers collection-specific patterns. For system-wide context (reference machines, orchestrator workflows, cross-collection coordination), see [../CLAUDE.md](../CLAUDE.md).
 
 ## Core Commands
 
@@ -35,7 +39,31 @@ Data persists by default. Set `<SERVICE>_DELETE_DATA=true` in inventory.yml for 
 
 ### Supported Services
 
-- redis, elasticsearch, hashivault, mattermost, traefik, minio, grafana, wazuh
+**Active Services** (11 total):
+
+Core Infrastructure:
+
+- traefik (SSL reverse proxy with Let's Encrypt)
+- hashivault (secrets management)
+
+Data Stores:
+
+- redis (key-value cache and message broker)
+- elasticsearch (search and analytics engine)
+- minio (S3-compatible object storage)
+- mongodb (NoSQL document database)
+- influxdb3 (time-series metrics database)
+
+Applications:
+
+- mattermost (team communication platform)
+- grafana (metrics visualization dashboards)
+- gitea (Git hosting service)
+- obsidian (note-taking and knowledge management)
+
+**Legacy/Deprecated**:
+
+- wazuh (DEPRECATED - only 'remove' action supported, role removed)
 
 ### Testing & Verification
 
@@ -71,6 +99,76 @@ ansible-playbook --syntax-check roles/<service>/tasks/main.yml --limit firefly
 # Validate YAML files
 yamllint roles/<service>/tasks/main.yml
 ```
+
+### Molecule Testing
+
+**Quick Start**:
+
+```bash
+# Test service on all platforms (Debian 12, Rocky 9, Ubuntu 24)
+./run-podman-tests.sh --services redis
+
+# Test specific platform
+./run-podman-tests.sh --platform uut-deb12 --services redis
+
+# Test multiple services
+./run-podman-tests.sh --services "redis,traefik,hashivault"
+
+# Debug mode (show credentials)
+MOLECULE_SECURE_LOGGING=false ./run-podman-tests.sh --services hashivault
+```
+
+**What Gets Tested**:
+
+- Service deployment (container/pod creation)
+- Service health (systemd status, logs)
+- Network connectivity (ct-net, DNS resolution)
+- Service functionality (verify.yml tasks)
+- Port availability
+- Multi-platform compatibility
+
+**Test Output**:
+
+```bash
+# View latest test results
+tail -f verify_output/latest_test.out
+
+# Platform-specific consolidated reports
+cat verify_output/debian/consolidated_test_report.md
+cat verify_output/rocky/consolidated_test_report.md
+cat verify_output/ubuntu/consolidated_test_report.md
+
+# Pre/post diagnostics comparison
+diff verify_output/debian/container-diagnostics-preverify-*.yml \
+     verify_output/debian/container-diagnostics-postverify-*.yml
+```
+
+**Advanced Debugging**:
+
+```bash
+# Manual test phases (don't destroy between)
+molecule create -s podman
+molecule prepare -s podman
+molecule converge -s podman
+molecule verify -s podman
+
+# SSH into test container
+ssh -p 2223 jackaltx@127.0.0.1  # Debian 12
+ssh -p 2224 jackaltx@127.0.0.1  # Rocky 9
+ssh -p 2225 jackaltx@127.0.0.1  # Ubuntu 24
+
+# Inside test container: check service
+systemctl --user status redis-pod
+podman ps
+podman logs redis-svc
+
+# Cleanup
+molecule destroy -s podman
+```
+
+**Architecture**: Nested containers - Test containers (privileged) run Podman, which runs service containers (rootless).
+
+**See**: [molecule/README.md](molecule/README.md) for comprehensive testing documentation.
 
 ### Incremental Lint Remediation
 
@@ -293,3 +391,20 @@ Service-specific Jinja2 templates in `roles/<service>/templates/`:
 - `manage-svc.sh`: Service lifecycle (prepare/deploy/remove)
 - `svc-exec.sh`: Task execution (verify/configure/backup)
 - Both scripts generate temporary playbooks dynamically
+
+## Related Documentation
+
+**Within this collection**:
+
+- [README.md](README.md) - Collection overview and quick start (for both humans and AI tools)
+- [docs/](docs/) - Architecture patterns and design documentation
+- Service READMEs: [roles/redis/README.md](roles/redis/README.md), [roles/elasticsearch/README.md](roles/elasticsearch/README.md), etc.
+
+**Parent project context**:
+
+- [../CLAUDE.md](../CLAUDE.md) - System-wide coordination, reference machines, orchestrator workflows
+- [../mylab/](../mylab/) - Site-specific orchestrator with credentials and deployment automation
+- [../solti-monitoring/](../solti-monitoring/) - Monitoring stack (Telegraf, InfluxDB, Loki, Alloy, Grafana)
+- [../solti-ensemble/](../solti-ensemble/) - Shared infrastructure services (MariaDB, HashiVault, ACME)
+
+**Key principle**: This collection contains **generic, reusable roles**. Site-specific data (credentials, tokens, real hostnames) lives in `../mylab/` and is excluded from this collection.
