@@ -1,0 +1,89 @@
+---
+#
+# Conduit Quadlet deployment for rootless Podman
+# Creates pod and container definitions using systemd integration
+#
+
+# ....................................................................................
+- name: Ensure quadlet directory exists
+  ansible.builtin.file:
+    path: "~{{ real_user }}/.config/containers/systemd"
+    state: directory
+    mode: "0755"
+  become: false
+
+# ....................................................................................
+- name: Create Conduit pod Quadlet
+  become: false
+  containers.podman.podman_pod:
+    name: conduit
+    state: quadlet
+    dns: "{{ service_dns_servers }}"
+    dns_search: "{{ service_dns_search }}"
+    network: "{{ service_network }}"
+    quadlet_dir: "~{{ real_user }}/.config/containers/systemd"
+    ports:
+      - "127.0.0.1:{{ conduit_port }}:6167"
+    quadlet_options:
+      - |
+        [Service]
+        Restart=always
+      - |
+        [Install]
+        WantedBy=default.target
+
+# ....................................................................................
+- name: Create Conduit server container Quadlet
+  become: false
+  containers.podman.podman_container:
+    name: conduit-svc
+    pod: conduit.pod
+    image: "{{ conduit_image }}"
+    state: quadlet
+    quadlet_dir: "~{{ real_user }}/.config/containers/systemd"
+    volume:
+      - "{{ conduit_data_dir }}/config:/etc/matrix-conduit:Z"
+      - "{{ conduit_data_dir }}/data:/var/lib/matrix-conduit:Z"
+    env:
+      CONDUIT_CONFIG: "/etc/matrix-conduit/conduit.toml"
+    label:
+      traefik.enable: "{{ conduit_enable_traefik | lower }}"
+      traefik.http.routers.conduit.rule: "Host(`matrix.{{ domain }}`)"
+      traefik.http.routers.conduit.entrypoints: "websecure"
+      traefik.http.routers.conduit.service: "conduit"
+      traefik.http.services.conduit.loadbalancer.server.port: "6167"
+      traefik.http.routers.conduit.middlewares: "secHeaders@file"
+    quadlet_options:
+      - |
+        [Unit]
+        Description=Conduit Matrix Homeserver Container
+        After=network-online.target
+      - |
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+        TimeoutStopSec=70
+      - |
+        [Install]
+        WantedBy=default.target
+
+# ....................................................................................
+- name: Wait a moment for quadlet to be written
+  ansible.builtin.wait_for:
+    timeout: 10
+
+# .......................................................................................
+- name: reload systemd user daemon
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user daemon-reload
+  become: false
+  changed_when: false
+
+# .......................................................................................
+- name: Start rootless pod with systemd
+  ansible.builtin.shell: |
+    export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
+    systemctl --user start {{ service_properties.name }}
+  become: false
+  changed_when: true

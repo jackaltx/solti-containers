@@ -1,0 +1,20 @@
+---
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+  become: false
+
+- name: restart conduit
+  ansible.builtin.systemd:
+    name: "{{ service_properties.name }}"
+    state: restarted
+    scope: user
+  listen: "restart conduit"
+  become: false
+
+- name: reload systemd user daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+  become: false

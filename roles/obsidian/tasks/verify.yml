@@ -4,6 +4,7 @@
   register: pod_status
   failed_when: "'obsidian' not in pod_status.stdout"
   changed_when: false
+  become: false
 
 - name: Verify Obsidian container is running
   ansible.builtin.command: podman ps --format "{%raw%}{{.Names}}{%endraw%}" --filter "pod=obsidian"

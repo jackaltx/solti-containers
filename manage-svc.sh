@@ -38,6 +38,7 @@ SUPPORTED_SERVICES=(
     "influxdb3"
     "mongodb"
     "obsidian"
+    "conduit"
 )
 
 # Supported actions
@@ -328,13 +329,27 @@ fi
 SUDO_FLAG=""
 TARGET_HOST="${HOST:-${SERVICE}_svc}"
 
-echo "Testing sudo capability on target..."
-if ansible -i "${INVENTORY}" "${TARGET_HOST}" -m shell -a "sudo -n true" &>/dev/null; then
-    echo "✓ NOPASSWD detected - sudo password not required"
+# Check if --become-password-file is already provided in extra args
+BECOME_PASS_FILE_PROVIDED=false
+for arg in "${EXTRA_ARGS[@]}"; do
+    if [[ "$arg" == "--become-password-file"* ]] || [[ "$arg" == "--become-pass-file"* ]]; then
+        BECOME_PASS_FILE_PROVIDED=true
+        break
+    fi
+done
+
+if [[ "$BECOME_PASS_FILE_PROVIDED" == "true" ]]; then
+    echo "✓ Using --become-password-file from arguments"
     SUDO_FLAG=""
 else
-    echo "✗ Password required - will prompt for sudo password"
-    SUDO_FLAG="-K"
+    echo "Testing sudo capability on target..."
+    if ansible -i "${INVENTORY}" "${TARGET_HOST}" -m shell -a "sudo -n true" &>/dev/null; then
+        echo "✓ NOPASSWD detected - sudo password not required"
+        SUDO_FLAG=""
+    else
+        echo "✗ Password required - will prompt for sudo password"
+        SUDO_FLAG="-K"
+    fi
 fi
 
 # Always use sudo for all states

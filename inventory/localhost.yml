@@ -423,3 +423,32 @@ all:
 
             # Traefik integration
             obsidian_enable_traefik: true
+
+        # ========================================
+        conduit_svc:
+          hosts:
+            firefly:
+              # host_vars
+              conduit_svc_name: "matrix"
+
+          # .......................................
+          # conduit_svc only vars
+          vars:
+            debug_level: warn
+            conduit_data_dir: "{{ lookup('env', 'HOME') }}/conduit-data"
+            conduit_port: 6167
+            conduit_server_name: "{{ domain }}"
+
+            # Registration settings  (site specific)
+            conduit_allow_registration: true
+            conduit_registration_token: "Welcome2Firefly"
+
+            # Federation
+            conduit_allow_federation: true
+
+            # Well-known configuration for proper client/federation discovery
+            conduit_well_known_client: "https://matrix.{{ domain }}:8080"
+            conduit_well_known_server: "matrix.{{ domain }}:8080"
+
+            # Traefik integration
+            conduit_enable_traefik: true

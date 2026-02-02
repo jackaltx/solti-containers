@@ -1,0 +1,81 @@
+---
+#
+# Conduit Matrix homeserver role defaults
+# States: prepare, present, absent
+#
+
+# Installation state
+conduit_state: present
+conduit_force_reload: false
+
+# Container settings
+conduit_image: "docker.io/matrixconduit/matrix-conduit:latest"
+
+# Directory settings
+conduit_data_dir: "{{ lookup('env', 'HOME') }}/conduit-data"
+
+# Conduit settings
+conduit_port: 6167
+conduit_server_name: "{{ domain }}"
+conduit_database_backend: "rocksdb"
+conduit_max_request_size: 20000000  # 20MB
+conduit_address: "0.0.0.0"  # Allow Traefik to reach it
+
+# Registration settings
+conduit_allow_registration: false
+conduit_registration_token: ""  # Set this to require registration token
+conduit_allow_federation: true
+conduit_enable_lightning_bolt: true
+
+# Trusted servers for key gathering
+conduit_trusted_servers:
+  - "matrix.org"
+
+# Log level (trace, debug, info, warn, error)
+conduit_log_level: "warn"
+
+# TURN server configuration (optional)
+conduit_turn_uris: []
+conduit_turn_secret: ""
+
+# Well-known configuration (optional overrides)
+conduit_well_known_client: ""  # e.g., "https://matrix.example.org"
+conduit_well_known_server: ""  # e.g., "matrix.example.org:443"
+
+# Traefik integration
+conduit_enable_traefik: true
+
+# =======================================================================
+service_network: "example-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "example.com"
+
+# =======================================================================
+service_properties:
+  root: "conduit"
+  name: "conduit-pod.service"
+  pod_key: "conduit.pod"
+  quadlets:
+    - "conduit-svc.container"
+    - "conduit.pod"
+  data_dir: "{{ conduit_data_dir }}"
+  config_dir: "config"
+  delete_data: "{{ lookup('env', 'DELETE_DATA') | default(false) | bool }}"
+  delete_images: "{{ lookup('env', 'DELETE_IMAGES') | default(false) | bool }}"
+  image: "{{ conduit_image }}"
+  container_image: "{{ conduit_image }}"
+  container_images:
+    - "{{ conduit_image }}"
+  dirs:
+    - {path: "", mode: "0750"}
+    - {path: "config", mode: "0755"}
+    - {path: "data", mode: "0750"}
+  ports:
+    - "127.0.0.1:{{ conduit_port }}:6167"
+  volumes:
+    - "{{ conduit_data_dir }}/config:/etc/matrix-conduit:Z"
+    - "{{ conduit_data_dir }}/data:/var/lib/matrix-conduit:Z"
+  environment:
+    CONDUIT_CONFIG: "/etc/matrix-conduit/conduit.toml"

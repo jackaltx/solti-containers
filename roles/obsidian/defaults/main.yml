@@ -2,8 +2,10 @@
 # Service-specific variables
 obsidian_image: "lscr.io/linuxserver/obsidian:latest"
 obsidian_data_dir: "{{ lookup('env', 'HOME') }}/obsidian-data"
-obsidian_port: 3000
-obsidian_https_port: 3001
+
+# moved due to conflict
+obsidian_port: 3010
+obsidian_https_port: 3011
 
 # LinuxServer.io base image variables
 obsidian_puid: "{{ lookup('pipe', 'id -u') }}"
