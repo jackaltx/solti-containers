@@ -30,5 +30,6 @@ jobs:
           VALIDATE_YAML: true
           VALIDATE_ANSIBLE: true
           VALIDATE_JSON: true
-          VALIDATE_MARKDOWN: true
-          VALIDATE_BASH: true
+          # Disable linters handled by dedicated workflows
+          VALIDATE_MARKDOWN: false
+          VALIDATE_BASH: false
