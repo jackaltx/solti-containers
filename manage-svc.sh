@@ -352,12 +352,38 @@ else
     fi
 fi
 
+# Matrix logging: deployment start (OPTIONAL - don't break on failure)
+if [[ -x "${ANSIBLE_DIR}/bin/matrix-log.py" ]]; then
+    "${ANSIBLE_DIR}/bin/matrix-log.py" message \
+        "Starting ${ACTION}: ${SERVICE} on ${HOST:-all}" \
+        --level info 2>/dev/null || true
+fi
+
+# Track execution time
+START_TIME=$(date +%s)
+
 # Always use sudo for all states
 echo "Executing: ansible-playbook ${SUDO_FLAG} -i ${INVENTORY} ${TEMP_PLAYBOOK} ${EXTRA_ARGS[*]}"
 ansible-playbook ${SUDO_FLAG} -i "${INVENTORY}" "${TEMP_PLAYBOOK}" "${EXTRA_ARGS[@]}"
 
 # Check execution status
 EXIT_CODE=$?
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+
+# Matrix logging: deployment complete (OPTIONAL - don't break on failure)
+if [[ -x "${ANSIBLE_DIR}/bin/matrix-log.py" ]]; then
+    if [[ ${EXIT_CODE} -eq 0 ]]; then
+        STATUS="success"
+    else
+        STATUS="failure"
+    fi
+
+    "${ANSIBLE_DIR}/bin/matrix-log.py" deployment \
+        "${SERVICE}" "${HOST:-all}" "${STATUS}" \
+        --duration "${DURATION}" \
+        --details action="${ACTION}" state="${STATE_MAP[$ACTION]}" 2>/dev/null || true
+fi
 if [[ ${EXIT_CODE} -eq 0 ]]; then
     echo ""
     echo "Success: ${SERVICE} ${ACTION} completed successfully"

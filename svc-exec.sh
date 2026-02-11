@@ -339,12 +339,37 @@ if $USE_SUDO; then
     fi
 fi
 
+# Matrix logging: task start (OPTIONAL - don't break on failure)
+if [[ -x "${ANSIBLE_DIR}/bin/matrix-log.py" ]]; then
+    "${ANSIBLE_DIR}/bin/matrix-log.py" message \
+        "Starting task: ${SERVICE}/${ENTRY} on ${HOST:-all}" \
+        --level info 2>/dev/null || true
+fi
+
+# Track execution time
+START_TIME=$(date +%s)
+
 # Execute the playbook with or without sudo prompt
 echo "Executing: ansible-playbook ${SUDO_FLAG} -i ${INVENTORY} ${TEMP_PLAYBOOK} ${EXTRA_ARGS[*]}"
 ansible-playbook ${SUDO_FLAG} -i "${INVENTORY}" "${TEMP_PLAYBOOK}" "${EXTRA_ARGS[@]}"
 
 # Check execution status
 EXIT_CODE=$?
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+
+# Matrix logging: task complete (OPTIONAL - don't break on failure)
+if [[ -x "${ANSIBLE_DIR}/bin/matrix-log.py" ]]; then
+    if [[ ${EXIT_CODE} -eq 0 ]]; then
+        STATUS="success"
+    else
+        STATUS="failure"
+    fi
+
+    "${ANSIBLE_DIR}/bin/matrix-log.py" task \
+        "${SERVICE}" "${HOST:-all}" "${ENTRY}" "${STATUS}" \
+        --duration "${DURATION}" 2>/dev/null || true
+fi
 if [[ ${EXIT_CODE} -eq 0 ]]; then
     echo ""
     echo "Success: ${ENTRY} for ${SERVICE} completed successfully"
