@@ -210,11 +210,64 @@ generate_exec_playbook() {
 # Dynamic execution playbook
 - name: Execute ${entry} for ${service} Service
   $host_param
+  gather_facts: false
+  vars:
+    matrix_homeserver_url: "{{ lookup('env', 'MATRIX_HOMESERVER_URL') }}"
+    matrix_access_token: "{{ lookup('env', 'MATRIX_ACCESS_TOKEN') }}"
+    matrix_room_id: "{{ lookup('env', 'MATRIX_ROOM_ID') }}"
+    task_service: "${service}"
+    task_entry: "${entry}"
+    task_host: "${HOST:-all}"
+    task_start_time: "{{ ansible_facts['date_time']['iso8601'] }}"
+
+  pre_tasks:
+    - name: "Log task start to Matrix"
+      jackaltx.solti_matrix_mgr.matrix_event:
+        homeserver_url: "{{ matrix_homeserver_url }}"
+        access_token: "{{ matrix_access_token }}"
+        room_id: "{{ matrix_room_id }}"
+        content:
+          msgtype: "m.text"
+          body: "Starting task: {{ task_service }}/{{ task_entry }} on {{ task_host }}"
+          solti:
+            schema: "task.start.v1"
+            source: "svc-exec"
+            data:
+              service: "{{ task_service }}"
+              entry: "{{ task_entry }}"
+              host: "{{ task_host }}"
+              timestamp: "{{ task_start_time }}"
+      when: matrix_access_token | length > 0
+      ignore_errors: true
+
   tasks:
-    - name: Include roles tasks
+    - name: "Include role task: ${service}/${entry}"
       ansible.builtin.include_role:
-        name: ${service}
-        tasks_from: ${entry}
+        name: "{{ task_service }}"
+        tasks_from: "{{ task_entry }}"
+      register: task_result
+
+  post_tasks:
+    - name: "Log task completion to Matrix"
+      vars:
+        task_status: "{{ 'success' if task_result is succeeded else 'failure' }}"
+      jackaltx.solti_matrix_mgr.matrix_event:
+        homeserver_url: "{{ matrix_homeserver_url }}"
+        access_token: "{{ matrix_access_token }}"
+        room_id: "{{ matrix_room_id }}"
+        content:
+          msgtype: "m.text"
+          body: "Task complete: {{ task_service }}/{{ task_entry }} on {{ task_host }} ({{ task_status }})"
+          solti:
+            schema: "task.complete.v1"
+            source: "svc-exec"
+            data:
+              service: "{{ task_service }}"
+              entry: "{{ task_entry }}"
+              host: "{{ task_host }}"
+              status: "{{ task_status }}"
+      when: matrix_access_token | length > 0
+      ignore_errors: true
 EOF
 
     echo "Generated ${entry} playbook for ${service}"
@@ -339,37 +392,12 @@ if $USE_SUDO; then
     fi
 fi
 
-# Matrix logging: task start (OPTIONAL - don't break on failure)
-if [[ -x "${ANSIBLE_DIR}/bin/matrix-log.py" ]]; then
-    "${ANSIBLE_DIR}/bin/matrix-log.py" message \
-        "Starting task: ${SERVICE}/${ENTRY} on ${HOST:-all}" \
-        --level info 2>/dev/null || true
-fi
-
-# Track execution time
-START_TIME=$(date +%s)
-
 # Execute the playbook with or without sudo prompt
 echo "Executing: ansible-playbook ${SUDO_FLAG} -i ${INVENTORY} ${TEMP_PLAYBOOK} ${EXTRA_ARGS[*]}"
 ansible-playbook ${SUDO_FLAG} -i "${INVENTORY}" "${TEMP_PLAYBOOK}" "${EXTRA_ARGS[@]}"
 
 # Check execution status
 EXIT_CODE=$?
-END_TIME=$(date +%s)
-DURATION=$((END_TIME - START_TIME))
-
-# Matrix logging: task complete (OPTIONAL - don't break on failure)
-if [[ -x "${ANSIBLE_DIR}/bin/matrix-log.py" ]]; then
-    if [[ ${EXIT_CODE} -eq 0 ]]; then
-        STATUS="success"
-    else
-        STATUS="failure"
-    fi
-
-    "${ANSIBLE_DIR}/bin/matrix-log.py" task \
-        "${SERVICE}" "${HOST:-all}" "${ENTRY}" "${STATUS}" \
-        --duration "${DURATION}" 2>/dev/null || true
-fi
 if [[ ${EXIT_CODE} -eq 0 ]]; then
     echo ""
     echo "Success: ${ENTRY} for ${SERVICE} completed successfully"
