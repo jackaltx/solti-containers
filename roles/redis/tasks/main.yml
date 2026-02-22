@@ -51,6 +51,18 @@
       ansible.builtin.include_tasks:
         file: ../_base/tasks/prepare.yml
 
+    - name: Set deployment success
+      set_fact:
+        deployment_status: "success"
+
+  rescue:
+    - name: Capture prepare failure details
+      set_fact:
+        deployment_status: "failed"
+        deployment_error: "{{ ansible_failed_result.msg | default('Unknown error during prepare') }}"
+        deployment_task: "{{ ansible_failed_task.name | default('Unknown task') }}"
+        deployment_result: "{{ ansible_failed_result | default({}) }}"
+
 # =======================================================================
 # DEPLOYMENT
 # =======================================================================
@@ -81,6 +93,18 @@
 
     # TODO  build quad_privileged
 
+    - name: Set deployment success
+      set_fact:
+        deployment_status: "success"
+
+  rescue:
+    - name: Capture deployment failure details
+      set_fact:
+        deployment_status: "failed"
+        deployment_error: "{{ ansible_failed_result.msg | default('Unknown error during deployment') }}"
+        deployment_task: "{{ ansible_failed_task.name | default('Unknown task') }}"
+        deployment_result: "{{ ansible_failed_result | default({}) }}"
+
 # =======================================================================
 # CLEANUP
 # =======================================================================
@@ -94,3 +118,22 @@
         file: "../_base/tasks/cleanup.yml"
       vars:
         service_state: absent
+
+    - name: Set deployment success
+      set_fact:
+        deployment_status: "success"
+
+  rescue:
+    - name: Capture cleanup failure details
+      set_fact:
+        deployment_status: "failed"
+        deployment_error: "{{ ansible_failed_result.msg | default('Unknown error during cleanup') }}"
+        deployment_task: "{{ ansible_failed_task.name | default('Unknown task') }}"
+        deployment_result: "{{ ansible_failed_result | default({}) }}"
+
+# =======================================================================
+# MATRIX EVENT
+# =======================================================================
+- name: send matrix event
+  ansible.builtin.include_tasks:
+    file: "../_base/tasks/matrix_event.yml"

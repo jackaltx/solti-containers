@@ -7,6 +7,12 @@ service_dns_search: "example.com"
 
 service_quadlet_dir: "{{lookup('env', 'HOME')}}/.config/containers/systemd"
 
+# Matrix event notification (optional)
+matrix_notify_enabled: "{{ lookup('env', 'MATRIX_NOTIFY_ENABLED') | default('false') }}"
+matrix_homeserver_url: "{{ lookup('env', 'MATRIX_HOMESERVER_URL') | default('') }}"
+matrix_access_token: "{{ lookup('env', 'MATRIX_ACCESS_TOKEN') | default('') }}"
+matrix_room_id: "{{ lookup('env', 'MATRIX_ROOM_ID') | default('') }}"
+
 # _base/defaults/main.yml
 service_properties:
   root: ""  # Service name (e.g., "elasticsearch")

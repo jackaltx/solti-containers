@@ -101,3 +101,10 @@
         file: "../_base/tasks/cleanup.yml"
       vars:
         service_state: absent
+
+# =======================================================================
+# MATRIX EVENT
+# =======================================================================
+- name: send matrix event
+  ansible.builtin.include_tasks:
+    file: "../_base/tasks/matrix_event.yml"

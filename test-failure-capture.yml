@@ -1,0 +1,13 @@
+---
+# Test playbook to verify failure capture in Matrix events
+# Intentionally triggers a failure to test rescue block
+
+- name: Test Redis Failure Capture
+  hosts: localhost
+  connection: local
+  vars:
+    redis_state: present
+    # This will trigger the assert failure in prerequisites.yml
+    redis_password: "changeme"  # Intentionally invalid
+  roles:
+    - role: redis
