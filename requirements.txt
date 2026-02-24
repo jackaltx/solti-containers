@@ -1,0 +1,12 @@
+# Python requirements for solti-containers development
+# Generated manually - update with: pip freeze > requirements.txt
+
+ansible-core>=2.17.0
+molecule>=6.0.0
+molecule-plugins[podman]>=24.0.0
+ansible-lint>=24.0.0
+proxmoxer>=2.0.0
+requests>=2.31.0
+dnspython>=2.4.0
+jmespath>=1.0.0
+yq>=3.0.0
