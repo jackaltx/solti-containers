@@ -17,7 +17,7 @@ driver:
 # Serial execution: Rocky 9 and Rocky 10 only (share same published ports)
 platforms:
   - name: "uut-rocky9"
-    image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/rocky-ssh:9"
+    image: "gitea.{{ domain }}/jackaltx/testing-containers/rocky-ssh:9"
     network: "containers-net"
     command: "/sbin/init"
     privileged: true
@@ -34,7 +34,7 @@ platforms:
     connection: ssh
 
   - name: "uut-rocky10"
-    image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/rocky-ssh:10"
+    image: "gitea.{{ domain }}/jackaltx/testing-containers/rocky-ssh:10"
     network: "containers-net"
     command: "/sbin/init"
     privileged: true
