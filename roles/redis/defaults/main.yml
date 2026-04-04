@@ -11,7 +11,8 @@ redis_image: "docker.io/library/redis:7.2-alpine"
 redis_commander_image: "docker.io/rediscommander/redis-commander:latest"
 
 # Directory settings
-redis_data_dir: "{{lookup('env', 'HOME')}}/redis-data"
+# Use real_user_dir which is set from ansible_env.HOME in main.yml
+redis_data_dir: "{{real_user_dir}}/redis-data"
 
 # Redis settings
 redis_port: 6379

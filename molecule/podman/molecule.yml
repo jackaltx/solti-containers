@@ -103,16 +103,8 @@ provisioner:
         mattermost_state: present
         grafana_state: present
 
-        # Service data directories (inside test containers)
-        # Note: Don't use ~ as it expands differently with become: true
-        # Instead roles will use {{real_user_dir}}/service-data pattern
-        redis_data_dir: "{{real_user_dir}}/redis-data"
-        traefik_data_dir: "{{real_user_dir}}/traefik-data"
-        hashivault_data_dir: "{{real_user_dir}}/hashivault-data"
-        elasticsearch_data_dir: "{{real_user_dir}}/elasticsearch-data"
-        minio_data_dir: "{{real_user_dir}}/minio-data"
-        mattermost_data_dir: "{{real_user_dir}}/mattermost-data"
-        grafana_data_dir: "{{real_user_dir}}/grafana-data"
+        # Service data directories use role defaults ({{real_user_dir}}/service-data)
+        # which are set after real_user_dir is determined from ansible_env.HOME
 
 scenario:
   name: podman
