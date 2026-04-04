@@ -58,7 +58,8 @@
     network: "{{service_network}}"
     quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     ports:
-      - "0.0.0.0:{{traefik_http_port}}:8080"  # HTTPS websecure entrypoint
+      - "0.0.0.0:{{traefik_http_port}}:80"      # HTTP web entrypoint
+      - "0.0.0.0:{{traefik_https_port}}:443"    # HTTPS websecure entrypoint
       - "127.0.0.1:{{traefik_dashboard_port}}:9000"  # Dashboard API
     quadlet_options:
       - |

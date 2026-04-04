@@ -14,20 +14,8 @@ driver:
 # Testing containers for solti-containers collection
 # These images have systemd, SSH, and necessary tooling
 # Containers will install podman inside themselves for nested container testing
+# Serial execution: Rocky 9 and Rocky 10 only (share same published ports)
 platforms:
-  - name: "uut-deb12"
-    image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/debian-ssh:12"
-    network: "containers-net"
-    command: "/sbin/init"
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    ssh_host: "127.0.0.1"
-    ssh_port: 2223
-    ssh_user: "jackaltx"
-    connection: ssh
-
   - name: "uut-rocky9"
     image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/rocky-ssh:9"
     network: "containers-net"
@@ -36,19 +24,27 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
+    publish:
+      - "2224:22"           # SSH
+      - "18080:8080"        # Traefik HTTP (test port range)
+      - "18443:8443"        # Traefik HTTPS (test port range)
     ssh_host: "127.0.0.1"
     ssh_port: 2224
     ssh_user: "jackaltx"
     connection: ssh
 
-  - name: "uut-ct2"
-    image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/ubuntu-ssh:24"
+  - name: "uut-rocky10"
+    image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/rocky-ssh:10"
     network: "containers-net"
     command: "/sbin/init"
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
+    publish:
+      - "2225:22"           # SSH
+      - "18080:8080"        # Traefik HTTP (same ports, serial execution)
+      - "18443:8443"        # Traefik HTTPS (same ports, serial execution)
     ssh_host: "127.0.0.1"
     ssh_port: 2225
     ssh_user: "jackaltx"

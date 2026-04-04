@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Experiment to deploy a service in a test container (see testing-containers)
+
 # Source lab secrets if available (for LAB_DOMAIN, etc.)
 if [ -f ~/.secrets/LabProvision ]; then
     source ~/.secrets/LabProvision
@@ -26,11 +28,10 @@ Options:
                                   minio, mattermost, grafana
     -n, --name NAME        Specify test name
                            Default: podman
-    -p, --platform PLAT    Specify platform (uut-deb12, uut-rocky9, uut-ct2, or all)
-                           Default: all
-                           uut-deb12 = Debian 12
-                           uut-rocky9 = Rocky 9
-                           uut-ct2 = Ubuntu 24
+    -p, --platform PLAT    Specify platform (uut-rocky9, uut-rocky10, or all)
+                           Default: all (runs serially)
+                           uut-rocky9 = Rocky Linux 9
+                           uut-rocky10 = Rocky Linux 10
 
 Example:
     ${0##*/} --services traefik,hashivault --platform uut-deb12
@@ -86,7 +87,7 @@ done
 
 # Validate platform if specified
 if [ -n "$PLATFORM" ]; then
-    valid_platforms=("uut-deb12" "uut-rocky9" "uut-ct2" "all")
+    valid_platforms=("uut-rocky9" "uut-rocky10" "all")
     found=0
     for valid_plat in "${valid_platforms[@]}"; do
         if [ "$PLATFORM" = "$valid_plat" ]; then
