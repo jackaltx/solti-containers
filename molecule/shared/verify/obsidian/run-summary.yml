@@ -1,0 +1,73 @@
+---
+# Create overall test run summary in Obsidian
+# This is the main entry point for each test run
+
+- name: Collect services tested from testing_services variable
+  set_fact:
+    services_list: "{{ testing_services | join(', ') }}"
+
+- name: Set run summary filename
+  set_fact:
+    run_summary_file: "{{ obsidian_run_dir }}/run-{{ ansible_date_time.iso8601_basic_short }}.md"
+
+- name: Build service results list
+  set_fact:
+    service_results: "{{ service_results | default([]) + [item] }}"
+  loop: "{{ testing_services }}"
+  vars:
+    service_results: []
+
+- name: Build run summary content
+  set_fact:
+    run_summary_content: |
+      ---
+      type: test-run
+      distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}
+      platform: {{ inventory_hostname }}
+      timestamp: {{ ansible_date_time.iso8601 }}
+      overall_status: {{ overall_status }}
+      services_tested: [{{ testing_services | join(', ') }}]
+      dns_enabled: false
+      tags:
+        - test-run
+        - {{ ansible_distribution | lower | replace(' ', '') }}{{ ansible_distribution_major_version }}
+        - {{ ansible_date_time.date }}
+      ---
+
+      # Test Run - {{ ansible_distribution }} {{ ansible_distribution_major_version }}
+
+      [[README|← Map of Content]] | [[{{ ansible_distribution | replace(' ', '-') }}-{{ ansible_distribution_major_version }}-Index|All {{ ansible_distribution }} {{ ansible_distribution_major_version }} Tests]]
+
+      ## Summary
+      - **Date**: {{ ansible_date_time.iso8601 }}
+      - **Platform**: {{ ansible_distribution }} {{ ansible_distribution_version }} ({{ inventory_hostname }})
+      - **Services**: {{ services_list }}
+      - **Overall Status**: {{ '✅ PASSED' if overall_status == 'PASSED' else '❌ FAILED' }}
+
+      ## Service Results
+      {% for svc in testing_services %}
+      - [[runs/{{ obsidian_run_timestamp }}/{{ svc }}-service|{{ svc | capitalize }}]]: {{ '✅ PASSED' if not (lookup('vars', svc + '_verify_failed', default=false) | bool) else '❌ FAILED' }}
+      {% endfor %}
+
+      ## Diagnostics
+      - [[runs/{{ obsidian_run_timestamp }}/preverify-diagnostics|Pre-verify Diagnostics]]
+      - [[runs/{{ obsidian_run_timestamp }}/postverify-diagnostics|Post-verify Diagnostics]]
+
+- name: Write run summary to Obsidian (atomic)
+  delegate_to: localhost
+  block:
+    - name: Write run summary to temp file
+      copy:
+        content: "{{ run_summary_content }}"
+        dest: "{{ run_summary_file }}.tmp"
+        mode: "0644"
+
+    - name: Move temp file to final location (atomic)
+      command: mv "{{ run_summary_file }}.tmp" "{{ run_summary_file }}"
+      args:
+        removes: "{{ run_summary_file }}.tmp"
+
+- name: Debug run summary path
+  debug:
+    msg: "Run summary written to {{ run_summary_file }}"
+  when: not (secure_logging | default(true) | bool)
