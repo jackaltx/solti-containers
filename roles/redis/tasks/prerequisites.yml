@@ -29,6 +29,7 @@
 - name: Debug ownership
   ansible.builtin.debug:
     msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
+  when: dir_info.stat.exists
 
 # .....................................................................................
 - name: Become root and change setting files
