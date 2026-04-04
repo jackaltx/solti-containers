@@ -13,6 +13,7 @@
 
 - name: Create Obsidian directory structure
   delegate_to: localhost
+  become: false
   file:
     path: "{{ item }}"
     state: directory

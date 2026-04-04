@@ -22,12 +22,12 @@
 #     msg: "Privilege escalation failed - not running as root"
 #   when: become_test.stdout != "root"
 
-# Get real user info using environment variables (immune to become)
-- name: Get real user info from environment
+# Get real user info from remote host (not controller environment)
+- name: Get real user info from target host
   set_fact:
-    real_user: "{{lookup('env', 'USER')}}"
-    real_user_dir: "{{lookup('env', 'HOME')}}"
-    real_user_uid: "{{lookup('pipe', 'id -u')}}"
+    real_user: "{{ ansible_user_id }}"
+    real_user_dir: "{{ ansible_env.HOME }}"
+    real_user_uid: "{{ ansible_user_uid }}"
 
 # =======================================================================
 # PREPARATION (one-time setup)
