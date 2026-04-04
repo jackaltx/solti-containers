@@ -40,8 +40,8 @@
         src: redis.conf.j2
         dest: "{{redis_data_dir}}/config/redis.conf"
         mode: "0644"
-        owner: "{{dir_info.stat.uid}}"
-        group: "{{dir_info.stat.gid}}"
+        owner: "{{real_user}}"
+        group: "{{real_user}}"
       notify: restart redis
 
     # Configure system settings for Redis
