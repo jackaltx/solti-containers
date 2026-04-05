@@ -16,7 +16,7 @@
 - name: Set XDG_RUNTIME_DIR
   set_fact:
     xdg_runtime_dir: "/run/user/{{real_user_uid}}"
-    xdg_runtime_dir_selinux: "/run/user/{{real_user_uid}}"
+    xdg_runtime_dir_selinux: "/var/run/user/{{real_user_uid}}"
 
 - name: Check rootless Podman socket exists
   ansible.builtin.stat:
