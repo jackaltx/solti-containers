@@ -91,11 +91,11 @@
 # Write test data
 - name: Write test data point
   become: false
-  command: >
+  shell: >
     podman exec influxdb3-svc
     curl -s -X POST "http://localhost:{{influxdb3_internal_port}}/api/v3/write?db=test-ansible"
     -H "Authorization: Bearer {{verify_token}}"
-    --data-binary "test_measurement,host={{ansible_hostname}} value=123,status=\"ok\" {{ansible_facts.date_time.epoch}}000000000"
+    --data-binary "test_measurement,host={{inventory_hostname}} value=123,status=\"ok\" $(date +%s)000000000"
   register: write_result
   changed_when: false
   # no_log: true

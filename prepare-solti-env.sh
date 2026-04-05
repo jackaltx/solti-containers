@@ -3,7 +3,7 @@
 
 set -e  # Exit on error
 
-# Source lab secrets if available (for LAB_DOMAIN, etc.)
+# Source lab secrets if available (for LAB_TLD, etc.)
 if [ -f ~/.secrets/LabProvision ]; then
     echo "Sourcing lab environment variables from ~/.secrets/LabProvision"
     source ~/.secrets/LabProvision

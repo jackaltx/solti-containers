@@ -86,7 +86,7 @@ provisioner:
         testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
 
         # Domain for container registry (from secrets)
-        domain: "{{ lookup('env', 'LAB_DOMAIN', default='example.com') }}"
+        domain: "{{ lookup('env', 'LAB_TLD', default='example.com') }}"
 
         # Container network settings (inside test containers)
         service_network: "ct-net"

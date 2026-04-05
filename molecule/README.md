@@ -54,6 +54,7 @@ The `run-podman-tests.sh` script is currently **not functional** for local testi
 ```
 
 **What it was designed to do** (works in GitHub CI VMs):
+
 - Spins up test containers (Debian 12, Rocky 9, Ubuntu 24)
 - Installs Podman inside test containers
 - Deploys your service using rootless containers
@@ -264,17 +265,20 @@ tail -f verify_output/latest_test.out
 **Common issues**:
 
 1. **Port conflicts**: Ports 2223-2225 must be available
+
    ```bash
    ss -tlnp | grep 222
    ```
 
-2. **Registry authentication**: Ensure LAB_DOMAIN is set
+2. **Registry authentication**: Ensure LAB_TLD is set
+
    ```bash
    source ~/.secrets/LabProvision
-   echo $LAB_DOMAIN
+   echo $LAB_TLD
    ```
 
 3. **Podman role missing**: Install solti-ensemble collection
+
    ```bash
    ansible-galaxy collection install jackaltx.solti_ensemble
    ```
@@ -342,20 +346,24 @@ Host System
 ### What Gets Verified
 
 **Pre-verification diagnostics**:
+
 - Container health (podman ps, logs)
 - Network health (ct-net, DNS)
 - Service health (systemd status)
 
 **Service verification**:
+
 - Executes `roles/<service>/tasks/verify.yml`
 - Service-specific functional tests
 - Port availability checks
 
 **Post-verification diagnostics**:
+
 - Same as pre-verification
 - Enables comparison to detect issues
 
 **Results**:
+
 - Pass/fail per service
 - Consolidated reports per platform
 - Complete audit trail
@@ -363,17 +371,20 @@ Host System
 ## Infrastructure Documentation
 
 **For users** (this file):
+
 - How to run tests
 - What gets tested
 - How to add new services
 
 **For developers** ([shared/README.md](shared/README.md)):
+
 - Shared infrastructure implementation
 - Verification matrix collection
 - How playbooks work together
 - Advanced debugging techniques
 
 **For Podman scenario** ([podman/README.md](podman/README.md)):
+
 - Nested container architecture
 - Platform-specific details
 - Container registry configuration

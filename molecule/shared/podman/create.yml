@@ -3,7 +3,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    domain: "{{ lookup('env', 'LAB_DOMAIN') | default('example.com', true) }}"
+    domain: "{{ lookup('env', 'LAB_TLD') | default('example.com', true) }}"
     molecule_inventory:
       all:
         hosts: {}

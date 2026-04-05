@@ -48,22 +48,22 @@ all:
           hosts:
             firefly:
               # host_vars
-              redis_svc_name: "redis-ui"
+              redis_svc_name: "redis-ui-firefly"
 
         # ========================================
         hashivault_svc:
           hosts:
             firefly:
               # host_vars
-              hashivault_svc_name: "vault"
-              hashivault_alt_svc_name: "hashivault"
+              hashivault_svc_name: "vault-firefly"
+              hashivault_alt_svc_name: "hashivault-firefly"
 
         # ========================================
         traefik_svc:
           hosts:
             firefly:
               # host_vars
-              traefik_svc_name: "traefik"
+              traefik_svc_name: "traefik-firefly"
 
         # ========================================
         minio_svc:
@@ -77,34 +77,37 @@ all:
         grafana_svc:
           hosts:
             firefly:
+              grafana_svc_name: "grafana"
 
         # ========================================
         gitea_svc:
           hosts:
             firefly:
+              gritea_svc_name: "gitea-firefly"
 
         # ========================================
         influxdb3_svc:
           hosts:
             firefly:
+              influxdb3_svc_name: "influxdb3-firefly"
 
         # ========================================
         mongodb_svc:
           hosts:
             firefly:
               # host_vars
-              mongodb_svc_name: "mongodb"
+              mongodb_svc_name: "mongodb-firefly"
 
         # ========================================
         obsidian_svc:
           hosts:
             firefly:
               # host_vars
-              obsidian_svc_name: "obsidian"
+              obsidian_svc_name: "obsidian-firefly"
 
         # ========================================
         conduit_svc:
           hosts:
             firefly:
               # host_vars
-              conduit_svc_name: "matrix"
+              conduit_svc_name: "conduit-firefly"
