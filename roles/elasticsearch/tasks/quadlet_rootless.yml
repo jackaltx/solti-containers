@@ -25,6 +25,7 @@
 # ....................................................................................
 - name: Create Elasticsearch pod Quadlet
 
+  become: false
   containers.podman.podman_pod:
     name: elasticsearch
     state: quadlet
@@ -53,6 +54,7 @@
 #
 - name: Create Elasticsearch node container Quadlet
 
+  become: false
   containers.podman.podman_container:
     name: elasticsearch-svc
     pod: elasticsearch.pod
@@ -101,6 +103,7 @@
 # ....................................................................................
 - name: Create Elasticvue container Quadlet
 
+  become: false
   containers.podman.podman_container:
     name: elasticsearch-gui
     pod: elasticsearch.pod
@@ -133,6 +136,7 @@
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
 
+  become: false
   changed_when: false
 
 # .......................................................................................
@@ -141,4 +145,5 @@
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user start {{service_properties.name}}
 
+  become: false
   changed_when: true

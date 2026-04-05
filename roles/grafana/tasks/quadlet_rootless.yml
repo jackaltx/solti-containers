@@ -1,6 +1,7 @@
 ---
 # ..................................................................................
 - name: Ensure required directories exist
+  become: false
   ansible.builtin.file:
     path: "{{real_user_dir}}/{{item}}"
     state: directory
@@ -12,6 +13,7 @@
 
 # ..................................................................................
 - name: Create environment file for Grafana
+  become: false
   ansible.builtin.template:
     src: grafana.env.j2
     dest: "{{real_user_dir}}/.config/containers/systemd/env/grafana.env"
@@ -19,6 +21,7 @@
 
 # ..................................................................................
 - name: Create Grafana pod Quadlet
+  become: false
   containers.podman.podman_pod:
     name: grafana
     state: quadlet
@@ -38,6 +41,7 @@
 
 # ..................................................................................
 - name: Create Grafana container Quadlet
+  become: false
   containers.podman.podman_container:
     name: grafana-svc
     pod: grafana.pod
@@ -86,6 +90,7 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
+  become: false
   changed_when: false
 
 # .......................................................................................
@@ -93,4 +98,5 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user start {{service_properties.name}}
+  become: false
   changed_when: true

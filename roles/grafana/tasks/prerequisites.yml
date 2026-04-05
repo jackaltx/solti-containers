@@ -11,6 +11,7 @@
 # .......................................................................
 # Template configuration as regular user (files created as ansible_user automatically)
 - name: Template Grafana configuration
+  become: false
   template:
     src: grafana.ini.j2
     dest: "{{grafana_data_dir}}/config/grafana.ini"

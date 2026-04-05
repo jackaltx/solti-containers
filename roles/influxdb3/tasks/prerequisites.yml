@@ -17,6 +17,7 @@
 # .......................................................................
 # Template configuration as regular user (files created as ansible_user automatically)
 - name: Template InfluxDB3 environment file
+  become: false
   ansible.builtin.template:
     src: influxdb3.env.j2
     dest: "{{influxdb3_data_dir}}/config/influxdb3.env"

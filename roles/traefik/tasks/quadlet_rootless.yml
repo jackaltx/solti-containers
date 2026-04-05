@@ -16,7 +16,7 @@
 - name: Set XDG_RUNTIME_DIR
   set_fact:
     xdg_runtime_dir: "/run/user/{{real_user_uid}}"
-    xdg_runtime_dir_selinux: "/var/run/user/{{real_user_uid}}"
+    xdg_runtime_dir_selinux: "/run/user/{{real_user_uid}}"
 
 - name: Check rootless Podman socket exists
   ansible.builtin.stat:
@@ -46,6 +46,7 @@
 # .............................................................................
 #
 - name: Create rootless Traefik pod Quadlet
+  become: false
   containers.podman.podman_pod:
     name: traefik
     state: quadlet
@@ -54,8 +55,7 @@
     network: "{{service_network}}"
     quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     ports:
-      - "0.0.0.0:{{traefik_http_port}}:80"      # HTTP web entrypoint
-      - "0.0.0.0:{{traefik_https_port}}:443"    # HTTPS websecure entrypoint
+      - "0.0.0.0:{{traefik_http_port}}:8080"    # HTTPS websecure entrypoint
       - "127.0.0.1:{{traefik_dashboard_port}}:9000"  # Dashboard API
     quadlet_options:
       - |
@@ -67,6 +67,7 @@
 
 # .............................................................................
 - name: Create rootless Traefik container Quadlet
+  become: false
   containers.podman.podman_container:
     name: traefik-svc
     pod: traefik.pod
@@ -108,24 +109,13 @@
   ansible.builtin.wait_for:
     timeout: 10
 
-# ....................................................................................
-- name: Fix quadlet file ownership
-  become: true
-  ansible.builtin.file:
-    path: "{{real_user_dir}}/.config/containers/systemd/{{item}}"
-    owner: "{{real_user}}"
-    group: "{{real_user}}"
-    mode: "0640"
-  loop:
-    - traefik.pod
-    - traefik-svc.container
-
 # .......................................................................................
 - name: Reload systemd user daemon and run generator
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
     /usr/lib/systemd/system-generators/podman-system-generator --user || true
+  become: false
   changed_when: false
 
 # .......................................................................................
@@ -133,6 +123,7 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user cat {{service_properties.name}}
+  become: false
   register: unit_check
   failed_when: unit_check.rc != 0
   changed_when: false
@@ -142,4 +133,5 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user start {{service_properties.name}}
+  become: false
   changed_when: true

@@ -34,6 +34,7 @@
 # .....................................................................................
 # Template configuration as regular user (files created as ansible_user automatically)
 - name: Template Redis configuration
+  become: false
   ansible.builtin.template:
     src: redis.conf.j2
     dest: "{{redis_data_dir}}/config/redis.conf"

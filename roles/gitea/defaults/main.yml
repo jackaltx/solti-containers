@@ -1,5 +1,10 @@
 ---
 # Gitea service configuration
+# User detection (immune to become)
+real_user: "{{ ansible_user }}"
+real_user_dir: "{{ lookup('env', 'HOME') if ansible_connection == 'local' else ('~' + ansible_user) | expanduser }}"
+real_user_uid: "{{ ansible_facts.getent_passwd[ansible_user][1] if ansible_facts.getent_passwd is defined else lookup('pipe', 'id -u ' + ansible_user) }}"
+
 # SQLite-based single container deployment
 
 # Container configuration
@@ -8,7 +13,7 @@ gitea_port: 3001
 gitea_ssh_port: 2222
 
 # Data directories
-gitea_data_dir: "{{lookup('env', 'HOME')}}/gitea-data"
+gitea_data_dir: "{{ real_user_dir }}/gitea-data"
 
 # Admin credentials
 gitea_admin_user: "gitea_admin"

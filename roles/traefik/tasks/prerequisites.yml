@@ -18,6 +18,7 @@
       - "=========================================="
 
 - name: Template Traefik configuration
+  become: false
   template:
     src: traefik.yaml.j2
     dest: "{{traefik_data_dir}}/config/traefik.yaml"
@@ -25,6 +26,7 @@
   notify: restart traefik
 
 - name: Template Traefik dynamic configuration
+  become: false
   template:
     src: traefik-dynamic.yaml.j2
     dest: "{{traefik_data_dir}}/config/traefik-dynamic.yaml"

@@ -12,18 +12,21 @@
 # .......................................................................
 # Template configuration as regular user (files created as ansible_user automatically)
 - name: Create environment file directory
+  become: false
   ansible.builtin.file:
     path: "{{ real_user_dir }}/.config/containers/systemd/env"
     state: directory
     mode: "0700"
 
 - name: Create environment file for MongoDB credentials
+  become: false
   ansible.builtin.template:
     src: mongodb.env.j2
     dest: "{{ real_user_dir }}/.config/containers/systemd/env/mongodb.env"
     mode: "0600"
 
 - name: Create MongoDB configuration file
+  become: false
   ansible.builtin.template:
     src: mongod.conf.j2
     dest: "{{ mongodb_data_dir }}/config/mongod.conf"

@@ -10,6 +10,7 @@
 # .......................................................................
 # Template configuration as regular user (files created as ansible_user automatically)
 - name: Template Vault configuration
+  become: false
   template:
     src: vault.hcl.j2
     dest: "{{vault_data_dir}}/config/vault.hcl"

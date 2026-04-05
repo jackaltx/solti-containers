@@ -1,4 +1,9 @@
 ---
+# User detection (immune to become)
+real_user: "{{ ansible_user }}"
+real_user_dir: "{{ lookup('env', 'HOME') if ansible_connection == 'local' else ('~' + ansible_user) | expanduser }}"
+real_user_uid: "{{ ansible_facts.getent_passwd[ansible_user][1] if ansible_facts.getent_passwd is defined else lookup('pipe', 'id -u ' + ansible_user) }}"
+
 # Installation state
 mattermost_state: present
 mattermost_force_reload: false
@@ -19,7 +24,7 @@ mattermost_image: "docker.io/mattermost/mattermost-team-edition:latest"
 mattermost_postgres_image: "docker.io/library/postgres:16-alpine"
 
 # Directory settings
-mattermost_data_dir: "{{lookup('env', 'HOME')}}/mattermost-data"
+mattermost_data_dir: "{{ real_user_dir }}/mattermost-data"
 
 # Service naming and URL construction
 mattermost_svc_name: "mattermost"  # Override per host in inventory

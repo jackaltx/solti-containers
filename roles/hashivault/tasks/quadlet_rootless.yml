@@ -12,6 +12,7 @@
 
 # ............................................................................
 - name: Create Vault pod Quadlet
+  become: false
   containers.podman.podman_pod:
     name: vault
     state: quadlet
@@ -32,6 +33,7 @@
 
 # ............................................................................
 - name: Create Vault container Quadlet
+  become: false
   containers.podman.podman_container:
     name: vault-svc
     pod: vault.pod
@@ -84,6 +86,7 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
+  become: false
   changed_when: false
 
 # .......................................................................................
@@ -91,4 +94,5 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user start {{service_properties.name}}
+  become: false
   changed_when: true
