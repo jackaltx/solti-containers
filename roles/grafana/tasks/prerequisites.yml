@@ -9,29 +9,13 @@
     fail_msg: "Required variables not properly configured"
 
 # .......................................................................
-# Get container user mapping first
-- name: Get directory ownership
-  ansible.builtin.stat:
-    path: "{{grafana_data_dir}}/config"
-  register: dir_info
-
-- name: Debug ownership
-  ansible.builtin.debug:
-    msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
-
-# .......................................................................
-- name: Become root and configure settings
-  become: true
-  block:
-    # ...................................................
-    - name: Template Grafana configuration
-      template:
-        src: grafana.ini.j2
-        dest: "{{grafana_data_dir}}/config/grafana.ini"
-        mode: "0640"
-        owner: "{{dir_info.stat.uid}}"
-        group: "{{dir_info.stat.gid}}"
-      notify: restart grafana
+# Template configuration as regular user (files created as ansible_user automatically)
+- name: Template Grafana configuration
+  template:
+    src: grafana.ini.j2
+    dest: "{{grafana_data_dir}}/config/grafana.ini"
+    mode: "0640"
+  notify: restart grafana
 
     # ...................................................
     # This is an interesting idea.

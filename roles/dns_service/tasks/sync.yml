@@ -1,0 +1,59 @@
+---
+# DNS Service - Sync
+# Create/update CNAME records for ALL services across ALL hosts in inventory
+
+- name: Find all service groups in inventory
+  ansible.builtin.set_fact:
+    service_groups: "{{ groups.keys() | select('match', '.*_svc$') | list }}"
+
+- name: Build DNS records list
+  ansible.builtin.set_fact:
+    all_dns_records_raw: >-
+      [
+      {% for group in service_groups %}
+        {% for host in groups[group] %}
+          {% for key, value in hostvars[host].items() %}
+            {% if key.endswith('_svc_name') and value is string %}
+              {"service_name": "{{ value }}", "target_host": "{{ host }}"},
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      {% endfor %}
+      {}]
+
+- name: Clean and deduplicate DNS records
+  ansible.builtin.set_fact:
+    all_dns_records: "{{ all_dns_records_raw[:-1] | unique }}"
+
+- name: Display discovered services
+  ansible.builtin.debug:
+    msg:
+      - "Found {{ all_dns_records | length }} unique services across all hosts"
+      - "{{ all_dns_records | map(attribute='service_name') | list | join(', ') }}"
+  when: dns_debug | bool
+
+- name: Fail if no services found
+  ansible.builtin.fail:
+    msg: "No *_svc_name variables found in inventory. Cannot create DNS records."
+  when: all_dns_records | length == 0
+
+- name: Create/update CNAME records for all services
+  linode.cloud.domain_record:
+    api_token: "{{ linode_api_token }}"
+    domain: "{{ domain }}"
+    type: CNAME
+    name: "{{ item.service_name }}"
+    target: "{{ item.target_host }}.{{ domain }}"
+    ttl_sec: "{{ dns_ttl }}"
+    state: present
+  loop: "{{ all_dns_records }}"
+  loop_control:
+    label: "{{ item.service_name }} → {{ item.target_host }}.{{ domain }}"
+  register: dns_results
+
+- name: Display DNS sync summary
+  ansible.builtin.debug:
+    msg:
+      - "DNS sync complete"
+      - "Created/updated {{ all_dns_records | length }} CNAME records"
+      - "Domain: {{ domain }}"

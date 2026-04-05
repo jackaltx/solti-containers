@@ -2,3 +2,5 @@
 collections:
   - name: community.general
     version: ">=10.0.0"
+  - name: linode.cloud
+    version: ">=0.44.0"

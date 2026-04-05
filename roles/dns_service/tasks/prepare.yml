@@ -1,0 +1,69 @@
+---
+# DNS Service - Prepare
+# Check requirements before managing DNS
+
+- name: Check for LINODE_TOKEN environment variable
+  ansible.builtin.fail:
+    msg: "LINODE_TOKEN environment variable not set"
+  when: linode_api_token == ''
+  delegate_to: localhost
+  run_once: true
+
+- name: Check if linode.cloud collection is installed
+  ansible.builtin.command:
+    cmd: ansible-galaxy collection list linode.cloud
+  register: collection_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  run_once: true
+
+- name: Display collection installation instructions
+  ansible.builtin.debug:
+    msg: |
+      linode.cloud collection not found.
+      Install with: ansible-galaxy collection install linode.cloud
+  when: collection_check.rc != 0
+  delegate_to: localhost
+  run_once: true
+
+- name: Fail if collection not installed
+  ansible.builtin.fail:
+    msg: "linode.cloud collection is required. Install with: ansible-galaxy collection install linode.cloud"
+  when: collection_check.rc != 0
+  delegate_to: localhost
+  run_once: true
+
+- name: Check if required Python modules are installed
+  ansible.builtin.command:
+    cmd: python3 -c "import polling, linode_api4, ansible_specdoc"
+  register: python_modules_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  run_once: true
+
+- name: Display Python module installation instructions
+  ansible.builtin.fail:
+    msg: |
+      Required Python modules not found (linode.cloud collection dependencies).
+      Install with: ./solti-venv/bin/pip install -r requirements.txt
+      Or manually: pip3 install --user polling linode_api4 ansible-specdoc
+  when: python_modules_check.rc != 0
+  delegate_to: localhost
+  run_once: true
+
+- name: Verify domain is configured
+  ansible.builtin.fail:
+    msg: "domain variable not set in inventory"
+  when: domain is not defined or domain == ''
+  run_once: true
+
+- name: Display DNS service configuration
+  ansible.builtin.debug:
+    msg:
+      - "DNS Provider: {{ dns_provider }}"
+      - "Domain: {{ domain }}"
+      - "Target Host: {{ dns_target_host }}"
+      - "TTL: {{ dns_ttl }} seconds"
+  when: dns_debug | bool

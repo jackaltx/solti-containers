@@ -39,6 +39,8 @@
           - "Distribution version: {{ ansible_facts['distribution_version'] }}"
           - "Testing services: {{ testing_services }}"
           - "Test timestamp: {{ verify_timestamp }}"
+          - "Real user: {{ real_user}} ({{ real_user_uid }})"
+          - "Ansible_user: {{ ansible_user }}"
 
     # ................................................................
     # note this has to be loaded in each phase playbook!

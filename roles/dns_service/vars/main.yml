@@ -1,0 +1,11 @@
+---
+# DNS service provider-specific variables
+
+# Linode provider settings
+linode_api_url: "https://api.linode.com/v4"
+linode_api_token: "{{ lookup('env', 'LINODE_TOKEN') }}"
+
+# Required collections
+required_collections:
+  - name: linode.cloud
+    min_version: "1.0.0"

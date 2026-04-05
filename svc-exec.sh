@@ -38,6 +38,7 @@ SUPPORTED_SERVICES=(
     "mongodb"
     "obsidian"
     "conduit"
+    "dns_service"
 )
 
 # Default entry point if not specified
@@ -200,6 +201,9 @@ generate_exec_playbook() {
     # Add host specification if provided
     if [[ -n "$HOST" ]]; then
         host_param="hosts: $HOST"
+    elif [[ "$service" == "dns_service" ]]; then
+        # DNS service always runs on localhost and scans entire inventory
+        host_param="hosts: localhost"
     else
         host_param="hosts: ${service}_svc"
     fi

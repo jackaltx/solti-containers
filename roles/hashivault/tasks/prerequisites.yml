@@ -1,5 +1,4 @@
 ---
-#
 # .......................................................................
 - name: Verify prerequisites
   assert:
@@ -8,36 +7,20 @@
       - vault_api_port is defined
     fail_msg: "Required variables not properly configured"
 
-#
 # .......................................................................
-# Get container user mapping first
-- name: Get directory ownership
-  become: true
-  ansible.builtin.stat:
-    path: "{{vault_data_dir}}/config"
-  register: dir_info
-
-- name: Debug ownership
-  ansible.builtin.debug:
-    msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
+# Template configuration as regular user (files created as ansible_user automatically)
+- name: Template Vault configuration
+  template:
+    src: vault.hcl.j2
+    dest: "{{vault_data_dir}}/config/vault.hcl"
+    mode: "0640"
+  notify: restart vault
 
 # .......................................................................
-# NOTE: this is only for configuration setting files.
-- name: Become root and change setting files
+# System configuration requires root privileges
+- name: Configure system settings (requires sudo)
   become: true
   block:
-    #
-    # .......................................................................
-    - name: Template Vault configuration
-      template:
-        src: vault.hcl.j2
-        dest: "{{vault_data_dir}}/config/vault.hcl"
-        mode: "0640"
-        owner: "{{dir_info.stat.uid}}"
-        group: "{{dir_info.stat.gid}}"
-      notify: restart vault
-
-    # .......................................................................
     - name: Configure SELinux for data directories
       when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
       block:

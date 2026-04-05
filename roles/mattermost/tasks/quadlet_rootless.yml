@@ -13,7 +13,6 @@
 
 # ..................................................................................
 - name: Create environment file for database secrets
-  become: false
   ansible.builtin.template:
     src: mattermost-db.env.j2
     dest: "{{real_user_dir}}/.config/containers/systemd/env/mattermost-db.env"
@@ -21,7 +20,6 @@
 
 # ..................................................................................
 - name: Create Mattermost pod Quadlet
-  become: false
   containers.podman.podman_pod:
     name: mattermost
     state: quadlet
@@ -44,7 +42,6 @@
 
 # ..................................................................................
 - name: Create PostgreSQL container Quadlet
-  become: false
   containers.podman.podman_container:
     name: mattermost-db
     pod: mattermost.pod
@@ -70,7 +67,6 @@
 
 # ..................................................................................
 - name: Create Mattermost container Quadlet
-  become: false
   containers.podman.podman_container:
     name: mattermost-svc
     pod: mattermost.pod
@@ -124,7 +120,6 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
-  become: false
   changed_when: false
 
 # .......................................................................................
@@ -132,5 +127,4 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user start {{service_properties.name}}
-  become: false
   changed_when: true

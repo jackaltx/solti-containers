@@ -1,0 +1,6 @@
+---
+# Shared variables for hashivault_svc group
+# Host-specific overrides (hashivault_svc_name, hashivault_alt_svc_name) remain in inventory files
+
+debug_level: warn
+vault_data_dir: "{{ lookup('env', 'HOME') }}/vault-data"

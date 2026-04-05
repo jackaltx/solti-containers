@@ -9,26 +9,22 @@
       - mongodb_root_username != ""
     fail_msg: "MongoDB credentials must be set via environment variables (MONGODB_ROOT_USERNAME, MONGODB_ROOT_PASSWORD)"
 
+# .......................................................................
+# Template configuration as regular user (files created as ansible_user automatically)
 - name: Create environment file directory
   ansible.builtin.file:
     path: "{{ real_user_dir }}/.config/containers/systemd/env"
     state: directory
     mode: "0700"
-    owner: "{{ real_user }}"
-    group: "{{ real_user }}"
 
 - name: Create environment file for MongoDB credentials
   ansible.builtin.template:
     src: mongodb.env.j2
     dest: "{{ real_user_dir }}/.config/containers/systemd/env/mongodb.env"
     mode: "0600"
-    owner: "{{ real_user }}"
-    group: "{{ real_user }}"
 
 - name: Create MongoDB configuration file
   ansible.builtin.template:
     src: mongod.conf.j2
     dest: "{{ mongodb_data_dir }}/config/mongod.conf"
     mode: "0644"
-    owner: "{{ real_user }}"
-    group: "{{ real_user }}"

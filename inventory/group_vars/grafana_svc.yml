@@ -1,0 +1,7 @@
+---
+# Shared variables for grafana_svc group
+# Host-specific overrides (grafana_svc_name) remain in inventory files
+
+debug_level: warn
+grafana_data_dir: "{{ lookup('env', 'HOME') }}/grafana-data"
+grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD', default='') }}"

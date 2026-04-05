@@ -11,18 +11,6 @@
     msg: "hashivault_state must be one of: prepare, present, absent. Current value: {{hashivault_state}}"
   when: hashivault_state not in ['prepare', 'present', 'absent']
 
-- name: Test become capability
-  ansible.builtin.command: whoami
-  register: become_test
-  changed_when: false
-
-# Get real user info using environment variables (immune to become)
-- name: Get real user info from environment
-  set_fact:
-    real_user: "{{lookup('env', 'USER')}}"
-    real_user_dir: "{{lookup('env', 'HOME')}}"
-    real_user_uid: "{{lookup('pipe', 'id -u')}}"
-
 # =======================================================================
 # PREPARATION (one-time setup)
 # =======================================================================
@@ -53,7 +41,6 @@
   when: hashivault_state == 'present'
   block:
     - name: Verify required directories exist
-      become: true
       ansible.builtin.stat:
         path: "{{vault_data_dir}}/{{service_properties.config_dir}}"
       register: config_dir_check

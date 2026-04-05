@@ -39,6 +39,7 @@ SUPPORTED_SERVICES=(
     "mongodb"
     "obsidian"
     "conduit"
+    "dns_service"
 )
 
 # Supported actions
@@ -209,6 +210,9 @@ generate_playbook() {
     # Add host specification if provided
     if [[ -n "$HOST" ]]; then
         host_param="hosts: $HOST"
+    elif [[ "$service" == "dns_service" ]]; then
+        # DNS service always runs on localhost and scans entire inventory
+        host_param="hosts: localhost"
     else
         host_param="hosts: ${service}_svc"
     fi
@@ -220,7 +224,6 @@ generate_playbook() {
 # Works for: prepare, deploy, remove
 - name: Manage ${service} Service
   $host_param
-  become: true
   vars:
     ${service}_state: ${state}
   roles:
@@ -324,32 +327,50 @@ if ! prompt_user "$TARGET_CONTEXT" "$SERVICE" "$ACTION" "$INVENTORY" "$HOST"; th
     exit 0
 fi
 
-# Test if sudo password is required on target
-# Use ansible ad-hoc to test NOPASSWD capability
+# Determine if we need sudo for this action
+# Prepare/deploy may need sudo for SELinux/sysctl
+# Remove may need sudo if deleting data (container subuid ownership)
 SUDO_FLAG=""
 TARGET_HOST="${HOST:-${SERVICE}_svc}"
+NEED_SUDO=false
 
-# Check if --become-password-file is already provided in extra args
-BECOME_PASS_FILE_PROVIDED=false
-for arg in "${EXTRA_ARGS[@]}"; do
-    if [[ "$arg" == "--become-password-file"* ]] || [[ "$arg" == "--become-pass-file"* ]]; then
-        BECOME_PASS_FILE_PROVIDED=true
-        break
+if [[ "$ACTION" == "prepare" ]] || [[ "$ACTION" == "deploy" ]]; then
+    # Prepare/deploy may need sudo for SELinux/sysctl operations
+    NEED_SUDO=true
+elif [[ "$ACTION" == "remove" ]]; then
+    # Check if service has delete_data=true (may need sudo for container-owned files)
+    if ansible-inventory -i "${INVENTORY}" --host "${TARGET_HOST}" --yaml 2>/dev/null | grep -q "delete_data.*true"; then
+        NEED_SUDO=true
     fi
-done
+fi
 
-if [[ "$BECOME_PASS_FILE_PROVIDED" == "true" ]]; then
-    echo "✓ Using --become-password-file from arguments"
-    SUDO_FLAG=""
-else
-    echo "Testing sudo capability on target..."
-    if ansible -i "${INVENTORY}" "${TARGET_HOST}" -m shell -a "sudo -n true" &>/dev/null; then
-        echo "✓ NOPASSWD detected - sudo password not required"
-        SUDO_FLAG=""
+# Only test sudo capability if we actually need it
+if [[ "$NEED_SUDO" == "true" ]]; then
+    # Check if --become-password-file is already provided in extra args
+    BECOME_PASS_FILE_PROVIDED=false
+    for arg in "${EXTRA_ARGS[@]}"; do
+        if [[ "$arg" == "--become-password-file"* ]] || [[ "$arg" == "--become-pass-file"* ]]; then
+            BECOME_PASS_FILE_PROVIDED=true
+            break
+        fi
+    done
+
+    if [[ "$BECOME_PASS_FILE_PROVIDED" == "true" ]]; then
+        echo "✓ Using --become-password-file from arguments"
+        SUDO_FLAG="--become"
     else
-        echo "✗ Password required - will prompt for sudo password"
-        SUDO_FLAG="-K"
+        echo "Testing sudo capability on target..."
+        if ansible -i "${INVENTORY}" "${TARGET_HOST}" -m shell -a "sudo -n true" &>/dev/null; then
+            echo "✓ NOPASSWD detected - sudo password not required"
+            SUDO_FLAG="--become"
+        else
+            echo "✗ Password required - will prompt for sudo password"
+            SUDO_FLAG="--become --ask-become-pass"
+        fi
     fi
+else
+    echo "✓ Action '${ACTION}' does not require sudo privileges"
+    SUDO_FLAG=""
 fi
 
 # Matrix logging: deployment start (OPTIONAL - don't break on failure)
@@ -362,7 +383,7 @@ fi
 # Track execution time
 START_TIME=$(date +%s)
 
-# Always use sudo for all states
+# Execute playbook (sudo flags determined above based on action requirements)
 echo "Executing: ansible-playbook ${SUDO_FLAG} -i ${INVENTORY} ${TEMP_PLAYBOOK} ${EXTRA_ARGS[*]}"
 ansible-playbook ${SUDO_FLAG} -i "${INVENTORY}" "${TEMP_PLAYBOOK}" "${EXTRA_ARGS[@]}"
 

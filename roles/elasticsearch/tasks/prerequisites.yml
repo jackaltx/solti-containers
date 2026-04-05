@@ -12,48 +12,33 @@
     fail_msg: "Required variables not properly configured"
 
 # .......................................................................
-# Get container user mapping first
-- name: Get directory ownership
-  ansible.builtin.stat:
-    path: "{{elasticsearch_data_dir}}/config"
-  register: dir_info
+# Template configuration as regular user (files created as ansible_user automatically)
+- name: Template elasticsearch.yml config
+  ansible.builtin.template:
+    src: elasticsearch.yml.j2
+    dest: "{{elasticsearch_data_dir}}/config/elasticsearch.yml"
+    mode: "0644"
+  notify: restart elasticsearch
 
-- name: Debug ownership
-  ansible.builtin.debug:
-    msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
+- name: Template log4j2.properties file
+  ansible.builtin.template:
+    src: log4j2.properties.j2
+    dest: "{{elasticsearch_data_dir}}/config/log4j2.properties"
+    mode: "0644"
+  notify: restart elasticsearch
+
+- name: Template jvm.options file
+  ansible.builtin.template:
+    src: jvm.options.j2
+    dest: "{{elasticsearch_data_dir}}/config/jvm.options"
+    mode: "0644"
+  notify: restart elasticsearch
 
 # .......................................................................
-- name: Become root and change setting files
+# System configuration requires root privileges
+- name: Configure system settings (requires sudo)
   become: true
   block:
-    - name: Template elasticsearch.yml config
-      ansible.builtin.template:
-        src: elasticsearch.yml.j2
-        dest: "{{elasticsearch_data_dir}}/config/elasticsearch.yml"
-        mode: "0644"
-        owner: "{{dir_info.stat.uid}}"
-        group: "{{dir_info.stat.gid}}"
-      notify: restart elasticsearch
-
-    - name: Template log4j2.properties file
-      ansible.builtin.template:
-        src: log4j2.properties.j2
-        dest: "{{elasticsearch_data_dir}}/config/log4j2.properties"
-        mode: "0644"
-        owner: "{{dir_info.stat.uid}}"
-        group: "{{dir_info.stat.gid}}"
-      notify: restart elasticsearch
-
-    - name: Template jvm.options file
-      ansible.builtin.template:
-        src: jvm.options.j2
-        dest: "{{elasticsearch_data_dir}}/config/jvm.options"
-        mode: "0644"
-        owner: "{{dir_info.stat.uid}}"
-        group: "{{dir_info.stat.gid}}"
-      notify: restart elasticsearch
-
-    # .....................................................................................
     - name: Configure SELinux for data directories
       when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
       block:

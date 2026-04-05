@@ -1,0 +1,10 @@
+---
+# Shared variables for redis_svc group
+# Host-specific overrides (redis_svc_name) remain in inventory files
+
+debug_level: warn
+redis_data_dir: "{{ lookup('env', 'HOME') }}/redis-data"
+redis_password: "{{ lookup('env', 'REDIS_PASSWORD', default='') }}"
+
+test_key: "test:ansible"
+test_value: "Verification-{{ lookup('pipe', 'date +%s') }}"

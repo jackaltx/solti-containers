@@ -33,13 +33,27 @@ Each test run validates:
 
 ### Local Testing (podman scenario)
 
-Tests services in nested containers using your local Gitea registry.
+### ⚠️ IMPORTANT: Nested container limitations
+
+The `run-podman-tests.sh` script is currently **not functional** for local testing due to rootless Podman limitations in nested container environments. Running rootless Podman inside a privileged container fails with `newuidmap`/`newgidmap` permission errors.
+
+**Reason**: The test architecture runs containers (Debian 12, Rocky 9, Ubuntu 24) that then run rootless Podman inside them. The nested rootless Podman setup cannot properly map user namespaces due to subuid/subgid restrictions.
+
+**Alternatives for testing**:
+
+1. **GitHub CI** - Uses VMs (not nested containers), works correctly
+2. **Proxmox testing** - `run-proxmox-tests.sh` (coming soon) - Uses real VMs
+3. **Direct localhost testing** - `./manage-svc.sh <service> deploy` on your workstation
 
 ```bash
+# This script exists but won't work for nested container testing
 ./run-podman-tests.sh --services redis
+
+# Error you'll see:
+# newuidmap: write to uid_map failed: Operation not permitted
 ```
 
-**What happens**:
+**What it was designed to do** (works in GitHub CI VMs):
 - Spins up test containers (Debian 12, Rocky 9, Ubuntu 24)
 - Installs Podman inside test containers
 - Deploys your service using rootless containers

@@ -25,9 +25,9 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     publish:
-      - "2224:22"           # SSH
-      - "18080:8080"        # Traefik HTTP (test port range)
-      - "18443:8443"        # Traefik HTTPS (test port range)
+      - "2224:22" # SSH
+      - "18080:8080" # Traefik HTTP (test port range)
+      - "18443:8443" # Traefik HTTPS (test port range)
     ssh_host: "127.0.0.1"
     ssh_port: 2224
     ssh_user: "jackaltx"
@@ -42,9 +42,9 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     publish:
-      - "2225:22"           # SSH
-      - "18080:8080"        # Traefik HTTP (same ports, serial execution)
-      - "18443:8443"        # Traefik HTTPS (same ports, serial execution)
+      - "2225:22" # SSH
+      - "18080:8080" # Traefik HTTP (same ports, serial execution)
+      - "18443:8443" # Traefik HTTPS (same ports, serial execution)
     ssh_host: "127.0.0.1"
     ssh_port: 2225
     ssh_user: "jackaltx"
@@ -75,7 +75,9 @@ provisioner:
         project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
         report_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/verify_output"
         ansible_connection: ssh
-        ansible_user: "jackaltx"
+
+        ansible_user: jackaltx # SSH user
+        ansible_ssh_private_key_file: /home/lavender/.ssh/id_ed25519 # SSH key
 
         # Secure logging control (set to false for debugging credential issues)
         secure_logging: "{{ lookup('env', 'MOLECULE_SECURE_LOGGING', default='true') | bool }}"

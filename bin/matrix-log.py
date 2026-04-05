@@ -6,6 +6,8 @@ This script sends structured log messages to a Matrix room for
 tracking deployments, task executions, tests, and other events
 in the solti-containers collection.
 
+Jackal Says:  This is a synapse matrix bot experiment. E2EE is important!
+
 Usage:
     matrix-log.py message "Text message" [--level info|warning|error]
     matrix-log.py deployment <service> <host> <status> [options]
@@ -26,9 +28,9 @@ Options:
 Configuration:
     Create data/matrix-logger.conf with:
     {
-      "homeserver_url": "http://matrix-web.jackaltx.com:8008",
+      "homeserver_url": "http://matrix-svr.example.com:8008",
       "access_token": "YOUR_TOKEN",
-      "room_id": "!abc123:jackaltx.com"
+      "room_id": "!abc123:example.com"
     }
 
     Or set environment variables:

@@ -4,7 +4,6 @@
 
 # ....................................................
 - name: Ensure systemd user directories exist
-  become: false
   ansible.builtin.file:
     path: "{{real_user_dir}}/{{item}}"
     state: directory
@@ -18,7 +17,6 @@
 
 # ....................................................
 - name: Copy gitea environment file
-  become: false
   ansible.builtin.copy:
     src: "{{gitea_data_dir}}/config/gitea.env"
     dest: "{{real_user_dir}}/.config/containers/systemd/env/gitea.env"
@@ -54,7 +52,6 @@
 
 # ....................................................
 - name: Create gitea pod quadlet
-  become: false
   containers.podman.podman_pod:
     name: gitea
     state: quadlet
@@ -77,7 +74,6 @@
       - "WantedBy=default.target"
 
 - name: Create gitea container quadlet
-  become: false
   containers.podman.podman_container:
     name: gitea-svc
     pod: gitea.pod
@@ -120,7 +116,6 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
-  become: false
   changed_when: false
 
 # .......................................................................................
@@ -128,5 +123,4 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user start {{service_properties.name}}
-  become: false
   changed_when: true

@@ -1,0 +1,29 @@
+---
+# Shared variables for all inventory hosts
+# These vars apply across both localhost.yml and podma.yml inventories
+
+# ============================================
+# Shared Core Variables (sync with solti-platforms)
+# These vars are consistent across all SOLTI collections
+# ============================================
+domain: "{{ lookup('env', 'LAB_TLD') | default('example.com', true) }}"
+mylab_nolog: "{{ cluster_secure_log | bool | default(true) }}" # Controls debug output
+mylab_non_ssh: false # LXC container flag
+
+# Python interpreter (use project venv for all localhost tasks)
+# ansible_python_interpreter: "{{ playbook_dir }}/solti-venv/bin/python3"
+
+# ============================================
+# Container-Specific Variables
+# These vars are specific to solti-containers
+# ============================================
+# Container networking overrides
+service_network: "ct-net"
+service_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+service_dns_search: "{{ domain }}"
+
+# Test/verification variables
+test_index: "test-ansible"
+test_doc: '{"message": "Verification-{{ lookup(''pipe'', ''date +%s'') }}"}'

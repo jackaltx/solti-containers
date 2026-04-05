@@ -11,23 +11,6 @@
     msg: "influxdb3_state must be one of: prepare, present, absent. Current value: {{influxdb3_state}}"
   when: influxdb3_state not in ['prepare', 'present', 'absent']
 
-- name: Test become capability
-  ansible.builtin.command: whoami
-  register: become_test
-  changed_when: false
-
-# Get real user info using environment variables (immune to become)
-- name: Get real user info from environment
-  set_fact:
-    real_user: "{{lookup('env', 'USER')}}"
-    real_user_dir: "{{lookup('env', 'HOME')}}"
-    real_user_uid: "{{lookup('pipe', 'id -u')}}"
-
-# Calculate FQDN from service name (after inventory vars are merged)
-- name: Calculate grafana_fqdn from service name
-  set_fact:
-    influxdb3_fqdn: "{{influxdb3_svc_name}}.{{domain}}"
-
 # =======================================================================
 # PREPARATION (one-time setup)
 # =======================================================================

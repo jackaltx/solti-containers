@@ -4,7 +4,7 @@
 # ..................................................................................
 # TODO this should be part of _base
 - name: Ensure required directories exist
-  become: false
+
   ansible.builtin.file:
     path: "{{real_user_dir}}/{{item}}"
     state: directory
@@ -16,7 +16,7 @@
 
 # ..................................................................................
 - name: Create environment file for Elasticsearch
-  become: false
+
   ansible.builtin.template:
     src: elasticsearch.env.j2
     dest: "{{real_user_dir}}/.config/containers/systemd/env/elasticsearch.env"
@@ -24,7 +24,7 @@
 
 # ....................................................................................
 - name: Create Elasticsearch pod Quadlet
-  become: false
+
   containers.podman.podman_pod:
     name: elasticsearch
     state: quadlet
@@ -52,7 +52,7 @@
 # See es_resource_limits.md for explanation of ulimit
 #
 - name: Create Elasticsearch node container Quadlet
-  become: false
+
   containers.podman.podman_container:
     name: elasticsearch-svc
     pod: elasticsearch.pod
@@ -100,7 +100,7 @@
 
 # ....................................................................................
 - name: Create Elasticvue container Quadlet
-  become: false
+
   containers.podman.podman_container:
     name: elasticsearch-gui
     pod: elasticsearch.pod
@@ -132,7 +132,7 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
-  become: false
+
   changed_when: false
 
 # .......................................................................................
@@ -140,5 +140,5 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user start {{service_properties.name}}
-  become: false
+
   changed_when: true

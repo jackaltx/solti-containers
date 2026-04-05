@@ -1,7 +1,6 @@
 ---
 # .............................................................................
 - name: Ensure required directories exist
-  become: false
   ansible.builtin.file:
     path: "{{real_user_dir}}/{{item}}"
     state: directory
@@ -20,7 +19,6 @@
     xdg_runtime_dir_selinux: "/var/run/user/{{real_user_uid}}"
 
 - name: Check rootless Podman socket exists
-  become: false
   ansible.builtin.stat:
     path: "{{xdg_runtime_dir}}/podman/podman.sock"
   register: socket_stat
@@ -29,7 +27,6 @@
 
 # note: this was only done to rootless...may need work on privileged
 - name: Configure SELinux for Podman socket access
-  become: false
   when: ansible_selinux.status == "enabled"
   block:
     - name: Add persistent SELinux file context for Podman socket
@@ -49,7 +46,6 @@
 # .............................................................................
 #
 - name: Create rootless Traefik pod Quadlet
-  become: false
   containers.podman.podman_pod:
     name: traefik
     state: quadlet
@@ -126,7 +122,6 @@
 
 # .......................................................................................
 - name: Reload systemd user daemon and run generator
-  become: false
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
@@ -135,7 +130,6 @@
 
 # .......................................................................................
 - name: Verify service unit exists
-  become: false
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user cat {{service_properties.name}}
@@ -145,7 +139,6 @@
 
 # .......................................................................................
 - name: Start rootless pod with systemd
-  become: false
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user start {{service_properties.name}}

@@ -2,7 +2,6 @@
 # MongoDB quadlet deployment - rootless containers with systemd
 
 - name: Create MongoDB pod Quadlet
-  become: false
   containers.podman.podman_pod:
     name: mongodb
     state: quadlet
@@ -22,7 +21,6 @@
         WantedBy=default.target
 
 - name: Create MongoDB server container Quadlet
-  become: false
   containers.podman.podman_container:
     name: mongodb-svc
     pod: mongodb.pod
@@ -51,13 +49,11 @@
 
 - name: URL-encode MongoDB password for connection string
   when: mongodb_enable_gui | bool
-  become: false
   ansible.builtin.set_fact:
     mongodb_password_encoded: "{{ mongodb_root_password | urlencode | replace('%', '%%') }}"
 
 - name: Create Mongo Express GUI container Quadlet
   when: mongodb_enable_gui | bool
-  become: false
   containers.podman.podman_container:
     name: mongodb-gui
     pod: mongodb.pod
@@ -86,12 +82,10 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
     systemctl --user daemon-reload
-  become: false
   changed_when: false
 
 - name: Start rootless pod with systemd
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
     systemctl --user start {{ service_properties.name }}
-  become: false
   changed_when: true

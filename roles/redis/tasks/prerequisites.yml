@@ -32,18 +32,20 @@
   when: dir_info.stat.exists
 
 # .....................................................................................
-- name: Become root and change setting files
+# Template configuration as regular user (files created as ansible_user automatically)
+- name: Template Redis configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{redis_data_dir}}/config/redis.conf"
+    mode: "0644"
+    # owner/group removed - file created as ansible_user automatically
+  notify: restart redis
+
+# .....................................................................................
+# System configuration requires root privileges
+- name: Configure system settings (requires sudo)
   become: true
   block:
-    - name: Template Redis configuration
-      ansible.builtin.template:
-        src: redis.conf.j2
-        dest: "{{redis_data_dir}}/config/redis.conf"
-        mode: "0644"
-        owner: "{{real_user}}"
-        group: "{{real_user}}"
-      notify: restart redis
-
     # Configure system settings for Redis
     # Note: This will fail in containers, which is expected and safe
     - name: Configure memory overcommit
@@ -54,7 +56,6 @@
         state: present
         reload: true
       failed_when: false
-      become: true
 
     # .....................................................................................
     - name: Configure SELinux for data directories

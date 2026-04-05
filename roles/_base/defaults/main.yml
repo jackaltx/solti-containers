@@ -1,3 +1,11 @@
+# User context for rootless containers
+# ansible_user comes from inventory (lavender, jackaltx, etc.)
+# NOT affected by become escalation
+real_user: "{{ ansible_user }}"
+real_user_dir: "{{ lookup('env', 'HOME') if ansible_connection == 'local' else ('~' + ansible_user) | expanduser }}"
+# Note: real_user_uid will be set dynamically by getent in tasks when needed for XDG_RUNTIME_DIR
+real_user_uid: "{{ ansible_facts.getent_passwd[ansible_user][1] if ansible_facts.getent_passwd is defined else lookup('pipe', 'id -u ' + ansible_user) }}"
+
 # Container networking
 service_network: "ct-net"
 service_dns_servers:
@@ -5,7 +13,7 @@ service_dns_servers:
   - "8.8.8.8"
 service_dns_search: "example.com"
 
-service_quadlet_dir: "{{lookup('env', 'HOME')}}/.config/containers/systemd"
+service_quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
 
 # Matrix event notification (optional)
 matrix_notify_enabled: "{{ lookup('env', 'MATRIX_NOTIFY_ENABLED') | default('false') }}"

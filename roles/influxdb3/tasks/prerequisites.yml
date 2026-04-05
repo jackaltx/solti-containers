@@ -14,30 +14,19 @@
       - influxdb3_node_id is defined
     fail_msg: "Required variables not properly configured"
 
-# .....................................................................................
-# Get container user mapping first
-- name: Get directory ownership
-  ansible.builtin.stat:
-    path: "{{influxdb3_data_dir}}/config"
-  register: dir_info
+# .......................................................................
+# Template configuration as regular user (files created as ansible_user automatically)
+- name: Template InfluxDB3 environment file
+  ansible.builtin.template:
+    src: influxdb3.env.j2
+    dest: "{{influxdb3_data_dir}}/config/influxdb3.env"
+    mode: "0644"
 
-- name: Debug ownership
-  ansible.builtin.debug:
-    msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
-
-# .....................................................................................
-- name: Become root and template config files
+# .......................................................................
+# System configuration requires root privileges
+- name: Configure system settings (requires sudo)
   become: true
   block:
-    - name: Template InfluxDB3 environment file
-      ansible.builtin.template:
-        src: influxdb3.env.j2
-        dest: "{{influxdb3_data_dir}}/config/influxdb3.env"
-        mode: "0644"
-        owner: "{{dir_info.stat.uid}}"
-        group: "{{dir_info.stat.gid}}"
-
-    # .....................................................................................
     - name: Configure SELinux for data directories
       when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
       block:

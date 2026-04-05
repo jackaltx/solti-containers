@@ -1,7 +1,6 @@
 ---
 # Step 1: Create pod quadlet
 - name: Create Obsidian pod Quadlet
-  become: false
   containers.podman.podman_pod:
     name: obsidian
     state: quadlet
@@ -22,7 +21,6 @@
 
 # Step 2: Create Obsidian container
 - name: Create Obsidian container Quadlet
-  become: false
   containers.podman.podman_container:
     name: obsidian-svc
     pod: obsidian.pod
@@ -64,14 +62,12 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
     systemctl --user daemon-reload
-  become: false
   changed_when: false
 
 - name: Start rootless pod with systemd
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{ real_user_uid }}
     systemctl --user start {{ service_properties.name }}
-  become: false
   changed_when: true
 
 - name: Wait for container to be ready

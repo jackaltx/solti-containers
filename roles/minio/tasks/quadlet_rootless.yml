@@ -16,7 +16,6 @@
     - .config/systemd/user
     - .config/containers/systemd
     - .config/containers/systemd/env
-  become: false
 
 # ..................................................................................
 - name: Create environment file for MinIO secrets
@@ -24,11 +23,9 @@
     src: minio.env.j2
     dest: "~{{real_user}}/.config/containers/systemd/env/minio.env"
     mode: "0600"
-  become: false
 
 # ..................................................................................
 - name: Create rootless MinIO pod Quadlet
-  become: false
   containers.podman.podman_pod:
     name: minio
     state: quadlet
@@ -49,7 +46,6 @@
 
 # ..................................................................................
 - name: Create MinIO server container Quadlet
-  become: false
   containers.podman.podman_container:
     name: minio-svc
     pod: minio.pod
@@ -96,7 +92,6 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
-  become: false
   changed_when: false
 
 # .......................................................................................
@@ -104,5 +99,4 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user start {{service_properties.name}}
-  become: false
   changed_when: true

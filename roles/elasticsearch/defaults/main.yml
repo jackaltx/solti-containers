@@ -3,10 +3,16 @@
 elasticsearch_state: present
 elasticsearch_force_reload: false
 
+# User context for rootless containers (inherited from _base, but defined here for defaults evaluation)
+# ansible_user comes from inventory (lavender, jackaltx, etc.)
+real_user: "{{ ansible_user }}"
+real_user_dir: "{{ lookup('env', 'HOME') if ansible_connection == 'local' else ('~' + ansible_user) | expanduser }}"
+real_user_uid: "{{ ansible_facts.getent_passwd[ansible_user][1] if ansible_facts.getent_passwd is defined else lookup('pipe', 'id -u ' + ansible_user) }}"
+
 # TLS Configuration
 elasticsearch_enable_tls: false
-elasticsearch_tls_cert_file: ""  # Path relative to config dir
-elasticsearch_tls_key_file: ""  # Path relative to config dir
+elasticsearch_tls_cert_file: "" # Path relative to config dir
+elasticsearch_tls_key_file: "" # Path relative to config dir
 elasticsearch_tls_min_version: "TLSv1.2"
 elasticsearch_tls_verify_client: "optional"
 
@@ -18,11 +24,11 @@ elasticsearch_elasticvue_image: "docker.io/cars10/elasticvue:latest"
 elasticsearch_data_dir: "{{lookup('env', 'HOME')}}/elasticsearch-data"
 
 # Service naming and URL construction
-elasticsearch_svc_name: "elasticsearch"  # Override per host in inventory (primary route)
-elasticsearch_svc_name_short: "es"  # Override per host in inventory (short route)
+elasticsearch_svc_name: "elasticsearch" # Override per host in inventory (primary route)
+elasticsearch_alt_svc_name: "es" # Override per host in inventory (short route)
 elasticsearch_fqdn: "{{elasticsearch_svc_name}}.{{domain}}"
-elasticsearch_fqdn_short: "{{elasticsearch_svc_name_short}}.{{domain}}"
-elasticsearch_external_port: 8080  # Port users access through Traefik
+elasticsearch_fqdn_short: "{{elasticsearch_alt_svc_name}}.{{domain}}"
+elasticsearch_external_port: 8080 # Port users access through Traefik
 elasticsearch_external_url: "https://{{elasticsearch_fqdn}}:{{elasticsearch_external_port}}"
 elasticsearch_external_url_short: "https://{{elasticsearch_fqdn_short}}:{{elasticsearch_external_port}}"
 
@@ -68,7 +74,7 @@ service_properties:
     - "elasticsearch-svc.container"
     - "elasticsearch-gui.container"
     - "elasticsearch.pod"
-  data_dir: "{{elasticsearch_data_dir}}"  # override in playbook
+  data_dir: "{{elasticsearch_data_dir}}" # override in playbook
   config_dir: "config"
   delete_data: "{{lookup('env', 'DELETE_DATA') | default(false) | bool}}"
   delete_images: "{{lookup('env', 'DELETE_IMAGES') | default(false) | bool}}"
@@ -77,7 +83,7 @@ service_properties:
     - "{{elasticsearch_image}}"
     - "{{elasticsearch_elasticvue_image}}"
   dirs:
-    - {path: "", mode: "0750"}
-    - {path: "config", mode: "0775"}
-    - {path: "data", mode: "0770"}
-    - {path: "logs", mode: "0770"}
+    - { path: "", mode: "0750" }
+    - { path: "config", mode: "0775" }
+    - { path: "data", mode: "0770" }
+    - { path: "logs", mode: "0770" }

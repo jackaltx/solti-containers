@@ -103,7 +103,7 @@ vault_enable_tls: false
 # Traefik integration
 hashivault_enable_traefik: true
 hashivault_svc_name: "vault"          # Primary route: vault.example.com
-hashivault_svc_name_alt: "hashivault" # Alternate route: hashivault.example.com
+hashivault_alt_svc_name: "hashivault" # Alternate route: hashivault.example.com
 hashivault_external_port: 8080
 ```
 
@@ -329,6 +329,7 @@ source ~/.secrets/LabProvision
 ```
 
 This creates:
+
 - `vault.example.com` → `firefly.example.com`
 - `hashivault.example.com` → `firefly.example.com`
 
@@ -471,6 +472,7 @@ vault_policies:
 ```
 
 Creates timestamped backup of:
+
 - Vault data directory
 - Configuration files
 - Encrypted unseal keys

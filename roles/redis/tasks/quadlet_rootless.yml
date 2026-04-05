@@ -6,11 +6,9 @@
     path: "~{{real_user}}/.config/containers/systemd"
     state: directory
     mode: "0755"
-  become: false
 
 # ....................................................................................
 - name: Create Redis pod Quadlet
-  become: false
   containers.podman.podman_pod:
     name: redis
     state: quadlet
@@ -31,7 +29,6 @@
 
 # ....................................................................................
 - name: Create Redis server container Quadlet
-  become: false
   containers.podman.podman_container:
     name: redis-svc
     pod: redis.pod
@@ -58,7 +55,6 @@
 # ....................................................................................
 - name: Create Redis Commander container Quadlet
   when: redis_enable_gui | bool
-  become: false
   containers.podman.podman_container:
     name: redis-gui
     pod: redis.pod
@@ -98,7 +94,6 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user daemon-reload
-  become: false
   changed_when: false
 
 # .......................................................................................
@@ -106,5 +101,4 @@
   ansible.builtin.shell: |
     export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
     systemctl --user start {{service_properties.name}}
-  become: false
   changed_when: true

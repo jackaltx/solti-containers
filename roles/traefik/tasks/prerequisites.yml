@@ -1,60 +1,41 @@
 ---
-#
 # .......................................................................
-# Get container user mapping first
-- name: Get directory ownership
-  become: true
-  ansible.builtin.stat:
-    path: "{{traefik_data_dir}}/config"
-  register: dir_info
+# Template configuration as regular user (files created as ansible_user automatically)
+- name: Verify Linode token is available
+  ansible.builtin.fail:
+    msg: "LINODE_TOKEN environment variable must be set"
+  when: lookup('env', 'LINODE_TOKEN') == ''
 
-- name: Debug ownership
+- name: Display setup reminder
   ansible.builtin.debug:
-    msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
+    msg:
+      - "=========================================="
+      - "TRAEFIK DEVELOPMENT SETUP REMINDER:"
+      - "1. Dashboard will be at: http://localhost:{{traefik_dashboard_port}}"
+      - "2. Domain configured: {{domain}}"
+      - "3. DNS provider: Linode (token: {{'SET' if lookup('env', 'LINODE_TOKEN') else 'NOT SET'}})"
+      - "4. Ensure *.{{domain}} points to this machine"
+      - "=========================================="
+
+- name: Template Traefik configuration
+  template:
+    src: traefik.yaml.j2
+    dest: "{{traefik_data_dir}}/config/traefik.yaml"
+    mode: "0640"
+  notify: restart traefik
+
+- name: Template Traefik dynamic configuration
+  template:
+    src: traefik-dynamic.yaml.j2
+    dest: "{{traefik_data_dir}}/config/traefik-dynamic.yaml"
+    mode: "0640"
+  notify: restart traefik
 
 # .......................................................................
-- name: Become root and change setting files
+# System configuration requires root privileges
+- name: Configure system settings (requires sudo)
   become: true
   block:
-    #
-    # .....................................................................................
-    - name: Verify Linode token is available
-      ansible.builtin.fail:
-        msg: "LINODE_TOKEN environment variable must be set"
-      when: lookup('env', 'LINODE_TOKEN') == ''
-
-    - name: Display setup reminder
-      ansible.builtin.debug:
-        msg:
-          - "=========================================="
-          - "TRAEFIK DEVELOPMENT SETUP REMINDER:"
-          - "1. Dashboard will be at: http://localhost:{{traefik_dashboard_port}}"
-          - "2. Domain configured: {{domain}}"
-          - "3. DNS provider: Linode (token: {{'SET' if lookup('env', 'LINODE_TOKEN') else 'NOT SET'}})"
-          - "4. Ensure *.{{domain}} points to this machine"
-          - "=========================================="
-
-    # .....................................................................................
-    - name: Template Traefik configuration
-      template:
-        src: traefik.yaml.j2
-        dest: "{{traefik_data_dir}}/config/traefik.yaml"
-        mode: "0640"
-        owner: "{{dir_info.stat.uid | default(ansible_user_id)}}"
-        group: "{{dir_info.stat.gid | default(ansible_user_id)}}"
-      notify: restart traefik
-
-    # .....................................................................................
-    - name: Template Traefik dynamic configuration
-      template:
-        src: traefik-dynamic.yaml.j2
-        dest: "{{traefik_data_dir}}/config/traefik-dynamic.yaml"
-        mode: "0640"
-        owner: "{{dir_info.stat.uid | default(ansible_user_id)}}"
-        group: "{{dir_info.stat.gid | default(ansible_user_id)}}"
-      notify: restart traefik
-
-    # .....................................................................................
     - name: Configure SELinux for data directories
       when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
       block:
@@ -71,7 +52,6 @@
 
         # .....................................................................................
         - name: Create and install SELinux policy module for Traefik socket access
-          become: true
           when:
             - not traefik_privileged
           block:
