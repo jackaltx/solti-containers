@@ -36,8 +36,8 @@
     state: quadlet
     quadlet_dir: "~{{real_user}}/.config/containers/systemd"
     volume:
-      - "{{redis_data_dir}}/config:/usr/local/etc/redis:Z"
-      - "{{redis_data_dir}}/data:/data:Z"
+      - "{{redis_data_dir}}/config:/usr/local/etc/redis:Z,U"
+      - "{{redis_data_dir}}/data:/data:Z,U"
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     quadlet_options:
       - |

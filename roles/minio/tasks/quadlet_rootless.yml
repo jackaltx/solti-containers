@@ -53,9 +53,9 @@
     state: quadlet
     quadlet_dir: "~{{real_user}}/.config/containers/systemd"
     volume:
-      - "{{minio_data_dir}}/data:/data:Z"
-      - "{{minio_data_dir}}/config:/root/.minio:Z"
-      - "{{minio_data_dir}}/tls:/root/.minio/certs:Z"
+      - "{{minio_data_dir}}/data:/data:Z,U"
+      - "{{minio_data_dir}}/config:/root/.minio:Z,U"
+      - "{{minio_data_dir}}/tls:/root/.minio/certs:Z,U"
     command: ["server", "/data", "--console-address", ":9001"]
     label:
       traefik.enable: "{{minio_enable_traefik | lower}}"
