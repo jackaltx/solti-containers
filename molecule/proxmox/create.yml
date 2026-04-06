@@ -1,0 +1,85 @@
+---
+#
+# ========================================================================
+# Create VM by cloning latest template using solti-platforms tasks
+# This replaces direct API calls with SSH-based qm commands via solti-platforms role
+- name: Create VM using solti-platforms
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # Proxmox host configuration
+    proxmox_host: "{{ lookup('env', 'PROXMOX_NODE') | default('magic', true) }}"
+
+  tasks:
+    - name: Debug molecule configuration
+      ansible.builtin.debug:
+        msg:
+          - "Proxmox Host: {{ proxmox_host }}" # magic
+          - "Distribution: {{ proxmox_template }}" # this name SMELLs, but it "debia12 or rocky8 or ..."
+          - "Target VMID: {{ proxmox_vmid }}" # this is the vmid of the clone, it is hardcoded above, yuck
+          - "VM Name: {{ proxmox_vm_name }}" # Names for people, not usefull here
+          - "VM IP: {{ molecule_ip }}" #  This is hard coded.  Currely putting in 101 network TODO move to test network.
+        verbosity: 1
+
+    # This is to create a destination dynanically? The prepare state worked on all-hosts ?
+    - name: Add proxmox host to in-memory inventory
+      ansible.builtin.add_host:
+        name: proxmox_temp
+        groups: proxmox_clone_group
+        ansible_host: "{{ proxmox_host }}"
+        ansible_user: lavender # SMELL CLAUDE: this is a hard coded gotcha.  let's improve.
+        ansible_connection: ssh
+#
+#
+# ========================================================================
+# This runs on the proxmox host so that we don't need web access. It's a choice, don't know if it is a good one.
+#
+- name: Clone VM on Proxmox host
+  hosts: proxmox_clone_group
+  gather_facts: false
+
+  vars:
+    distribution_map:
+      "rocky9-template": "rocky9"
+      "rocky10-template": "rocky10"
+      "debian-12-template": "debian12"
+      "debian-13-template": "debian13"
+    template_distribution: "{{ distribution_map[hostvars['localhost']['proxmox_template']] }}"
+
+  tasks:
+    - name: Clone and configure VM
+      ansible.builtin.include_role:
+        name: jackaltx.solti_platforms.proxmox_template
+        tasks_from: clone_latest_template
+      vars:
+        clone_vmid: "{{ hostvars['localhost']['proxmox_vmid'] }}"
+        clone_name: "{{ hostvars['localhost']['proxmox_vm_name'] }}"
+        clone_ip: "{{ hostvars['localhost']['molecule_ip'] }}"
+        clone_gateway: "192.168.101.254"
+        clone_netmask: 24
+        # clone_memory: 6144  # kernel memory deadlocks happen if you are too small. modify the template!
+        # clone_disk_size: "20G"  # Disabled - use template default size
+        clone_full: 0 # Linked clone for fast molecule testing
+
+        # SMELL: Today this is in this space, it will dhcp so I am not sure we need to preset a gateway.
+        # SMELL:  I will move this space later, so TODO  test networking
+
+#
+#
+# ========================================================================
+
+- name: Display summary
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Display VM creation summary
+      ansible.builtin.debug:
+        msg:
+          - "=== VM Created Successfully ==="
+          - "VMID: {{ proxmox_vmid }}"
+          - "Name: {{ proxmox_vm_name }}"
+          - "IP: {{ molecule_ip }}"
