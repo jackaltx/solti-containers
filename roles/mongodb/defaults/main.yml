@@ -44,9 +44,9 @@ service_properties:
     - "{{ mongodb_express_image }}"
   dirs:
     - {path: "", mode: "0750"}
-    - {path: "config", mode: "0755"}
+    - {path: "config", mode: "0750"}
     - {path: "data", mode: "0750"}
-    - {path: "logs", mode: "0755"}
+    - {path: "logs", mode: "0750"}
   ports:
     - "127.0.0.1:{{ mongodb_port }}:27017"
     - "127.0.0.1:{{ mongodb_gui_port }}:8081"

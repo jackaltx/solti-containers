@@ -20,8 +20,20 @@ ANSIBLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INVENTORY="${SOLTI_INVENTORY:-${ANSIBLE_DIR}/inventory/localhost.yml}"
 TEMP_DIR="${ANSIBLE_DIR}/tmp"
 
-# Ensure temp directory exists
+# Ensure temp directory exists with strict permissions
 mkdir -p "${TEMP_DIR}"
+chmod 700 "${TEMP_DIR}"
+
+# Cleanup function to be called on exit or interrupt
+cleanup() {
+    # Only remove if not in failure state (unless explicitly told to)
+    if [[ $? -eq 0 ]]; then
+        if [[ -f "${TEMP_PLAYBOOK}" ]]; then
+            rm -f "${TEMP_PLAYBOOK}"
+        fi
+    fi
+}
+trap cleanup EXIT INT TERM
 
 # Supported services
 SUPPORTED_SERVICES=(
@@ -243,6 +255,7 @@ generate_exec_playbook() {
               timestamp: "{{ task_start_time }}"
       when: matrix_access_token | length > 0
       ignore_errors: true
+      no_log: true
 
   tasks:
     - name: "Include role task: ${service}/${entry}"
@@ -272,6 +285,7 @@ generate_exec_playbook() {
               status: "{{ task_status }}"
       when: matrix_access_token | length > 0
       ignore_errors: true
+      no_log: true
 EOF
 
     echo "Generated ${entry} playbook for ${service}"
@@ -347,8 +361,8 @@ fi
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 TEMP_PLAYBOOK="${TEMP_DIR}/${SERVICE}-${ENTRY}-${TIMESTAMP}.yml"
 
-# Generate the playbook
-generate_exec_playbook "$SERVICE" "$ENTRY"
+# Generate the playbook with strict permissions
+(umask 077 && generate_exec_playbook "$SERVICE" "$ENTRY")
 
 # Display execution info
 echo "Executing task: ${ENTRY} for service: ${SERVICE}"

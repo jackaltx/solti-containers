@@ -21,8 +21,20 @@ HOST=""
 YES_FLAG=false
 EXPLICIT_INVENTORY=false
 
-# Ensure temp directory exists
+# Ensure temp directory exists with strict permissions
 mkdir -p "${TEMP_DIR}"
+chmod 700 "${TEMP_DIR}"
+
+# Cleanup function to be called on exit or interrupt
+cleanup() {
+    # Only remove if not in failure state (unless explicitly told to)
+    if [[ $? -eq 0 ]]; then
+        if [[ -f "${TEMP_PLAYBOOK}" ]]; then
+            rm -f "${TEMP_PLAYBOOK}"
+        fi
+    fi
+}
+trap cleanup EXIT INT TERM
 
 # Supported services
 SUPPORTED_SERVICES=(
@@ -296,8 +308,8 @@ fi
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 TEMP_PLAYBOOK="${TEMP_DIR}/${SERVICE}-${ACTION}-${TIMESTAMP}.yml"
 
-# Generate the playbook
-generate_playbook "$SERVICE" "$ACTION"
+# Generate the playbook with strict permissions
+(umask 077 && generate_playbook "$SERVICE" "$ACTION")
 
 # Display execution info
 echo "Managing service: $SERVICE"

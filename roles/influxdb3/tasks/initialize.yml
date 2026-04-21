@@ -44,7 +44,7 @@
       ansible.builtin.copy:
         content: "{{token_content.stdout}}"
         dest: "{{influxdb3_secrets_dir}}/admin-token.json"
-        mode: "0644"
+        mode: "0600"
 
     - name: Parse token
       ansible.builtin.set_fact:

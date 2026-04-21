@@ -84,6 +84,6 @@ service_properties:
     - "{{elasticsearch_elasticvue_image}}"
   dirs:
     - { path: "", mode: "0750" }
-    - { path: "config", mode: "0775" }
-    - { path: "data", mode: "0770" }
-    - { path: "logs", mode: "0770" }
+    - { path: "config", mode: "0700" }
+    - { path: "data", mode: "0700" }
+    - { path: "logs", mode: "0700" }

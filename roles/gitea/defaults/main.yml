@@ -60,9 +60,9 @@ service_properties:
   delete_images: "{{lookup('env', 'DELETE_IMAGES') | default(false) | bool}}"
   container_image: "{{gitea_image}}"
   dirs:
-    - {path: "", mode: "0755"}
-    - {path: "config", mode: "0775"}
-    - {path: "data", mode: "0775"}
-    - {path: "data/gitea", mode: "0775"}
-    - {path: "data/git", mode: "0775"}
-    - {path: "logs", mode: "0775"}
+    - {path: "", mode: "0750"}
+    - {path: "config", mode: "0750"}
+    - {path: "data", mode: "0750"}
+    - {path: "data/gitea", mode: "0750"}
+    - {path: "data/git", mode: "0750"}
+    - {path: "logs", mode: "0750"}

@@ -39,7 +39,7 @@ service_properties:
     - "{{ obsidian_image }}"
   dirs:
     - { path: "", mode: "0750" }
-    - { path: "config", mode: "0755" }
+    - { path: "config", mode: "0750" }
     - { path: "vaults", mode: "0750" }
   ports:
     - "127.0.0.1:{{ obsidian_port }}:3000"
