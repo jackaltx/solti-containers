@@ -1,0 +1,22 @@
+---
+# DNS Service - Main entry point
+# Called by manage-svc.sh with service_state
+
+- name: Include prepare tasks
+  include_tasks: prepare.yml
+  when: service_state == 'prepare'
+
+- name: Manage DNS records (present)
+  when: service_state == 'present'
+  block:
+    - name: Include prepare tasks
+      include_tasks: prepare.yml
+
+    - name: Include sync tasks
+      include_tasks: sync.yml
+
+- name: Manage DNS records (absent)
+  when: service_state == 'absent'
+  block:
+    - name: Include remove tasks
+      include_tasks: remove.yml

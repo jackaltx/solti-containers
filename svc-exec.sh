@@ -20,8 +20,20 @@ ANSIBLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INVENTORY="${SOLTI_INVENTORY:-${ANSIBLE_DIR}/inventory/localhost.yml}"
 TEMP_DIR="${ANSIBLE_DIR}/tmp"
 
-# Ensure temp directory exists
+# Ensure temp directory exists with strict permissions
 mkdir -p "${TEMP_DIR}"
+chmod 700 "${TEMP_DIR}"
+
+# Cleanup function to be called on exit or interrupt
+cleanup() {
+    # Only remove if not in failure state (unless explicitly told to)
+    if [[ $? -eq 0 ]]; then
+        if [[ -f "${TEMP_PLAYBOOK}" ]]; then
+            rm -f "${TEMP_PLAYBOOK}"
+        fi
+    fi
+}
+trap cleanup EXIT INT TERM
 
 # Supported services
 SUPPORTED_SERVICES=(
@@ -38,6 +50,7 @@ SUPPORTED_SERVICES=(
     "mongodb"
     "obsidian"
     "conduit"
+    "dns_service"
 )
 
 # Default entry point if not specified
@@ -200,6 +213,9 @@ generate_exec_playbook() {
     # Add host specification if provided
     if [[ -n "$HOST" ]]; then
         host_param="hosts: $HOST"
+    elif [[ "$service" == "dns_service" ]]; then
+        # DNS service always runs on localhost and scans entire inventory
+        host_param="hosts: localhost"
     else
         host_param="hosts: ${service}_svc"
     fi
@@ -210,11 +226,66 @@ generate_exec_playbook() {
 # Dynamic execution playbook
 - name: Execute ${entry} for ${service} Service
   $host_param
+  gather_facts: false
+  vars:
+    matrix_homeserver_url: "{{ lookup('env', 'MATRIX_HOMESERVER_URL') }}"
+    matrix_access_token: "{{ lookup('env', 'MATRIX_ACCESS_TOKEN') }}"
+    matrix_room_id: "{{ lookup('env', 'MATRIX_ROOM_ID') }}"
+    task_service: "${service}"
+    task_entry: "${entry}"
+    task_host: "${HOST:-all}"
+    task_start_time: "{{ ansible_facts['date_time']['iso8601'] }}"
+
+  pre_tasks:
+    - name: "Log task start to Matrix"
+      jackaltx.solti_matrix_mgr.matrix_event:
+        homeserver_url: "{{ matrix_homeserver_url }}"
+        access_token: "{{ matrix_access_token }}"
+        room_id: "{{ matrix_room_id }}"
+        content:
+          msgtype: "m.text"
+          body: "Starting task: {{ task_service }}/{{ task_entry }} on {{ task_host }}"
+          solti:
+            schema: "task.start.v1"
+            source: "svc-exec"
+            data:
+              service: "{{ task_service }}"
+              entry: "{{ task_entry }}"
+              host: "{{ task_host }}"
+              timestamp: "{{ task_start_time }}"
+      when: matrix_access_token | length > 0
+      ignore_errors: true
+      no_log: true
+
   tasks:
-    - name: Include roles tasks
+    - name: "Include role task: ${service}/${entry}"
       ansible.builtin.include_role:
-        name: ${service}
-        tasks_from: ${entry}
+        name: "{{ task_service }}"
+        tasks_from: "{{ task_entry }}"
+      register: task_result
+
+  post_tasks:
+    - name: "Log task completion to Matrix"
+      vars:
+        task_status: "{{ 'success' if task_result is succeeded else 'failure' }}"
+      jackaltx.solti_matrix_mgr.matrix_event:
+        homeserver_url: "{{ matrix_homeserver_url }}"
+        access_token: "{{ matrix_access_token }}"
+        room_id: "{{ matrix_room_id }}"
+        content:
+          msgtype: "m.text"
+          body: "Task complete: {{ task_service }}/{{ task_entry }} on {{ task_host }} ({{ task_status }})"
+          solti:
+            schema: "task.complete.v1"
+            source: "svc-exec"
+            data:
+              service: "{{ task_service }}"
+              entry: "{{ task_entry }}"
+              host: "{{ task_host }}"
+              status: "{{ task_status }}"
+      when: matrix_access_token | length > 0
+      ignore_errors: true
+      no_log: true
 EOF
 
     echo "Generated ${entry} playbook for ${service}"
@@ -290,8 +361,8 @@ fi
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 TEMP_PLAYBOOK="${TEMP_DIR}/${SERVICE}-${ENTRY}-${TIMESTAMP}.yml"
 
-# Generate the playbook
-generate_exec_playbook "$SERVICE" "$ENTRY"
+# Generate the playbook with strict permissions
+(umask 077 && generate_exec_playbook "$SERVICE" "$ENTRY")
 
 # Display execution info
 echo "Executing task: ${ENTRY} for service: ${SERVICE}"

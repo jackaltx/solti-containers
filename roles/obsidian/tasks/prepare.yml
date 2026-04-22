@@ -1,0 +1,6 @@
+---
+# Obsidian prepare - one-time setup via _base role
+
+- name: Run base prepare tasks
+  ansible.builtin.include_tasks:
+    file: ../_base/tasks/prepare.yml

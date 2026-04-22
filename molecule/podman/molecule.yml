@@ -14,41 +14,37 @@ driver:
 # Testing containers for solti-containers collection
 # These images have systemd, SSH, and necessary tooling
 # Containers will install podman inside themselves for nested container testing
+# Serial execution: Rocky 9 and Rocky 10 only (share same published ports)
 platforms:
-  - name: "uut-deb12"
-    image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/debian-ssh:12"
-    network: "containers-net"
-    command: "/sbin/init"
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
-    ssh_host: "127.0.0.1"
-    ssh_port: 2223
-    ssh_user: "jackaltx"
-    connection: ssh
-
   - name: "uut-rocky9"
-    image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/rocky-ssh:9"
+    image: "gitea.{{ domain }}/jackaltx/testing-containers/rocky-ssh:9"
     network: "containers-net"
     command: "/sbin/init"
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
+    publish:
+      - "2224:22" # SSH
+      - "18080:8080" # Traefik HTTP (test port range)
+      - "18443:8443" # Traefik HTTPS (test port range)
     ssh_host: "127.0.0.1"
     ssh_port: 2224
     ssh_user: "jackaltx"
     connection: ssh
 
-  - name: "uut-ct2"
-    image: "gitea.${LAB_DOMAIN:-example.com}:8080/jackaltx/testing-containers/ubuntu-ssh:24"
+  - name: "uut-rocky10"
+    image: "gitea.{{ domain }}/jackaltx/testing-containers/rocky-ssh:10"
     network: "containers-net"
     command: "/sbin/init"
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
+    publish:
+      - "2225:22" # SSH
+      - "18080:8080" # Traefik HTTP (same ports, serial execution)
+      - "18443:8443" # Traefik HTTPS (same ports, serial execution)
     ssh_host: "127.0.0.1"
     ssh_port: 2225
     ssh_user: "jackaltx"
@@ -79,7 +75,9 @@ provisioner:
         project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
         report_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/verify_output"
         ansible_connection: ssh
-        ansible_user: "jackaltx"
+
+        ansible_user: jackaltx # SSH user
+        ansible_ssh_private_key_file: /home/lavender/.ssh/id_ed25519 # SSH key
 
         # Secure logging control (set to false for debugging credential issues)
         secure_logging: "{{ lookup('env', 'MOLECULE_SECURE_LOGGING', default='true') | bool }}"
@@ -88,7 +86,7 @@ provisioner:
         testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
 
         # Domain for container registry (from secrets)
-        domain: "{{ lookup('env', 'LAB_DOMAIN', default='example.com') }}"
+        domain: "{{ lookup('env', 'LAB_TLD', default='example.com') }}"
 
         # Container network settings (inside test containers)
         service_network: "ct-net"
@@ -107,14 +105,8 @@ provisioner:
         mattermost_state: present
         grafana_state: present
 
-        # Service data directories (inside test containers)
-        redis_data_dir: "~/redis-data"
-        traefik_data_dir: "~/traefik-data"
-        hashivault_data_dir: "~/hashivault-data"
-        elasticsearch_data_dir: "~/elasticsearch-data"
-        minio_data_dir: "~/minio-data"
-        mattermost_data_dir: "~/mattermost-data"
-        grafana_data_dir: "~/grafana-data"
+        # Service data directories use role defaults ({{real_user_dir}}/service-data)
+        # which are set after real_user_dir is determined from ansible_env.HOME
 
 scenario:
   name: podman

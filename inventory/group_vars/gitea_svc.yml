@@ -1,0 +1,18 @@
+---
+# Shared variables for gitea_svc group
+
+debug_level: warn
+gitea_data_dir: "{{ lookup('env', 'HOME') }}/gitea-data"
+gitea_admin_password: "{{ lookup('env', 'GITEA_ADMIN_PASSWORD', default='') }}"
+gitea_port: 3001
+gitea_ssh_port: 2222
+gitea_image: "docker.io/gitea/gitea:latest"
+gitea_app_name: "Gitea"
+gitea_domain: "gitea.{{ domain }}"
+gitea_root_url: "https://gitea.{{ domain }}:8080"
+gitea_disable_registration: false
+gitea_require_signin: true
+gitea_enable_ssh: true
+gitea_enable_actions: true
+gitea_enable_lfs: true
+gitea_enable_tls: true

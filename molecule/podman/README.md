@@ -158,16 +158,16 @@ podman logs hashivault-svc
    ss -tlnp | grep 222
    ```
 
-3. **Container registry auth**: Ensure `LAB_DOMAIN` is set
+3. **Container registry auth**: Ensure `LAB_TLD` is set
 
    ```bash
    source ~/.secrets/LabProvision
-   echo $LAB_DOMAIN
+   echo $LAB_TLD
    ```
 
 ## Integration with CI/CD
 
-The `molecule/github` scenario uses GitHub container registry. The `molecule/podman` scenario uses your local gitea registry (configured via `LAB_DOMAIN`).
+The `molecule/github` scenario uses GitHub container registry. The `molecule/podman` scenario uses your local gitea registry (configured via `LAB_TLD`).
 
 ## Files Structure
 

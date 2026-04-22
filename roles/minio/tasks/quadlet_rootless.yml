@@ -8,6 +8,7 @@
 # This feels like it should be at the base
 
 - name: Ensure required directories exist
+  become: false
   ansible.builtin.file:
     path: "~{{real_user}}/{{item}}"
     state: directory
@@ -16,15 +17,14 @@
     - .config/systemd/user
     - .config/containers/systemd
     - .config/containers/systemd/env
-  become: false
 
 # ..................................................................................
 - name: Create environment file for MinIO secrets
+  become: false
   ansible.builtin.template:
     src: minio.env.j2
     dest: "~{{real_user}}/.config/containers/systemd/env/minio.env"
     mode: "0600"
-  become: false
 
 # ..................................................................................
 - name: Create rootless MinIO pod Quadlet
@@ -57,9 +57,9 @@
     state: quadlet
     quadlet_dir: "~{{real_user}}/.config/containers/systemd"
     volume:
-      - "{{minio_data_dir}}/data:/data:Z"
-      - "{{minio_data_dir}}/config:/root/.minio:Z"
-      - "{{minio_data_dir}}/tls:/root/.minio/certs:Z"
+      - "{{minio_data_dir}}/data:/data:Z,U"
+      - "{{minio_data_dir}}/config:/root/.minio:Z,U"
+      - "{{minio_data_dir}}/tls:/root/.minio/certs:Z,U"
     command: ["server", "/data", "--console-address", ":9001"]
     label:
       traefik.enable: "{{minio_enable_traefik | lower}}"

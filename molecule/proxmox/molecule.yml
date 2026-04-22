@@ -1,0 +1,79 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+    ignore-errors: true
+
+driver:
+  name: default
+
+platforms:
+  - name: "uut-vm"
+    template: "MUST_BE_SET" # Intentionally no default - fail if PROXMOX_TEMPLATE unset
+
+provisioner:
+  name: ansible
+  playbooks:
+    verify: "../shared/verify/main.yml" # Claude, this will be a test matrix similar to ../solti-monitoring  I hope to use it for github testing
+  log: true
+  config_options:
+    defaults:
+      roles_path: roles
+      interpreter_python: auto_silent
+      host_key_checking: false
+      ansible_managed: "Ansible managed"
+      # deprecation_warnings: false
+  inventory:
+    group_vars:
+      all:
+        ansible_managed: "Ansible managed"
+        proxmox_vmid: 9100
+        proxmox_template: "{{ lookup('env', 'PROXMOX_TEMPLATE') }}"
+        proxmox_vm_name: "uut-vm"
+        molecule_ip: "192.168.101.90"
+
+        project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+        report_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/verify_output"
+
+        # Secure logging control (set to false for debugging credential issues)
+        secure_logging: "{{ lookup('env', 'MOLECULE_SECURE_LOGGING', default='true') | bool }}"
+
+        # Service testing control - comma-separated list
+        testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
+
+        # Domain for container registry (from secrets)
+        domain: "{{ lookup('env', 'LAB_TLD', default='example.com') }}"
+
+    host_vars:
+      uut-vm:
+        ansible_host: "192.168.101.90"
+        ansible_connection: ssh
+        ansible_user: "${USER}"
+
+        # Claude: this need work!!!
+        testing_capabilities: "{{ lookup('env', 'MOLECULE_CAPABILITIES', default='logs,metrics') | split(',') }}"
+
+        # Claude: yes I use _state as an input...guess they defaults to absent.
+        # Perhaps there is smarter way...dunno.
+        # Service state for all services (present/absent)
+        redis_state: present
+        traefik_state: present
+        hashivault_state: present
+        elasticsearch_state: present
+        minio_state: present
+        mattermost_state: present
+        grafana_state: present
+
+scenario:
+  name: proxmox
+  test_sequence:
+    - destroy
+    - create
+    - prepare
+    - converge
+    - verify
+    - destroy
+
+verifier:
+  name: ansible

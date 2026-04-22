@@ -1,0 +1,65 @@
+---
+# DNS Service - Remove
+# Delete ALL CNAME records for services across ALL hosts in inventory
+
+- name: Find all service groups in inventory
+  ansible.builtin.set_fact:
+    service_groups: "{{ groups.keys() | select('match', '.*_svc$') | list }}"
+
+- name: Build DNS records list
+  ansible.builtin.set_fact:
+    all_dns_records_raw: >-
+      [
+      {% for group in service_groups %}
+        {% for host in groups[group] %}
+          {% for key, value in hostvars[host].items() %}
+            {% if key.endswith('_svc_name') and value is string %}
+              {"service_name": "{{ value }}", "target_host": "{{ host }}"},
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      {% endfor %}
+      {}]
+
+- name: Clean and deduplicate DNS records
+  ansible.builtin.set_fact:
+    all_dns_records: "{{ all_dns_records_raw[:-1] | unique }}"
+
+- name: Display services to remove
+  ansible.builtin.debug:
+    msg: "Removing DNS records for {{ all_dns_records | length }} unique services across all hosts"
+
+- name: Warn about deletion
+  ansible.builtin.pause:
+    prompt: |
+      WARNING: This will delete {{ all_dns_records | length }} DNS records from {{ domain }}
+      Services: {{ all_dns_records | map(attribute='service_name') | join(', ') }}
+      Press Ctrl+C to cancel, Enter to continue
+  when: not (ansible_check_mode | default(false))
+
+- debug:
+    var: linode_api_token
+
+- name: Delete CNAME records for all services
+  linode.cloud.domain_record:
+    api_token: "{{ linode_api_token }}"
+    domain: "{{ domain }}"
+    type: CNAME
+    name: "{{ item.service_name }}"
+    state: absent
+    target: "{{ item.target_host }}.{{ domain }}"
+  loop: "{{ all_dns_records }}"
+  loop_control:
+    label: "{{ item.service_name }}.{{ domain }}"
+  register: dns_delete_results
+
+# note, if they don't exists...nothing happend...not good
+- debug:
+    var: dns_delete_results
+
+- name: Display removal results
+  ansible.builtin.debug:
+    msg:
+      - "DNS records removed successfully"
+      - "Deleted {{ all_dns_records | length }} CNAME records"
+      - "Services: {{ all_dns_records | map(attribute='service_name') | join(', ') }}"

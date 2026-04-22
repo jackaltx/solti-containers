@@ -33,9 +33,9 @@
     state: quadlet
     quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     volume:
-      - "{{influxdb3_data_dir}}/data:/var/lib/influxdb3/data:z,U"
-      - "{{influxdb3_data_dir}}/plugins:/var/lib/influxdb3/plugins:z,U"
-      - "{{influxdb3_secrets_dir}}:/var/lib/influxdb3/secrets:z,U"
+      - "{{influxdb3_data_dir}}/data:/var/lib/influxdb3/data:Z,U"
+      - "{{influxdb3_data_dir}}/plugins:/var/lib/influxdb3/plugins:Z,U"
+      - "{{influxdb3_secrets_dir}}:/var/lib/influxdb3/secrets:Z,U"
     env:
       INFLUXDB3_NODE_IDENTIFIER_PREFIX: "{{influxdb3_node_id}}"
     command:

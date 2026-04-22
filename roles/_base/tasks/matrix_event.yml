@@ -1,0 +1,36 @@
+---
+# Matrix event notification task
+# Reads configuration directly from environment variables
+# Set MATRIX_NOTIFY_ENABLED=true to enable
+
+- name: matrix event sent
+  jackaltx.solti_matrix_mgr.matrix_event:
+    homeserver_url: "{{ lookup('env', 'MATRIX_HOMESERVER_URL') }}"
+    access_token: "{{ lookup('env', 'MATRIX_ACCESS_TOKEN') }}"
+    room_id: "{{ lookup('env', 'MATRIX_ROOM_ID') }}"
+    content:
+      msgtype: "com.solti.event"
+      body: "SOLTI event: deploy.complete.v1"
+      solti:
+        schema: "deploy.complete.v1"
+        timestamp: "{{ ansible_date_time.iso8601 }}"
+        source: "solti-containers/{{ service_properties.root }}/{{ inventory_hostname }}"
+        data:
+          service: "{{ service_properties.root }}"
+          host: "{{ inventory_hostname }}"
+          playbook: "{{ ansible_play_name | default('manage-svc') }}"
+          operator: "{{ ansible_user }}"
+          duration: 0 # TODO: calculate from task timestamps
+          status: "{{ deployment_status | default('success') }}"
+          # solti-containers specific
+          service_properties: "{{ service_properties }}"
+          # failure data (only present on errors)
+          error: "{{ deployment_error | default(omit) }}"
+          failed_task: "{{ deployment_task | default(omit) }}"
+          failed_result: "{{ deployment_result | default(omit) }}"
+  when:
+    - lookup('env', 'MATRIX_NOTIFY_ENABLED') | default('false') | bool
+    - lookup('env', 'MATRIX_HOMESERVER_URL') | length > 0
+    - lookup('env', 'MATRIX_ACCESS_TOKEN') | length > 0
+    - lookup('env', 'MATRIX_ROOM_ID') | length > 0
+  ignore_errors: true

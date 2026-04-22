@@ -1,0 +1,38 @@
+---
+# Matrix event notification handlers
+# Triggered by notify: from service deployment tasks
+#
+# These handlers post lifecycle events to Matrix for monitoring and automation.
+# Controlled by matrix_notify_enabled flag (default: false)
+#
+# Usage in tasks:
+#   - name: Some deployment task
+#     ...
+#     notify: matrix event container deployed
+
+- name: matrix event container deployed
+  jackaltx.solti_matrix_mgr.matrix_event:
+    homeserver_url: "{{ matrix_homeserver_url }}"
+    access_token: "{{ matrix_access_token }}"
+    room_id: "{{ matrix_room_id }}"
+    content:
+      msgtype: "com.solti.event"
+      body: "SOLTI event: deploy.complete.v1"
+      solti:
+        schema: "deploy.complete.v1"
+        timestamp: "{{ ansible_date_time.iso8601 }}"
+        source: "solti-containers/{{ service_properties.root }}/{{ inventory_hostname }}"
+        data:
+          service: "{{ service_properties.root }}"
+          host: "{{ inventory_hostname }}"
+          playbook: "{{ ansible_play_name | default('manage-svc') }}"
+          operator: "{{ ansible_user }}"
+          duration: 0  # TODO: calculate from task timestamps
+          status: "success"
+  listen: "matrix event container deployed"
+  when:
+    - matrix_notify_enabled | default(false) | bool
+    - matrix_homeserver_url is defined
+    - matrix_access_token is defined
+    - matrix_room_id is defined
+  ignore_errors: true

@@ -8,7 +8,7 @@
   ansible.builtin.file:
     path: "{{real_user_dir}}/{{item}}"
     state: directory
-    mode: "0755"
+    mode: "0700"
     owner: "{{real_user}}"
     group: "{{real_user}}"
   loop:

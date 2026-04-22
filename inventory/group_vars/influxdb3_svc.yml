@@ -1,0 +1,34 @@
+---
+# Shared variables for influxdb3_svc group
+# Host-specific overrides (influxdb3_svc_name) remain in inventory files
+
+debug_level: warn
+influxdb3_data_dir: "{{ lookup('env', 'HOME') }}/influxdb3-data"
+influxdb3_port: 8087
+
+# Secrets directory (under data dir for proper permissions)
+influxdb3_secrets_dir: "{{ lookup('env', 'HOME') }}/influxdb3-data/secrets"
+
+# Admin token (loaded from environment or file)
+influxdb3_admin_token: "{{ lookup('env', 'INFLUXDB3_AUTH_TOKEN', default='') }}"
+
+# Databases to create during configure
+influxdb3_databases:
+  - name: "telegraf"
+  - name: "metrics"
+  - name: "logs"
+  - name: "traces"
+
+# Resource tokens to create during configure
+influxdb3_tokens:
+  - description: "telegraf-writer"
+    permissions: "database:telegraf:write"
+  - description: "metrics-reader"
+    permissions: "database:metrics:read"
+  - description: "grafana-reader"
+    permissions: "database:*:read"
+  - description: "logs-writer"
+    permissions: "database:logs:write,read"
+
+# Traefik integration
+influxdb3_enable_traefik: true

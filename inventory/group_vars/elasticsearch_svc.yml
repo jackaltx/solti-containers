@@ -1,0 +1,7 @@
+---
+# Shared variables for elasticsearch_svc group
+# Host-specific overrides (elasticsearch_svc_name, elasticsearch_alt_svc_name) remain in inventory files
+
+debug_level: warn
+elasticsearch_data_dir: "{{ lookup('env', 'HOME') }}/elasticsearch-data" #
+elasticsearch_password: "{{ lookup('env', 'ELASTIC_PASSWORD', default='') }}"

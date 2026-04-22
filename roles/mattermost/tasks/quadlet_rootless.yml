@@ -2,6 +2,7 @@
 #
 # ..................................................................................
 - name: Ensure required directories exist
+  become: false
   ansible.builtin.file:
     path: "~{{real_user_dir}}/{{item}}"
     state: directory
@@ -52,7 +53,7 @@
     state: quadlet
     quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     volume:
-      - "{{mattermost_data_dir}}/postgres:/var/lib/postgresql/data:Z"
+      - "{{mattermost_data_dir}}/postgres:/var/lib/postgresql/data:Z,U"
     quadlet_options:
       - "EnvironmentFile={{real_user_dir}}/.config/containers/systemd/env/mattermost-db.env"
       - |

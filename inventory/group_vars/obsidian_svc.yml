@@ -1,0 +1,12 @@
+---
+# Shared variables for obsidian_svc group
+# Host-specific overrides (obsidian_svc_name) remain in inventory files
+
+debug_level: warn
+obsidian_data_dir: "{{ lookup('env', 'HOME') }}/obsidian-data"
+obsidian_port: 3010
+obsidian_https_port: 3011
+obsidian_tz: "America/Chicago"
+
+# Traefik integration
+obsidian_enable_traefik: true

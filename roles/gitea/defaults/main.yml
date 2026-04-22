@@ -1,5 +1,10 @@
 ---
 # Gitea service configuration
+# User detection (immune to become)
+real_user: "{{ ansible_user }}"
+real_user_dir: "{{ ('~' + ansible_user) | expanduser }}"
+real_user_uid: "{{ ansible_facts.getent_passwd[ansible_user][1] if ansible_facts.getent_passwd is defined else lookup('pipe', 'id -u ' + ansible_user) }}"
+
 # SQLite-based single container deployment
 
 # Container configuration
@@ -8,7 +13,7 @@ gitea_port: 3001
 gitea_ssh_port: 2222
 
 # Data directories
-gitea_data_dir: "{{lookup('env', 'HOME')}}/gitea-data"
+gitea_data_dir: "{{ real_user_dir }}/gitea-data"
 
 # Admin credentials
 gitea_admin_user: "gitea_admin"
@@ -55,9 +60,9 @@ service_properties:
   delete_images: "{{lookup('env', 'DELETE_IMAGES') | default(false) | bool}}"
   container_image: "{{gitea_image}}"
   dirs:
-    - {path: "", mode: "0755"}
-    - {path: "config", mode: "0775"}
-    - {path: "data", mode: "0775"}
-    - {path: "data/gitea", mode: "0775"}
-    - {path: "data/git", mode: "0775"}
-    - {path: "logs", mode: "0775"}
+    - {path: "", mode: "0750"}
+    - {path: "config", mode: "0750"}
+    - {path: "data", mode: "0750"}
+    - {path: "data/gitea", mode: "0750"}
+    - {path: "data/git", mode: "0750"}
+    - {path: "logs", mode: "0750"}

@@ -72,6 +72,7 @@
 # ....................................................................................
 - name: Check systemd service status
   command: systemctl --user status vault-pod
+  become: false
   register: systemd_status
   changed_when: false
   failed_when: false

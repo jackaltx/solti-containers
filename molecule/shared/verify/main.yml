@@ -27,6 +27,12 @@
       become: false
 
     # .....................................................................
+    # Obsidian integration - create run directory
+    - name: Setup Obsidian output directory
+      include_tasks: obsidian/setup.yml
+      when: lookup('env', 'OBSIDIAN_ENABLED', default='true') | bool
+
+    # .....................................................................
     - name: Debug information
       debug:
         msg:
@@ -103,6 +109,16 @@
         label: "Verifying {{ service }} service"
 
     # .......................................................................
+    # Obsidian integration - capture service results
+    - name: Write Obsidian service reports
+      include_tasks: obsidian/service-report.yml
+      loop: "{{ testing_services }}"
+      loop_control:
+        loop_var: service
+        label: "Recording {{ service }} results to Obsidian"
+      when: lookup('env', 'OBSIDIAN_ENABLED', default='true') | bool
+
+    # .......................................................................
     - name: Run post-verify container diagnostics
       ansible.builtin.include_tasks:
         file: "{{ project_root }}/molecule/shared/diagnostics/main.yml"
@@ -113,6 +129,14 @@
     - name: Report Results
       ansible.builtin.include_tasks:
         file: report.yml
+
+    # .......................................................................
+    # Obsidian integration - write run summary
+    - name: Write Obsidian run summary
+      include_tasks: obsidian/run-summary.yml
+      vars:
+        overall_status: "{{ 'FAILED' if (verification_status.values() | list | select('true') | list | length > 0) else 'PASSED' }}"
+      when: lookup('env', 'OBSIDIAN_ENABLED', default='true') | bool
 
     # .......................................................................
     # TODO: review this.

@@ -15,8 +15,7 @@
 | **Management Scripts** | `manage-svc.sh` (lifecycle), `svc-exec.sh` (operations) |
 | **Deployment Targets** | localhost, remote hosts via SSH |
 | **Configuration Files** | [inventory.yml](inventory.yml), [ansible.cfg](ansible.cfg) |
-| **Orchestrator** | [../mylab/](../mylab/) (site-specific deployment automation) |
-| **Related Collections** | [solti-monitoring](../solti-monitoring/), [solti-ensemble](../solti-ensemble/) |
+| **Related Collections** | [solti-monitoring](https://github.com/jackaltx/solti-monitoring/), [solti-ensemble](https://github.com/jackaltx//solti-ensemble/) |
 
 ## 🎯 Project Philosophy
 
@@ -85,10 +84,6 @@ Applications:
 - **grafana** - Metrics visualization dashboards
 - **gitea** - Lightweight Git hosting
 - **obsidian** - Note-taking and knowledge management
-
-Legacy/Disabled:
-
-- **wazuh** - Security monitoring (disabled - container issues)
 
 ### Remote Host Deployment
 
@@ -686,24 +681,31 @@ ansible-playbook --syntax-check roles/<service>/tasks/main.yml
 
 ### Molecule Testing
 
-Test services across multiple platforms (Debian 12, Rocky 9, Ubuntu 24) using nested containers:
+**⚠️ Note**: The `run-podman-tests.sh` script currently does not work for local nested container testing due to rootless Podman limitations (newuidmap/newgidmap permission errors). It works correctly in GitHub CI (which uses VMs, not nested containers).
+
+**Recommended testing approaches**:
+
+1. **Local testing** - Deploy directly to localhost:
+
+   ```bash
+   ./manage-svc.sh redis deploy && ./svc-exec.sh redis verify
+   ```
+
+2. **GitHub CI** - Automated testing runs in VMs on push/PR
+
+3. **Proxmox testing** - `run-proxmox-tests.sh` (coming soon) - Uses real VMs
+
+The script syntax for reference (works in GitHub CI):
 
 ```bash
-# Test service on all platforms
+# Test service on all platforms (GitHub CI only)
 ./run-podman-tests.sh --services redis
 
-# Test specific platform
-./run-podman-tests.sh --platform uut-deb12 --services redis
-
-# Test multiple services
-./run-podman-tests.sh --services "redis,traefik,hashivault"
-
 # View test results
-tail -f verify_output/latest_test.out
 cat verify_output/debian/consolidated_test_report.md
 ```
 
-See [molecule/README.md](molecule/README.md) for comprehensive testing documentation.
+See [molecule/README.md](molecule/README.md) for comprehensive testing documentation and explanation of the nested container limitation.
 
 ## 📚 Additional Resources
 
@@ -819,10 +821,9 @@ secure_logging: true            # Hide credentials in logs
 
 ### Related Documentation
 
-- **Parent Project**: [../README.md](../README.md) - SOLTI Collections Suite overview
-- **Orchestrator**: [../mylab/README.md](../mylab/README.md) - Deployment automation
-- **Monitoring**: [../solti-monitoring/README.md](../solti-monitoring/README.md) - Metrics and logging
-- **Ensemble**: [../solti-ensemble/README.md](../solti-ensemble/README.md) - Shared infrastructure services
+- **Project Overview**: [Solit Documentation](https://solti.jackaltx.com/) - SOLTI Collections Suite overview
+- **Monitoring**: [../solti-monitoring/README.md](https://github.com/jackaltx/solti-monitoring/README.md) - Metrics and logging
+- **Ensemble**: [../solti-ensemble/README.md](https://github.com/jackaltx/solti-ensemble/README.md) - Shared infrastructure services
 
 ---
 

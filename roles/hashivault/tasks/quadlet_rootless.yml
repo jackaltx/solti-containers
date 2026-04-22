@@ -2,7 +2,6 @@
 #
 # ............................................................................
 - name: Ensure required directories exist
-  become: false
   ansible.builtin.file:
     path: "{{real_user_dir}}/{{item}}"
     state: directory
@@ -43,10 +42,10 @@
     quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
     command: "server"
     volume:
-      - "{{vault_data_dir}}/config:/vault/config:Z"
-      - "{{vault_data_dir}}/data:/vault/data:Z"
-      - "{{vault_data_dir}}/logs:/vault/logs:Z"
-      - "{{vault_data_dir}}/tls:/vault/tls:Z"
+      - "{{vault_data_dir}}/config:/vault/config:Z,U"
+      - "{{vault_data_dir}}/data:/vault/data:Z,U"
+      - "{{vault_data_dir}}/logs:/vault/logs:Z,U"
+      - "{{vault_data_dir}}/tls:/vault/tls:Z,U"
     env:
       VAULT_ADDR: "http://127.0.0.1:8200"
       VAULT_API_ADDR: "http://127.0.0.1:8200"

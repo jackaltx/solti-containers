@@ -1,0 +1,21 @@
+---
+# Shared variables for dns_service_svc group
+
+# DNS provider settings
+dns_provider: linode
+dns_ttl: 60
+
+# Enable debug output for DNS operations
+dns_debug: false
+
+# DNS verification settings
+dns_verify_timeout: 300
+dns_verify_interval: 10
+dns_verify_nameservers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+
+# Linode API token (loaded from environment)
+# Set via: export LINODE_TOKEN="your-token"
+# Or source: ~/.secrets/LabProvision
+linode_api_token: "{{ lookup('env', 'LINODE_TOKEN', default='') }}"

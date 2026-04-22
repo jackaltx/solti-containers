@@ -1,0 +1,25 @@
+---
+# DNS service defaults
+# Provider-agnostic settings
+
+# DNS provider (currently only 'linode' supported)
+dns_provider: linode
+
+# Default TTL for DNS records (seconds)
+dns_ttl: 60
+
+# Target host for CNAME records (auto-detected from inventory_hostname)
+dns_target_host: "{{ inventory_hostname }}.{{ domain }}"
+
+# Service state (managed by manage-svc.sh)
+service_state: present
+
+# DNS verification settings
+dns_verify_timeout: 300  # Max seconds to wait for propagation
+dns_verify_interval: 10  # Seconds between checks
+dns_verify_nameservers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+
+# Debug logging
+dns_debug: false

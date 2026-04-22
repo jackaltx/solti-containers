@@ -30,9 +30,9 @@
     state: quadlet
     quadlet_dir: "{{ real_user_dir }}/.config/containers/systemd"
     volume:
-      - "{{ mongodb_data_dir }}/config:/data/configdb:Z"
-      - "{{ mongodb_data_dir }}/data:/data/db:Z"
-      - "{{ mongodb_data_dir }}/logs:/var/log/mongodb:Z"
+      - "{{ mongodb_data_dir }}/config:/data/configdb:Z,U"
+      - "{{ mongodb_data_dir }}/data:/data/db:Z,U"
+      - "{{ mongodb_data_dir }}/logs:/var/log/mongodb:Z,U"
     command:
       - "mongod"
       - "--config"
@@ -51,7 +51,6 @@
 
 - name: URL-encode MongoDB password for connection string
   when: mongodb_enable_gui | bool
-  become: false
   ansible.builtin.set_fact:
     mongodb_password_encoded: "{{ mongodb_root_password | urlencode | replace('%', '%%') }}"
 

@@ -1,0 +1,10 @@
+---
+# Shared variables for mattermost_svc group
+# Host-specific overrides (mattermost_svc_name) remain in inventory files
+
+debug_level: warn
+mattermost_data_dir: "{{ lookup('env', 'HOME') }}/mattermost-data"
+
+test_email: "test-{{ lookup('pipe', 'date +%s') }}@example.com"
+test_username: "testuser-{{ lookup('pipe', 'date +%s') }}"
+test_password: "Test123!"

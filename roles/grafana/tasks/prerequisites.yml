@@ -8,61 +8,46 @@
       - grafana_port is defined
     fail_msg: "Required variables not properly configured"
 
-# .......................................................................
-# Get container user mapping first
-- name: Get directory ownership
-  ansible.builtin.stat:
-    path: "{{grafana_data_dir}}/config"
-  register: dir_info
+    # .......................................................................
+    # Template configuration as regular user (files created as ansible_user automatically)
+- name: Template Grafana configuration
+  become: false
+  template:
+    src: grafana.ini.j2
+    dest: "{{grafana_data_dir}}/config/grafana.ini"
+    mode: "0640"
+  notify: restart grafana
 
-- name: Debug ownership
-  ansible.builtin.debug:
-    msg: "uid: {{dir_info.stat.uid}}, gid: {{dir_info.stat.gid}}"
+  # ...................................................
+  # This is an interesting idea.
+  # Claude: Lets create a task list to place datasources and dashboards
+  # from this type of structure
+  #
+  # grafana_provision:
+  #   datasource:
+  #     - "http://monitor11.example.com:8086"
+  #     - "http://jokester.example.com:3100"
+  #   dashboard:
+  #     - fleur_http   #  refs to a json file
+  #     - fleur_mailsvc
+  #     - linux_details
+  #
+  # - name: Create default datasource provisioning
+  #   ansible.builtin.copy:
+  #     dest: "{{grafana_data_dir}}/provisioning/datasources/default.yaml"
+  #     content: |
+  #       apiVersion: 1
 
-# .......................................................................
-- name: Become root and configure settings
-  become: true
-  block:
-    # ...................................................
-    - name: Template Grafana configuration
-      template:
-        src: grafana.ini.j2
-        dest: "{{grafana_data_dir}}/config/grafana.ini"
-        mode: "0640"
-        owner: "{{dir_info.stat.uid}}"
-        group: "{{dir_info.stat.gid}}"
-      notify: restart grafana
+  #       datasources:
+  #         - name: Prometheus
+  #           type: prometheus
+  #           access: proxy
+  #           url: http://localhost:9090
+  #           isDefault: true
+  #           editable: true
+  #     mode: "0640"
+  #     owner: "{{dir_info.stat.uid}}"
+  #     group: "{{dir_info.stat.gid}}"
 
-    # ...................................................
-    # This is an interesting idea.
-    # Claude: Lets create a task list to place datasources and dashboards
-    # from this type of structure
-    #
-    # grafana_provision:
-    #   datasource:
-    #     - "http://monitor11.example.com:8086"
-    #     - "http://jokester.example.com:3100"
-    #   dashboard:
-    #     - fleur_http   #  refs to a json file
-    #     - fleur_mailsvc
-    #     - linux_details
-    #
-    # - name: Create default datasource provisioning
-    #   ansible.builtin.copy:
-    #     dest: "{{grafana_data_dir}}/provisioning/datasources/default.yaml"
-    #     content: |
-    #       apiVersion: 1
-
-    #       datasources:
-    #         - name: Prometheus
-    #           type: prometheus
-    #           access: proxy
-    #           url: http://localhost:9090
-    #           isDefault: true
-    #           editable: true
-    #     mode: "0640"
-    #     owner: "{{dir_info.stat.uid}}"
-    #     group: "{{dir_info.stat.gid}}"
-
-    # ...................................................
-    # Note: SELinux configuration is handled by _base/tasks/prepare.yml
+  # ...................................................
+  # Note: SELinux configuration is handled by _base/tasks/prepare.yml

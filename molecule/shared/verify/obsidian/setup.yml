@@ -1,0 +1,32 @@
+---
+# Create Obsidian directory structure for event-sourced test records
+# This creates immutable run directories - never modify files in runs/*/
+
+- name: Set Obsidian run timestamp
+  set_fact:
+    obsidian_run_timestamp: "{{ ansible_date_time.date }}-{{ ansible_distribution | lower | replace(' ', '') }}{{ ansible_distribution_major_version }}-{{ ansible_date_time.time | replace(':', '') }}"
+
+- name: Set Obsidian paths
+  set_fact:
+    obsidian_base_dir: "{{ report_root }}/obsidian"
+    obsidian_run_dir: "{{ report_root }}/obsidian/runs/{{ obsidian_run_timestamp }}"
+
+- name: Create Obsidian directory structure
+  delegate_to: localhost
+  become: false
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ obsidian_base_dir }}"
+    - "{{ obsidian_base_dir }}/runs"
+    - "{{ obsidian_run_dir }}"
+
+- name: Debug Obsidian paths
+  debug:
+    msg:
+      - "Obsidian base: {{ obsidian_base_dir }}"
+      - "Run directory: {{ obsidian_run_dir }}"
+      - "Run timestamp: {{ obsidian_run_timestamp }}"
+  when: not (secure_logging | default(true) | bool)

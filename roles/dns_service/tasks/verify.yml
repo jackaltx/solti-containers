@@ -1,0 +1,90 @@
+---
+# DNS Service - Verify
+# Check DNS propagation for ALL service records across ALL hosts
+
+- name: Find all service groups in inventory
+  ansible.builtin.set_fact:
+    service_groups: "{{ groups.keys() | select('match', '.*_svc$') | list }}"
+
+- name: Build DNS records list
+  ansible.builtin.set_fact:
+    all_dns_records_raw: >-
+      [
+      {% for group in service_groups %}
+        {% for host in groups[group] %}
+          {% for key, value in hostvars[host].items() %}
+            {% if key.endswith('_svc_name') and value is string %}
+              {"service_name": "{{ value }}", "target_host": "{{ host }}"},
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      {% endfor %}
+      {}]
+
+- name: Clean and deduplicate DNS records
+  ansible.builtin.set_fact:
+    all_dns_records: "{{ all_dns_records_raw[:-1] | unique }}"
+
+- name: Display services to verify
+  ansible.builtin.debug:
+    msg: "Verifying DNS for {{ all_dns_records | length }} unique services across all hosts"
+
+############################################################################
+#
+- name: Query DNS for each service CNAME
+  ansible.builtin.command:
+    cmd: "dig +short {{ item.service_name }}.{{ domain }} CNAME @{{ dns_verify_nameservers[0] }}"
+  loop: "{{ all_dns_records }}"
+  loop_control:
+    label: "{{ item.service_name }}.{{ domain }}"
+  register: dns_queries
+  changed_when: false
+  failed_when: false
+
+- name: Analyze DNS results
+  ansible.builtin.set_fact:
+    dns_verification:
+      total: "{{ all_dns_records | length }}"
+      propagated: "{{ dns_queries.results | selectattr('stdout', 'search', domain) | list | length }}"
+      pending: "{{ dns_queries.results | rejectattr('stdout', 'search', domain) | list | length }}"
+      failed: "{{ dns_queries.results | selectattr('stdout', 'equalto', '') | list | length }}"
+
+############################################################################
+#
+- name: get domain info from linode for each record
+  linode.cloud.domain_record_info:
+    api_token: "{{ linode_api_token }}"
+    domain: "{{ domain }}"
+    name: "{{ item.service_name }}"
+  loop: "{{ all_dns_records }}"
+  loop_control:
+    label: "{{ item.service_name }}.{{ domain }}"
+  register: dns_info_results
+
+- debug:
+    var: dns_info_results
+
+############################################################################
+#
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "DNS Verification Results:"
+      - "  Total services: {{ dns_verification.total }}"
+      - "  Propagated: {{ dns_verification.propagated }}"
+      - "  Pending: {{ dns_verification.pending }}"
+      - "  Failed: {{ dns_verification.failed }}"
+
+- name: Display details for each service
+  ansible.builtin.debug:
+    msg: >-
+      {{ item.item.service_name }}.{{ domain }} →
+      {% if item.stdout == '' %}MISSING{% elif item.stdout == item.item.target_host ~ '.' ~ domain ~ '.' %}{{ item.stdout }}{% else %}WRONG ({{ item.stdout }} expected {{ item.item.target_host }}.{{ domain }}.){% endif %}
+  loop: "{{ dns_queries.results }}"
+  loop_control:
+    label: "{{ item.item.service_name }}"
+
+- name: Report missing DNS records
+  ansible.builtin.debug:
+    msg: "{{ dns_verification.failed }} DNS records not found. Run sync to create: ./svc-exec.sh dns_service sync"
+  when: dns_verification.failed | int > 0

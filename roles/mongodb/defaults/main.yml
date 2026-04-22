@@ -1,12 +1,17 @@
 ---
 # MongoDB container service defaults
 
+# User detection (immune to become)
+real_user: "{{ ansible_user }}"
+real_user_dir: "{{ ('~' + ansible_user) | expanduser }}"
+real_user_uid: "{{ ansible_facts.getent_passwd[ansible_user][1] if ansible_facts.getent_passwd is defined else lookup('pipe', 'id -u ' + ansible_user) }}"
+
 # Container images
 mongodb_image: "docker.io/library/mongo:7.0"
 mongodb_express_image: "docker.io/library/mongo-express:latest"
 
 # Data directory
-mongodb_data_dir: "{{ lookup('env', 'HOME') }}/mongodb-data"
+mongodb_data_dir: "{{ real_user_dir }}/mongodb-data"
 
 # Network ports
 mongodb_port: 27017
@@ -39,9 +44,9 @@ service_properties:
     - "{{ mongodb_express_image }}"
   dirs:
     - {path: "", mode: "0750"}
-    - {path: "config", mode: "0755"}
+    - {path: "config", mode: "0750"}
     - {path: "data", mode: "0750"}
-    - {path: "logs", mode: "0755"}
+    - {path: "logs", mode: "0750"}
   ports:
     - "127.0.0.1:{{ mongodb_port }}:27017"
     - "127.0.0.1:{{ mongodb_gui_port }}:8081"

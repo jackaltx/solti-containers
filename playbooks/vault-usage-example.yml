@@ -36,13 +36,13 @@
           VAULT_TOKEN: "{{ vault_token }}"
       no_log: true
 
-# Example of deploying Elasticsearch using secrets from Vault
+      # Example of deploying Elasticsearch using secrets from Vault
 - name: Deploy Elasticsearch with HashiVault secrets
   hosts: elasticsearch_svc
   gather_facts: true
   vars:
-    # Use lookup plugin to fetch secrets from HashiVault
-    # Requires setting VAULT_ADDR and VAULT_TOKEN env variables
+  # Use lookup plugin to fetch secrets from HashiVault
+  # Requires setting VAULT_ADDR and VAULT_TOKEN env variables
     elasticsearch_password: "{{ lookup('hashi_vault', 'secret=kv/data/services/elasticsearch:elastic_password') }}"
 
     # Lookup with token from previous play
@@ -56,7 +56,7 @@
       token=' + hostvars['localhost']['vault_token'] +
       ' url=http://localhost:8200') }}"
 
-    # Other Elasticsearch settings
+      # Other Elasticsearch settings
     elasticsearch_state: present
     elasticsearch_data_dir: "{{ ansible_facts.user_dir }}/elasticsearch-data"
 
@@ -69,14 +69,14 @@
     - name: Include Elasticsearch role
       include_role:
         name: elasticsearch
-      # The role uses elasticsearch_password variable automatically
+        # The role uses elasticsearch_password variable automatically
 
-# Example of deploying Mattermost using secrets from Vault
+        # Example of deploying Mattermost using secrets from Vault
 - name: Deploy Mattermost with HashiVault secrets
   hosts: mattermost_svc
   gather_facts: true
   vars:
-    # Use HashiVault for password
+  # Use HashiVault for password
     mattermost_postgres_password: "{{ lookup('hashi_vault', 'secret=kv/data/services/mattermost:mm_db_password') }}"
 
     # Other Mattermost settings
@@ -87,14 +87,14 @@
     - name: Include Mattermost role
       include_role:
         name: mattermost
-      # The role uses mattermost_postgres_password variable automatically
+        # The role uses mattermost_postgres_password variable automatically
 
-# Example of deploying Redis using secrets from Vault
+        # Example of deploying Redis using secrets from Vault
 - name: Deploy Redis with HashiVault secrets
   hosts: redis_svc
   gather_facts: true
   vars:
-    # Use HashiVault for password
+  # Use HashiVault for password
     redis_password: "{{ lookup('hashi_vault', 'secret=kv/data/services/redis:redis_password') }}"
 
     # Other Redis settings
@@ -105,4 +105,4 @@
     - name: Include Redis role
       include_role:
         name: redis
-      # The role uses redis_password variable automatically
+        # The role uses redis_password variable automatically

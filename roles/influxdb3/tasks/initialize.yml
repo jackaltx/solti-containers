@@ -12,15 +12,15 @@
     state: directory
     mode: "0700"
 
-# ..............................................
-# Check if already initialized
+    # ..............................................
+    # Check if already initialized
 - name: Check if admin token exists
   ansible.builtin.stat:
     path: "{{influxdb3_secrets_dir}}/admin-token.json"
   register: admin_token_file
 
-# ..............................................
-# Create operator token
+  # ..............................................
+  # Create operator token
 - name: Create operator (admin) token
   when: not admin_token_file.stat.exists
   block:
@@ -44,12 +44,12 @@
       ansible.builtin.copy:
         content: "{{token_content.stdout}}"
         dest: "{{influxdb3_secrets_dir}}/admin-token.json"
-        mode: "0644"
+        mode: "0600"
 
     - name: Parse token
       ansible.builtin.set_fact:
         influxdb3_admin_token: "{{(token_content.stdout | from_json).token}}"
-      # no_log: true
+        # no_log: true
 
     - name: Display initialization status
       ansible.builtin.debug:
@@ -60,8 +60,8 @@
           - "IMPORTANT: Store this token securely - it cannot be retrieved later"
           - "=============================================================="
 
-# ..............................................
-# Load existing token
+          # ..............................................
+          # Load existing token
 - name: Load existing admin token
   when: admin_token_file.stat.exists
   block:
@@ -73,7 +73,7 @@
     - name: Parse existing token
       ansible.builtin.set_fact:
         influxdb3_admin_token: "{{(encoded_token.content | b64decode | from_json).token}}"
-      # no_log: true
+        # no_log: true
 
     - name: Display status
       ansible.builtin.debug:

@@ -24,7 +24,7 @@
     - name: Set test run timestamp (used across converge and verify)
       set_fact:
         verify_timestamp: "{{ ansible_facts['date_time']['iso8601'] }}"
-        cacheable: yes
+        cacheable: true
 
     - name: Debug information
       debug:
@@ -39,6 +39,8 @@
           - "Distribution version: {{ ansible_facts['distribution_version'] }}"
           - "Testing services: {{ testing_services }}"
           - "Test timestamp: {{ verify_timestamp }}"
+          - "Real user: {{ real_user}} ({{ real_user_uid }})"
+          - "Ansible_user: {{ ansible_user }}"
 
     # ................................................................
     # note this has to be loaded in each phase playbook!

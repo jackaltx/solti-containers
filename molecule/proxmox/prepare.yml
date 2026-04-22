@@ -1,0 +1,80 @@
+---
+#
+#
+# ========================================================================
+
+- name: Prepare VM
+  hosts: localhost
+  tasks:
+    - name: Start the VM
+      community.general.proxmox_kvm:
+        api_host: "{{ lookup('env', 'PROXMOX_URL') }}"
+        api_user: "{{ lookup('env', 'PROXMOX_USER') }}"
+        api_token_id: "{{ lookup('env', 'PROXMOX_TOKEN_ID') }}"
+        api_token_secret: "{{ lookup('env', 'PROXMOX_TOKEN_SECRET') }}"
+        node: "{{ lookup('env', 'PROXMOX_NODE') }}"
+        vmid: "{{ proxmox_vmid }}"
+        state: started
+        timeout: 300
+
+    - name: Wait for VM to boot
+      pause:
+        seconds: 30
+
+    - name: Wait for SSH
+      wait_for:
+        host: "{{ molecule_ip }}"
+        port: 22
+        timeout: 300
+
+    - name: Display connection status
+      debug:
+        msg: "VM id: {{ proxmox_vmid }} named: {{ proxmox_vm_name }} at ip {{ molecule_ip }} is ready"
+
+#
+#
+# ========================================================================
+
+- name: Install prerequisites
+  hosts: all # all hosts?  should be the one that just started. why does this work?
+  become: true
+  tasks:
+    - name: Wait for cloud-init to finish
+      command: cloud-init status --wait
+      register: cloud_init_status
+      changed_when: false
+      failed_when: false
+
+    - name: Branch on Debian
+      when: ansible_facts['distribution'] == "Debian"
+      block:
+        - name: Install required packages
+          apt:
+            name:
+              - gpg
+              - ca-certificates
+              - qemu-guest-agent
+              - lsof
+            update_cache: true
+            state: present
+
+        - name: Ensure qemu-guest-agent is running
+          systemd:
+            name: qemu-guest-agent
+            state: started
+            enabled: true
+
+    - name: Branch on Rocky
+      when: ansible_facts['distribution'] == "Rocky"
+      block:
+        - name: Install required packages
+          dnf:
+            name:
+              - lsof
+            update_cache: true
+            state: present
+
+    - name: Fail for unsupported
+      fail:
+        msg: "Distribution {{ ansible_facts['distribution'] }} not supported"
+      when: ansible_facts['distribution'] != "Debian" and ansible_facts['distribution'] != "Rocky"

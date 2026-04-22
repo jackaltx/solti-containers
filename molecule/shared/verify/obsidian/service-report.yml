@@ -1,0 +1,73 @@
+---
+# Capture per-service verification results to Obsidian
+# Files written to runs/*/ are IMMUTABLE - write once, never modify
+
+- name: Set service status from verification results
+  set_fact:
+    service_verify_status: "{{ 'FAILED' if (lookup('vars', service + '_verify_failed', default=false) | bool) else 'PASSED' }}"
+
+- name: Set service report filename
+  set_fact:
+    service_report_file: "{{ obsidian_run_dir }}/{{ service }}-service.md"
+
+- name: Get service verification details
+  set_fact:
+    service_verify_details: "{{ lookup('vars', service + '_verify_status', default={}) }}"
+
+- name: Build service report content
+  set_fact:
+    service_report_content: |
+      ---
+      type: service-result
+      service: {{ service }}
+      status: {{ service_verify_status }}
+      distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}
+      platform: {{ inventory_hostname }}
+      timestamp: {{ ansible_date_time.iso8601 }}
+      tags:
+        - {{ service }}
+        - {{ ansible_distribution | lower | replace(' ', '') }}{{ ansible_distribution_major_version }}
+        - container-service
+      ---
+
+      # {{ service | capitalize }} Verification Results
+
+      [[runs/{{ obsidian_run_timestamp }}/run-{{ ansible_date_time.iso8601_basic_short }}|← Test Run]] | [[{{ service | capitalize }}-Service|All {{ service | capitalize }} Tests]]
+
+      ## Status: {{ '✅ PASSED' if service_verify_status == 'PASSED' else '❌ FAILED' }}
+
+      ## Service Details
+      - **Service**: {{ service }}
+      - **Platform**: {{ ansible_distribution }} {{ ansible_distribution_version }} ({{ inventory_hostname }})
+      - **Timestamp**: {{ ansible_date_time.iso8601 }}
+      - **Data Directory**: {{ lookup('vars', service + '_data_dir', default='~/'+service+'-data') }}
+
+      ## Verification Tasks
+      {% if service_verify_details %}
+      {{ service_verify_details | to_nice_yaml }}
+      {% else %}
+      See verification logs in test output.
+      {% endif %}
+
+      ## Related Files
+      - [[runs/{{ obsidian_run_timestamp }}/preverify-diagnostics|Pre-verify Diagnostics]]
+      - [[runs/{{ obsidian_run_timestamp }}/postverify-diagnostics|Post-verify Diagnostics]]
+
+- name: Write service report to Obsidian (atomic)
+  delegate_to: localhost
+  block:
+    - name: Write service report to temp file
+      copy:
+        content: "{{ service_report_content }}"
+        dest: "{{ service_report_file }}.tmp"
+        mode: "0644"
+
+    - name: Move temp file to final location (atomic)
+      command: mv "{{ service_report_file }}.tmp" "{{ service_report_file }}"
+      args:
+        removes: "{{ service_report_file }}.tmp"
+
+- name: Debug service report path
+  debug:
+    msg: "Service report written to {{ service_report_file }}"
+  when: not (secure_logging | default(true) | bool)

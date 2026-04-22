@@ -6,12 +6,18 @@ redis_force_reload: false
 
 # No TLS, cause this is for fast local use only
 
+# User context for rootless containers (inherited from _base, but defined here for defaults evaluation)
+# ansible_user comes from inventory (lavender, jackaltx, etc.)
+real_user: "{{ ansible_user }}"
+real_user_dir: "{{ ('~' + ansible_user) | expanduser }}"
+real_user_uid: "{{ ansible_facts.getent_passwd[ansible_user][1] if ansible_facts.getent_passwd is defined else lookup('pipe', 'id -u ' + ansible_user) }}"
+
 # Container settings
 redis_image: "docker.io/library/redis:7.2-alpine"
 redis_commander_image: "docker.io/rediscommander/redis-commander:latest"
 
 # Directory settings
-redis_data_dir: "{{lookup('env', 'HOME')}}/redis-data"
+redis_data_dir: "{{real_user_dir}}/redis-data"
 
 # Redis settings
 redis_port: 6379
@@ -60,7 +66,7 @@ service_properties:
     - "{{redis_commander_image}}"
   dirs:
     - {path: "", mode: "0750"}
-    - {path: "config", mode: "0755"}
+    - {path: "config", mode: "0750"}
     - {path: "data", mode: "0750"}
   ports:
     - "127.0.0.1:{{redis_port}}:6379"

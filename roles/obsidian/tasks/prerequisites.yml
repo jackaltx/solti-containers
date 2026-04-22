@@ -1,39 +1,32 @@
 ---
-- name: Get directory info for ownership
-  ansible.builtin.stat:
-    path: "{{ obsidian_data_dir }}"
-  register: dir_info
-
+# .......................................................................
+# Template configuration as regular user (files created as ansible_user automatically)
 - name: Ensure vaults directory exists with proper permissions
+  become: false
   ansible.builtin.file:
     path: "{{ obsidian_data_dir }}/vaults"
     state: directory
     mode: "0750"
-    owner: "{{ dir_info.stat.uid }}"
-    group: "{{ dir_info.stat.gid }}"
 
 - name: Ensure config directory exists with proper permissions
+  become: false
   ansible.builtin.file:
     path: "{{ obsidian_data_dir }}/config"
     state: directory
     mode: "0755"
-    owner: "{{ dir_info.stat.uid }}"
-    group: "{{ dir_info.stat.gid }}"
 
 - name: Ensure custom-cont-init.d directory exists
+  become: false
   ansible.builtin.file:
     path: "{{ obsidian_data_dir }}/config/custom-cont-init.d"
     state: directory
     mode: "0755"
-    owner: "{{ dir_info.stat.uid }}"
-    group: "{{ dir_info.stat.gid }}"
 
 - name: Create custom init script to fix vaults permissions
+  become: false
   ansible.builtin.copy:
     dest: "{{ obsidian_data_dir }}/config/custom-cont-init.d/99-fix-vaults-perms"
     mode: "0755"
-    owner: "{{ dir_info.stat.uid }}"
-    group: "{{ dir_info.stat.gid }}"
     content: |
       #!/usr/bin/with-contenv bash
       echo "[custom-init] Fixing /vaults permissions for PUID=${PUID} PGID=${PGID}"

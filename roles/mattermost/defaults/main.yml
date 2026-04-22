@@ -1,4 +1,9 @@
 ---
+# User detection (immune to become)
+real_user: "{{ ansible_user }}"
+real_user_dir: "{{ ('~' + ansible_user) | expanduser }}"
+real_user_uid: "{{ ansible_facts.getent_passwd[ansible_user][1] if ansible_facts.getent_passwd is defined else lookup('pipe', 'id -u ' + ansible_user) }}"
+
 # Installation state
 mattermost_state: present
 mattermost_force_reload: false
@@ -19,7 +24,7 @@ mattermost_image: "docker.io/mattermost/mattermost-team-edition:latest"
 mattermost_postgres_image: "docker.io/library/postgres:16-alpine"
 
 # Directory settings
-mattermost_data_dir: "{{lookup('env', 'HOME')}}/mattermost-data"
+mattermost_data_dir: "{{ real_user_dir }}/mattermost-data"
 
 # Service naming and URL construction
 mattermost_svc_name: "mattermost"  # Override per host in inventory
@@ -70,12 +75,12 @@ service_properties:
     - "{{mattermost_image}}"
     - "{{mattermost_postgres_image}}"
   dirs:
-    - {path: "", mode: "0755"}
-    - {path: "config", mode: "0775"}
-    - {path: "data", mode: "0775"}
-    - {path: "logs", mode: "0775"}  # Allow container to create and manage logs
-    - {path: "plugins", mode: "0775"}
-    - {path: "client", mode: "0775"}
-    - {path: "client/plugins", mode: "0775"}
-    - {path: "bleve-indexes", mode: "0775"}
+    - {path: "", mode: "0750"}
+    - {path: "config", mode: "0750"}
+    - {path: "data", mode: "0750"}
+    - {path: "logs", mode: "0750"}  # Allow container to create and manage logs
+    - {path: "plugins", mode: "0750"}
+    - {path: "client", mode: "0750"}
+    - {path: "client/plugins", mode: "0750"}
+    - {path: "bleve-indexes", mode: "0750"}
     - {path: "postgres", mode: "0755"}  # PostgreSQL will manage its own permissions

@@ -11,35 +11,26 @@
       - gitea_ssh_port is defined
     fail_msg: "Required variables not properly configured"
 
-- name: Get current user ownership
-  ansible.builtin.stat:
-    path: "{{gitea_data_dir}}"
-  register: dir_stat
-
+# .......................................................................
+# Template configuration as regular user (files created as ansible_user automatically)
 - name: Create gitea configuration file
+  become: false
   ansible.builtin.template:
     src: app.ini.j2
     dest: "{{gitea_data_dir}}/config/app.ini"
-    owner: "{{dir_stat.stat.uid}}"
-    group: "{{dir_stat.stat.gid}}"
     mode: '0640'
-  become: true
 
 - name: Create gitea environment file
+  become: false
   ansible.builtin.template:
     src: gitea.env.j2
     dest: "{{gitea_data_dir}}/config/gitea.env"
-    owner: "{{dir_stat.stat.uid}}"
-    group: "{{dir_stat.stat.gid}}"
     mode: '0640'
-  become: true
 
 - name: Ensure data directories have correct permissions
+  become: false
   ansible.builtin.file:
     path: "{{gitea_data_dir}}/{{item.path}}"
     state: directory
-    owner: "{{dir_stat.stat.uid}}"
-    group: "{{dir_stat.stat.gid}}"
     mode: "{{item.mode}}"
-  become: true
   loop: "{{service_properties.dirs}}"

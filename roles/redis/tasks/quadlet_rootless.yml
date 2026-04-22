@@ -5,106 +5,103 @@
   ansible.builtin.file:
     path: "~{{real_user}}/.config/containers/systemd"
     state: directory
-    mode: "0755"
-  become: false
+    mode: "0700"
 
-# ....................................................................................
-- name: Create Redis pod Quadlet
+- name: Rootless Quadlets must not be run as rootless
   become: false
-  containers.podman.podman_pod:
-    name: redis
-    state: quadlet
-    dns: "{{service_dns_servers}}"
-    dns_search: "{{service_dns_search}}"
-    network: "{{service_network}}"
-    quadlet_dir: "~{{real_user}}/.config/containers/systemd"
-    ports:
-      - "127.0.0.1:{{redis_port}}:6379"
-      - "127.0.0.1:{{redis_gui_port}}:8081"
-    quadlet_options:
-      - |
-        [Service]
-        Restart=always
-      - |
-        [Install]
-        WantedBy=default.target
+  block:
+    # ....................................................................................
+    - name: Create Redis pod Quadlet
+      containers.podman.podman_pod:
+        name: redis
+        state: quadlet
+        dns: "{{service_dns_servers}}"
+        dns_search: "{{service_dns_search}}"
+        network: "{{service_network}}"
+        quadlet_dir: "~{{real_user}}/.config/containers/systemd"
+        ports:
+          - "127.0.0.1:{{redis_port}}:6379"
+          - "127.0.0.1:{{redis_gui_port}}:8081"
+        quadlet_options:
+          - |
+            [Service]
+            Restart=always
+          - |
+            [Install]
+            WantedBy=default.target
 
-# ....................................................................................
-- name: Create Redis server container Quadlet
-  become: false
-  containers.podman.podman_container:
-    name: redis-svc
-    pod: redis.pod
-    image: "{{redis_image}}"
-    state: quadlet
-    quadlet_dir: "~{{real_user}}/.config/containers/systemd"
-    volume:
-      - "{{redis_data_dir}}/config:/usr/local/etc/redis:Z"
-      - "{{redis_data_dir}}/data:/data:Z"
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
-    quadlet_options:
-      - |
-        [Unit]
-        Description=Redis Server Container
-        After=network-online.target
-      - |
-        [Service]
-        Restart=always
-        TimeoutStartSec=300
-        TimeoutStopSec=70
-      - |
-        [Install]
-        WantedBy=default.target
-# ....................................................................................
-- name: Create Redis Commander container Quadlet
-  when: redis_enable_gui | bool
-  become: false
-  containers.podman.podman_container:
-    name: redis-gui
-    pod: redis.pod
-    image: "{{redis_commander_image}}"
-    state: quadlet
-    quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
-    env:
-      REDIS_HOSTS: "local:redis-svc:6379:0:{{redis_password}}"
-    label:
-      traefik.enable: "{{redis_enable_traefik | lower}}"
-      traefik.http.routers.redis.rule: "Host(`{{redis_svc_name}}.{{domain}}`)"
-      traefik.http.routers.redis.entrypoints: "websecure"
-      traefik.http.routers.redis.service: "redis"
-      traefik.http.services.redis.loadbalancer.server.port: "8081"
-      traefik.http.routers.redis.middlewares: "secHeaders@file"
-    quadlet_options:
-      - |
-        [Unit]
-        Description=Redis Commander GUI Container
-        After=network-online.target
-      - |
-        [Service]
-        Restart=always
-        TimeoutStartSec=300
-        TimeoutStopSec=70
-      - |
-        [Install]
-        WantedBy=default.target
+    # ....................................................................................
+    - name: Create Redis server container Quadlet
+      containers.podman.podman_container:
+        name: redis-svc
+        pod: redis.pod
+        image: "{{redis_image}}"
+        state: quadlet
+        quadlet_dir: "~{{real_user}}/.config/containers/systemd"
+        volume:
+          - "{{redis_data_dir}}/config:/usr/local/etc/redis:Z,U"
+          - "{{redis_data_dir}}/data:/data:Z,U"
+        command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+        quadlet_options:
+          - |
+            [Unit]
+            Description=Redis Server Container
+            After=network-online.target
+          - |
+            [Service]
+            Restart=always
+            TimeoutStartSec=300
+            TimeoutStopSec=70
+          - |
+            [Install]
+            WantedBy=default.target
+    # ....................................................................................
+    - name: Create Redis Commander container Quadlet
+      when: redis_enable_gui | bool
+      containers.podman.podman_container:
+        name: redis-gui
+        pod: redis.pod
+        image: "{{redis_commander_image}}"
+        state: quadlet
+        quadlet_dir: "{{real_user_dir}}/.config/containers/systemd"
+        env:
+          REDIS_HOSTS: "local:redis-svc:6379:0:{{redis_password}}"
+        label:
+          traefik.enable: "{{redis_enable_traefik | lower}}"
+          traefik.http.routers.redis.rule: "Host(`{{redis_svc_name}}.{{domain}}`)"
+          traefik.http.routers.redis.entrypoints: "websecure"
+          traefik.http.routers.redis.service: "redis"
+          traefik.http.services.redis.loadbalancer.server.port: "8081"
+          traefik.http.routers.redis.middlewares: "secHeaders@file"
+        quadlet_options:
+          - |
+            [Unit]
+            Description=Redis Commander GUI Container
+            After=network-online.target
+          - |
+            [Service]
+            Restart=always
+            TimeoutStartSec=300
+            TimeoutStopSec=70
+          - |
+            [Install]
+            WantedBy=default.target
 
-# ....................................................................................
-- name: Wait a moment for quadlet to be written
-  ansible.builtin.wait_for:
-    timeout: 10
+    # ....................................................................................
+    - name: Wait a moment for quadlet to be written
+      ansible.builtin.wait_for:
+        timeout: 10
 
-# .......................................................................................
-- name: reload systemd user daemon
-  ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
-    systemctl --user daemon-reload
-  become: false
-  changed_when: false
+    # .......................................................................................
+    - name: reload systemd user daemon
+      ansible.builtin.shell: |
+        export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
+        systemctl --user daemon-reload
+      changed_when: false
 
-# .......................................................................................
-- name: Start rootless pod with systemd
-  ansible.builtin.shell: |
-    export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
-    systemctl --user start {{service_properties.name}}
-  become: false
-  changed_when: true
+    # .......................................................................................
+    - name: Start rootless pod with systemd
+      ansible.builtin.shell: |
+        export XDG_RUNTIME_DIR=/run/user/{{real_user_uid}}
+        systemctl --user start {{service_properties.name}}
+      changed_when: true

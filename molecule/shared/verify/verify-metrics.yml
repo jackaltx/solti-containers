@@ -87,7 +87,7 @@
     # Data write and query tests
     - name: Test write capability
       ansible.builtin.command: >
-        influx write --bucket telegraf --precision s 
+        influx write --bucket telegraf --precision s
         "test,tag=molecule value=1"
       register: write_check
       changed_when: false
@@ -217,9 +217,9 @@
     - name: Set verification status
       set_fact:
         metrics_verify_failed: >-
-          {{ 
-            (port_check.failed | default(false)) or 
-            (influxdb_service_check.failed | default(false)) or 
+          {{
+            (port_check.failed | default(false)) or
+            (influxdb_service_check.failed | default(false)) or
             (telegraf_service_check.failed | default(false)) or
             (health_check.failed | default(false)) or
             (write_check.failed | default(false)) or

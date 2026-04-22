@@ -1,0 +1,7 @@
+---
+# Shared variables for traefik_svc group
+# Host-specific overrides (traefik_svc_name) remain in inventory files
+
+debug_level: warn
+traefik_dashboard_enabled: true
+traefik_data_dir: "{{ lookup('env', 'HOME') }}/traefik-data"
