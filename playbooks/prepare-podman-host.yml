@@ -12,7 +12,7 @@
     # Install podman packages directly (skip solti-ensemble role due to v1 registries bug)
     - name: Update package cache (Debian)
       ansible.builtin.apt:
-        update_cache: yes
+        update_cache: true
       when: ansible_os_family == "Debian"
 
     - name: Install podman packages

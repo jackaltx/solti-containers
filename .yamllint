@@ -30,3 +30,7 @@ ignore: |
   node_modules/
   .git/
   solti-venv/
+  verify_output/
+  tmp/
+  .github/workflows/
+  .ansible/collections/

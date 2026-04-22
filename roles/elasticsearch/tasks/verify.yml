@@ -14,7 +14,7 @@
 - name: Verify Elasticsearch containers are running
   command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=elasticsearch"
   register: container_status
-  #failed_when: "'elasticsearch-svc' not in container_status.stdout"
+  # failed_when: "'elasticsearch-svc' not in container_status.stdout"
   changed_when: false
 
 - name: Show container status

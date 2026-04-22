@@ -11,9 +11,9 @@
     msg: "hashivault_state must be one of: prepare, present, absent. Current value: {{hashivault_state}}"
   when: hashivault_state not in ['prepare', 'present', 'absent']
 
-# =======================================================================
-# PREPARATION (one-time setup)
-# =======================================================================
+  # =======================================================================
+  # PREPARATION (one-time setup)
+  # =======================================================================
 
 - name: Prepare hashivault (one-time setup)
   when: hashivault_state == 'prepare'
@@ -28,14 +28,14 @@
         msg: "hashivault appears to be already prepared. Directory {{vault_data_dir}} exists."
       when: data_dir_check.stat.exists
 
-    # ............................................................
+      # ............................................................
     - name: Base prepare
       ansible.builtin.include_tasks:
         file: ../_base/tasks/prepare.yml
 
-# =======================================================================
-# DEPLOYMENT
-# =======================================================================
+        # =======================================================================
+        # DEPLOYMENT
+        # =======================================================================
 
 - name: Install Hashivault
   when: hashivault_state == 'present'
@@ -61,11 +61,11 @@
     - name: Include container tasks
       ansible.builtin.include_tasks: quadlet_rootless.yml
 
-    # TODO  build quad_privileged
+      # TODO  build quad_privileged
 
-# =======================================================================
-# CLEANUP
-# =======================================================================
+      # =======================================================================
+      # CLEANUP
+      # =======================================================================
 
 - name: Remove Hashivault
   when: hashivault_state == 'absent'
@@ -77,9 +77,9 @@
       vars:
         service_state: absent
 
-# =======================================================================
-# MATRIX EVENT
-# =======================================================================
+        # =======================================================================
+        # MATRIX EVENT
+        # =======================================================================
 - name: send matrix event
   ansible.builtin.include_tasks:
     file: "../_base/tasks/matrix_event.yml"

@@ -55,7 +55,7 @@
               - ca-certificates
               - qemu-guest-agent
               - lsof
-            update_cache: yes
+            update_cache: true
             state: present
 
         - name: Ensure qemu-guest-agent is running
@@ -71,7 +71,7 @@
           dnf:
             name:
               - lsof
-            update_cache: yes
+            update_cache: true
             state: present
 
     - name: Fail for unsupported

@@ -11,9 +11,9 @@
     msg: "mattermost_state must be one of: prepare, present, absent. Current value: {{mattermost_state}}"
   when: mattermost_state not in ['prepare', 'present', 'absent']
 
-# =======================================================================
-# PREPARATION (one-time setup)
-# =======================================================================
+  # =======================================================================
+  # PREPARATION (one-time setup)
+  # =======================================================================
 
 - name: Prepare mattermost (one-time setup)
   when: mattermost_state == 'prepare'
@@ -28,14 +28,14 @@
         msg: "Mattermost appears to be already prepared. Directory {{mattermost_data_dir}} exists."
       when: data_dir_check.stat.exists
 
-    # ............................................................
+      # ............................................................
     - name: Base prepare
       ansible.builtin.include_tasks:
         file: ../_base/tasks/prepare.yml
 
-# =======================================================================
-# DEPLOYMENT
-# =======================================================================
+        # =======================================================================
+        # DEPLOYMENT
+        # =======================================================================
 
 - name: Install Mattermost
   when: mattermost_state == 'present'
@@ -53,11 +53,11 @@
     - name: Include container tasks
       ansible.builtin.include_tasks: quadlet_rootless.yml
 
-    # TODO  build quad_privileged
+      # TODO  build quad_privileged
 
-# =======================================================================
-# DEPLOYMENT
-# =======================================================================
+      # =======================================================================
+      # DEPLOYMENT
+      # =======================================================================
 
 - name: Remove Mattermost
   when: mattermost_state == 'absent'
@@ -69,9 +69,9 @@
       vars:
         service_state: absent
 
-# =======================================================================
-# MATRIX EVENT
-# =======================================================================
+        # =======================================================================
+        # MATRIX EVENT
+        # =======================================================================
 - name: send matrix event
   ansible.builtin.include_tasks:
     file: "../_base/tasks/matrix_event.yml"

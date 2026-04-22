@@ -8,7 +8,7 @@
     - name: Set test run timestamp (used across converge and verify)
       set_fact:
         verify_timestamp: "{{ ansible_facts['date_time']['iso8601'] }}"
-        cacheable: yes
+        cacheable: true
 
     - name: Debug information
       debug:

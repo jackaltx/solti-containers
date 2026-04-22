@@ -16,7 +16,7 @@
   debug:
     var: pod_status.stdout_lines
 
-# ...................................................................................
+    # ...................................................................................
 - name: Verify InfluxDB3 containers are running
   become: false
   command: podman ps --format {% raw %}"{{.Names}}"{% endraw %} --filter "pod=influxdb3"
@@ -27,8 +27,8 @@
   debug:
     var: container_status.stdout_lines
 
-# ...................................................................................
-# Load admin token for tests
+    # ...................................................................................
+    # Load admin token for tests
 - name: Load admin token for verification
   block:
     - name: Check if admin token file exists
@@ -45,7 +45,7 @@
     - name: Set admin token
       ansible.builtin.set_fact:
         verify_token: "{{encoded_token.content | b64decode | trim}}"
-      # no_log: true
+        # no_log: true
       when: token_file_check.stat.exists
 
     - name: Fail if no token available
@@ -53,7 +53,7 @@
         msg: "No admin token found. Please run deploy first."
       when: not token_file_check.stat.exists
 
-# ...................................................................................
+      # ...................................................................................
 - name: Wait for InfluxDB3 to be ready (authenticated health check)
   become: false
   command: >
@@ -71,8 +71,8 @@
   debug:
     msg: "InfluxDB3 API responding on port {{influxdb3_internal_port}}"
 
-# ...................................................................................
-# Create test database
+    # ...................................................................................
+    # Create test database
 - name: Create test database
   become: false
   command: >
@@ -85,10 +85,10 @@
   failed_when:
     - test_db.rc != 0
     - "'already exists' not in test_db.stderr"
-  # no_log: true
+    # no_log: true
 
-# ...................................................................................
-# Write test data
+    # ...................................................................................
+    # Write test data
 - name: Write test data point
   become: false
   shell: >
@@ -105,8 +105,8 @@
     msg: "Test data written successfully"
   when: write_result.rc == 0
 
-# ...................................................................................
-# Query test data
+  # ...................................................................................
+  # Query test data
 - name: Query test data
   become: false
   command: >
@@ -121,8 +121,8 @@
   debug:
     var: query_result.stdout_lines
 
-# ...................................................................................
-# Cleanup test database
+    # ...................................................................................
+    # Cleanup test database
 - name: Delete test database
   become: false
   command: >
@@ -134,7 +134,7 @@
   failed_when: false
   # no_log: true
 
-# ...................................................................................
+  # ...................................................................................
 - name: Display verification summary
   debug:
     msg:

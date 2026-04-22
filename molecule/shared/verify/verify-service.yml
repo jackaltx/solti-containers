@@ -23,7 +23,7 @@
     name: "{{ project_root }}/roles/{{ service }}"
     tasks_from: verify.yml
   when: service_verify_tasks is defined
-  ignore_errors: yes
+  ignore_errors: true
   register: service_verify_result
 
 # Capture verification results

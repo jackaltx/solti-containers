@@ -15,7 +15,7 @@ platforms:
 provisioner:
   name: ansible
   playbooks:
-    verify: "../shared/verify/main.yml" #Claude, this will be a test matrix similar to ../solti-monitoring  I hope to use it for github testing
+    verify: "../shared/verify/main.yml" # Claude, this will be a test matrix similar to ../solti-monitoring  I hope to use it for github testing
   log: true
   config_options:
     defaults:

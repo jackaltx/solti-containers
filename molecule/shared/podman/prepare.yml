@@ -21,7 +21,7 @@
           - "Connection type: {{ ansible_connection | default('undefined') }}"
       delegate_to: localhost
 
-    # ..................................................................
+      # ..................................................................
     - name: Ensure project directories exist on localhost
       ansible.builtin.file:
         path: "{{ item }}"
@@ -33,12 +33,12 @@
       delegate_to: localhost
       become: false
 
-    # ..................................................................
-    # Now work on the instance
-    #
+      # ..................................................................
+      # Now work on the instance
+      #
 
-    # ..................................................................
-    # Ubuntu??   the works local, but not on github.
+      # ..................................................................
+      # Ubuntu??   the works local, but not on github.
     - name: Ensure ansible temp directory exists with proper permissions
       become: true
       ansible.builtin.file:
@@ -48,7 +48,7 @@
         group: root
         mode: "0777"
 
-    # ..................................................................
+        # ..................................................................
     - name: Get basic system info
       setup:
         gather_subset:
@@ -62,7 +62,7 @@
           - "Distribution: {{ ansible_distribution }}"
           - "Package Manager: {{ ansible_pkg_mgr }}"
 
-    # ..................................................................................
+          # ..................................................................................
     - name: Debug Molecule environment vars
       ansible.builtin.debug:
         msg: |
@@ -83,7 +83,7 @@
         - MOLECULE_DIRECTORY
         - MOLECULE_PROJECT_DIRECTORY
 
-    # ..................................................................................
+        # ..................................................................................
     - name: Prepare debug information
       debug:
         msg:
@@ -94,28 +94,28 @@
           - "Distribution: {{ ansible_distribution }}"
           - "Testing services: {{ testing_services }}"
 
-    # ..................................................................................
-    # note this has to be loaded in each phase playbook!
+          # ..................................................................................
+          # note this has to be loaded in each phase playbook!
     - name: Load service role definitions
       include_vars:
         file: "{{ project_root }}/molecule/vars/services.yml"
 
-    # ..................................................................................
+        # ..................................................................................
     - name: Debug container_services
       debug:
         var: container_services
         verbosity: 1
 
-    # ..................................................................................
-    # Install podman using solti-ensemble collection role
-    # This enables nested container testing (containers inside test containers)
+        # ..................................................................................
+        # Install podman using solti-ensemble collection role
+        # This enables nested container testing (containers inside test containers)
     - name: Install podman in test containers
       include_role:
         name: jackaltx.solti_ensemble.podman
       vars:
         podman_state: present
 
-    # ..................................................................................
+        # ..................................................................................
     - name: Get required packages for each tested service
       set_fact:
         combined_required_packages: >-
@@ -129,7 +129,7 @@
             | list
           }}
 
-    # ..................................................................................
+          # ..................................................................................
     - name: Debug package selection
       debug:
         msg:
@@ -137,7 +137,7 @@
           - "Required Packages: {{ combined_required_packages }}"
         verbosity: 0
 
-    # ..................................................................................
+        # ..................................................................................
     - name: Handle Debian/Ubuntu systems
       when: ansible_os_family == "Debian"
       block:
@@ -145,14 +145,14 @@
           apt:
             name: "{{ combined_required_packages }}"
             state: present
-            update_cache: yes
+            update_cache: true
           register: pkg_install
           retries: 3
           delay: 10
           until: pkg_install is success
           become: true
 
-    # ..................................................................................
+          # ..................................................................................
     - name: Handle RedHat systems
       when: ansible_os_family == "RedHat"
       block:
@@ -160,25 +160,25 @@
           dnf:
             name: "{{ combined_required_packages }}"
             state: present
-            update_cache: yes
+            update_cache: true
           register: pkg_install
           retries: 3
           delay: 10
           until: pkg_install is success
           become: true
 
-    # ..................................................................................
-    # Test systemd functionality first
+          # ..................................................................................
+          # Test systemd functionality first
     - name: Ensure systemd is available
       command: systemctl --version
       changed_when: false
       register: systemd_check
-      ignore_errors: yes
+      ignore_errors: true
 
-    # ..................................................................
-    # Only needed for GitHub CI containers that don't boot with systemd
-    # Local test containers use /sbin/init so systemd is already running
-    #
+      # ..................................................................
+      # Only needed for GitHub CI containers that don't boot with systemd
+      # Local test containers use /sbin/init so systemd is already running
+      #
     - name: Configure container for systemd
       when: on_github or (systemd_check.rc is defined and systemd_check.rc != 0)
       block:
@@ -195,14 +195,14 @@
           copy:
             content: ""
             dest: /etc/machine-id
-            force: no
+            force: false
             mode: "0444"
 
         - name: Initialize D-Bus system socket
           copy:
             content: ""
             dest: /var/run/dbus/system_bus_socket
-            force: no
+            force: false
             mode: "0755"
 
         - name: Configure systemd by distribution
@@ -213,7 +213,7 @@
             path: /var/run/dbus/system_bus_socket
             timeout: 30
 
-        # Re-check systemd after setup
+            # Re-check systemd after setup
         - name: Verify systemd is now available
           command: systemctl --version
           changed_when: false
@@ -224,34 +224,34 @@
         var: systemd_check.stdout_lines
         verbosity: 1
 
-    # SMELL  this is umbuntu thing ???
+        # SMELL  this is umbuntu thing ???
     - name: Configure container for systemd operation
       become: true
       command: systemctl daemon-reexec
       when: systemd_check is success and not on_github
 
-    # ..................................................................................
-    # - name: Debug systemd environment
-    #   block:
-    #     - name: Check cgroup mounts
-    #       shell: "mount | grep cgroup"
-    #       register: cgroup_mounts
-    #       changed_when: false
-    #       ignore_errors: true
+      # ..................................................................................
+      # - name: Debug systemd environment
+      #   block:
+      #     - name: Check cgroup mounts
+      #       shell: "mount | grep cgroup"
+      #       register: cgroup_mounts
+      #       changed_when: false
+      #       ignore_errors: true
 
-    #     - name: Check systemd paths
-    #       stat:
-    #         path: "{{ item }}"
-    #       loop:
-    #         - /run/systemd/system
-    #         - /sys/fs/cgroup/systemd
-    #       register: systemd_paths
+      #     - name: Check systemd paths
+      #       stat:
+      #         path: "{{ item }}"
+      #       loop:
+      #         - /run/systemd/system
+      #         - /sys/fs/cgroup/systemd
+      #       register: systemd_paths
 
-    #     - name: Show systemd env debug info
-    #       debug:
-    #         msg:
-    #           - "Cgroup mounts:"
-    #           - "{{ cgroup_mounts.stdout_lines }}"
-    #           - "Systemd paths:"
-    #           - "{{ systemd_paths.results | map(attribute='stat') | list }}"
-    #         verbosity: 1
+      #     - name: Show systemd env debug info
+      #       debug:
+      #         msg:
+      #           - "Cgroup mounts:"
+      #           - "{{ cgroup_mounts.stdout_lines }}"
+      #           - "Systemd paths:"
+      #           - "{{ systemd_paths.results | map(attribute='stat') | list }}"
+      #         verbosity: 1

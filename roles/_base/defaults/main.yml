@@ -1,3 +1,4 @@
+---
 # User context for rootless containers
 # ansible_user comes from inventory (lavender, jackaltx, etc.)
 # NOT affected by become escalation

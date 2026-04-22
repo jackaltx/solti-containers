@@ -24,10 +24,10 @@
 - name: Parse admin token
   ansible.builtin.set_fact:
     admin_token: "{{(encoded_token.content | b64decode | from_json).token}}"
-  # no_log: true
+    # no_log: true
 
-# ..............................................
-# List existing databases
+    # ..............................................
+    # List existing databases
 - name: List existing databases
   become: false
   ansible.builtin.command:
@@ -40,8 +40,8 @@
   failed_when: false
   # no_log: true
 
-# ..............................................
-# Create databases
+  # ..............................................
+  # Create databases
 - name: Create databases
   become: false
   ansible.builtin.command:
@@ -57,8 +57,8 @@
     - db_create.rc != 0
     - "'already exists' not in db_create.stderr"
 
-# ..............................................
-# Create resource tokens
+    # ..............................................
+    # Create resource tokens
 - name: Create resource tokens
   become: false
   ansible.builtin.command:
@@ -77,11 +77,12 @@
     - token_results.rc != 0
     - "'already exists' not in token_results.stderr"
 
-# ..............................................
-# Save tokens locally
+    # ..............................................
+    # Save tokens locally
 - name: Save tokens to local file
   ansible.builtin.copy:
     content: |
+      # yamllint disable
       # InfluxDB 3 Core Tokens
       # Generated: {{ansible_facts.date_time.iso8601}}
       # Host: {{ansible_hostname}}
@@ -94,12 +95,13 @@
         permissions: {{influxdb3_tokens[loop.index0].permissions}}
       {% endif %}
       {% endfor %}
+      # yamllint enable
     dest: "./data/influxdb3-tokens-{{ansible_hostname}}.yml"
     mode: "0600"
   delegate_to: localhost
   when: token_results.results | length > 0
 
-# ..............................................
+  # ..............................................
 - name: Display configuration summary
   ansible.builtin.debug:
     msg:
