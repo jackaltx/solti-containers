@@ -35,6 +35,3 @@ exclude_paths:
 
 # Enable offline mode (don't check for newer ansible-lint versions)
 offline: true
-
-# Use yamllint configuration
-yamllint_config_file: .yamllint

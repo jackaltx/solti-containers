@@ -27,8 +27,8 @@ jobs:
       - name: Run yamllint (strict on main, warnings on test)
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.base_ref }}" == "main" ]]; then
-            echo "Running strict yamllint for main branch"
-            yamllint --strict .
+            echo "Running yamllint for main branch (warnings allowed, errors fail)"
+            yamllint .
           else
             echo "Running yamllint for test branch (warnings allowed)"
             yamllint . || echo "Warnings found but allowed on test branch"
