@@ -72,12 +72,12 @@ service_properties:
   delete_images: "{{lookup('env', 'DELETE_IMAGES') | default(false) | bool}}"
   container_image: "{{grafana_image}}"
   dirs:
-    - {path: "", mode: "0750"}
-    - {path: "config", mode: "0750"}
-    - {path: "data", mode: "0750"}
-    - {path: "logs", mode: "0750"}
-    - {path: "plugins", mode: "0750"}
-    - {path: "provisioning", mode: "0750"}
-    - {path: "provisioning/dashboards", mode: "0750"}
-    - {path: "provisioning/datasources", mode: "0750"}
-    - {path: "provisioning/notifiers", mode: "0750"}
+    - {path: "", mode: "0755"}
+    - {path: "config", mode: "0755"}
+    - {path: "data", mode: "0755"}
+    - {path: "logs", mode: "0755"}
+    - {path: "plugins", mode: "0755"}
+    - {path: "provisioning", mode: "0755"}
+    - {path: "provisioning/dashboards", mode: "0755"}
+    - {path: "provisioning/datasources", mode: "0755"}
+    - {path: "provisioning/notifiers", mode: "0755"}
