@@ -1,5 +1,0 @@
----
-# Exclude Jinja2 template files from dotenv-linter
-# These are templates, not actual .env files
-exclude:
-  - "**/*.j2"
