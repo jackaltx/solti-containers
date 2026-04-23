@@ -61,7 +61,7 @@ The `run-podman-tests.sh` script is currently **not functional** for local testi
 - Runs service-specific verification tasks
 - Generates detailed reports in `verify_output/`
 
-### CI Testing (github scenario)
+### CI Testing (GitHub scenario)
 
 Runs in GitHub Actions using GitHub Container Registry.
 
