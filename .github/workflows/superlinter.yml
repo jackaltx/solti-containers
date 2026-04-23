@@ -26,10 +26,6 @@ jobs:
           DEFAULT_BRANCH: test
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_ALL_CODEBASE: true
-          # Enable specific linters
-          VALIDATE_YAML: true
-          VALIDATE_ANSIBLE: true
-          VALIDATE_JSON: true
-          # Disable linters handled by dedicated workflows
+          # Disable linters handled by dedicated workflows or not needed
           VALIDATE_MARKDOWN: false
           VALIDATE_BASH: false

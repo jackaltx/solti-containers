@@ -18,12 +18,12 @@ gitea_data_dir: "{{ real_user_dir }}/gitea-data"
 # Admin credentials
 gitea_admin_user: "gitea_admin"
 gitea_admin_password: "{{lookup('env', 'GITEA_ADMIN_PASSWORD', default='changeme')}}"
-gitea_admin_email: "admin@{{domain}}"  # noqa yaml[line-length]
+gitea_admin_email: "admin@{{domain}}" # noqa yaml[line-length]
 
 # Service naming and URL construction
-gitea_svc_name: "gitea"  # Override per host in inventory
+gitea_svc_name: "gitea" # Override per host in inventory
 gitea_fqdn: "{{gitea_svc_name}}.{{domain}}"
-gitea_external_port: 8080  # Port users access through Traefik
+gitea_external_port: 8080 # Port users access through Traefik
 gitea_external_url: "https://{{gitea_fqdn}}:{{gitea_external_port}}"
 
 # Traefik integration
@@ -31,7 +31,7 @@ gitea_enable_traefik: true
 
 # Application settings
 gitea_app_name: "Gitea"
-gitea_domain: "{{gitea_fqdn}}"  # For backward compatibility
+gitea_domain: "{{gitea_fqdn}}" # For backward compatibility
 gitea_root_url: "{{gitea_external_url}}"
 gitea_disable_registration: false
 gitea_require_signin: true
@@ -60,9 +60,9 @@ service_properties:
   delete_images: "{{lookup('env', 'DELETE_IMAGES') | default(false) | bool}}"
   container_image: "{{gitea_image}}"
   dirs:
-    - {path: "", mode: "0750"}
-    - {path: "config", mode: "0750"}
-    - {path: "data", mode: "0750"}
-    - {path: "data/gitea", mode: "0750"}
-    - {path: "data/git", mode: "0750"}
-    - {path: "logs", mode: "0750"}
+    - { path: "", mode: "0755" }
+    - { path: "config", mode: "0755" }
+    - { path: "data", mode: "0755" }
+    - { path: "data/gitea", mode: "0755" }
+    - { path: "data/git", mode: "0755" }
+    - { path: "logs", mode: "0755" }

@@ -56,7 +56,6 @@
 
 - name: Remove all traces
   when: service_state == 'absent' and (service_properties.delete_data | bool)
-  become: true
   block:
     # ................................
     - name: Remove configuration
