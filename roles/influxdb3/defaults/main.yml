@@ -61,8 +61,8 @@ service_properties:
   delete_images: "{{lookup('env', 'DELETE_IMAGES') | default(false) | bool}}"
   container_image: "{{influxdb3_image}}"
   dirs:
-    - {path: "", mode: "0750"}
-    - {path: "config", mode: "0750"}
-    - {path: "data", mode: "0750"}
-    - {path: "plugins", mode: "0750"}
-    - {path: "secrets", mode: "0750"}
+    - {path: "", mode: "0755"}
+    - {path: "config", mode: "0755"}
+    - {path: "data", mode: "0755"}
+    - {path: "plugins", mode: "0755"}
+    - {path: "secrets", mode: "0755"}

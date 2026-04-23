@@ -75,12 +75,12 @@ service_properties:
     - "{{mattermost_image}}"
     - "{{mattermost_postgres_image}}"
   dirs:
-    - {path: "", mode: "0750"}
-    - {path: "config", mode: "0750"}
-    - {path: "data", mode: "0750"}
-    - {path: "logs", mode: "0750"}  # Allow container to create and manage logs
-    - {path: "plugins", mode: "0750"}
-    - {path: "client", mode: "0750"}
-    - {path: "client/plugins", mode: "0750"}
-    - {path: "bleve-indexes", mode: "0750"}
+    - {path: "", mode: "0755"}
+    - {path: "config", mode: "0755"}
+    - {path: "data", mode: "0755"}
+    - {path: "logs", mode: "0755"}  # Allow container to create and manage logs
+    - {path: "plugins", mode: "0755"}
+    - {path: "client", mode: "0755"}
+    - {path: "client/plugins", mode: "0755"}
+    - {path: "bleve-indexes", mode: "0755"}
     - {path: "postgres", mode: "0755"}  # PostgreSQL will manage its own permissions

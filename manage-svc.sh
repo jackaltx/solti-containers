@@ -351,7 +351,8 @@ if [[ "$ACTION" == "prepare" ]] || [[ "$ACTION" == "deploy" ]]; then
     NEED_SUDO=true
 elif [[ "$ACTION" == "remove" ]]; then
     # Check if service has delete_data=true (may need sudo for container-owned files)
-    if ansible-inventory -i "${INVENTORY}" --host "${TARGET_HOST}" --yaml 2>/dev/null | grep -q "delete_data.*true"; then
+    # Check both inventory variables and environment variable
+    if [[ "${DELETE_DATA}" == "true" ]] || ansible-inventory -i "${INVENTORY}" --host "${TARGET_HOST}" --yaml 2>/dev/null | grep -q "delete_data.*true"; then
         NEED_SUDO=true
     fi
 fi

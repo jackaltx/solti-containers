@@ -71,7 +71,7 @@ service_properties:
   delete_images: "{{lookup('env', 'DELETE_IMAGES') | default(false) | bool}}"
   container_image: "{{traefik_image}}"
   dirs:
-    - {path: "", mode: "0750"}
-    - {path: "config", mode: "0750"}
-    - {path: "acme", mode: "0750"}
-    - {path: "logs", mode: "0750"}
+    - {path: "", mode: "0755"}
+    - {path: "config", mode: "0755"}
+    - {path: "acme", mode: "0755"}
+    - {path: "logs", mode: "0755"}
