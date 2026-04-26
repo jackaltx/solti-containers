@@ -1,0 +1,78 @@
+---
+# Cleanup: two-stage removal with verification between each stage.
+#
+# Stage 1: remove (preserve data) — stop containers, keep data dirs
+#          verify: confirm services are stopped
+# Stage 2: remove (DELETE_DATA)   — full wipe
+#          verify: confirm data dirs are gone
+#
+# DNS records are left in place — propagation delay makes immediate removal
+# unsafe and dangling CNAMEs pointing at a stopped host are harmless.
+
+- name: Two-stage removal with verification
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
+    project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+    domain: "{{ lookup('env', 'LAB_TLD', default='example.com') }}"
+
+  tasks:
+    # -----------------------------------------------------------------------
+    # Stage 1: remove (preserve data)
+
+    - name: Remove services (preserve data directories)
+      ansible.builtin.command:
+        cmd: >
+          {{ project_root }}/svc-manage.sh
+          -y -h podma
+          -i {{ project_root }}/inventory/podma.yml
+          {{ item }} remove
+        chdir: "{{ project_root }}"
+      loop: "{{ testing_services }}"
+      register: remove_preserve_result
+      changed_when: remove_preserve_result.rc == 0
+
+    - name: Verify services are stopped
+      ansible.builtin.command:
+        cmd: >
+          ssh -i ~/.ssh/id_ed25519
+          -o StrictHostKeyChecking=no
+          lavender@podma.{{ domain }}
+          "systemctl --user is-active {{ item }}-pod"
+        chdir: "{{ project_root }}"
+      loop: "{{ testing_services }}"
+      register: stopped_check
+      failed_when: stopped_check.rc == 0
+      changed_when: false
+
+    # -----------------------------------------------------------------------
+    # Stage 2: remove (DELETE_DATA)
+
+    - name: Remove services and data directories
+      ansible.builtin.command:
+        cmd: >
+          {{ project_root }}/svc-manage.sh
+          -y -h podma
+          -i {{ project_root }}/inventory/podma.yml
+          {{ item }} remove
+        chdir: "{{ project_root }}"
+      environment:
+        DELETE_DATA: "true"
+      loop: "{{ testing_services }}"
+      register: remove_data_result
+      changed_when: remove_data_result.rc == 0
+
+    - name: Verify data directories are gone
+      ansible.builtin.command:
+        cmd: >
+          ssh -i ~/.ssh/id_ed25519
+          -o StrictHostKeyChecking=no
+          lavender@podma.{{ domain }}
+          "test ! -d ~/{{ item }}-data"
+        chdir: "{{ project_root }}"
+      loop: "{{ testing_services }}"
+      register: data_gone_check
+      failed_when: data_gone_check.rc != 0
+      changed_when: false

@@ -1,0 +1,33 @@
+---
+# Verify: run verify task for each service via svc-manage.sh.
+#
+# Mirrors: svc-manage.sh -h podma redis verify
+# verify tasks are read-only — no side effects, no sudo needed.
+
+- name: Verify services on podma
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
+    project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+
+  tasks:
+    - name: Verify each service
+      ansible.builtin.command:
+        cmd: >
+          {{ project_root }}/svc-manage.sh
+          -y -h podma
+          -i {{ project_root }}/inventory/podma.yml
+          {{ item }} verify
+        chdir: "{{ project_root }}"
+      loop: "{{ testing_services }}"
+      register: verify_result
+      changed_when: false
+
+    - name: Show verify output
+      ansible.builtin.debug:
+        msg: "{{ item.stdout_lines }}"
+      loop: "{{ verify_result.results }}"
+      loop_control:
+        label: "{{ item.item }}"

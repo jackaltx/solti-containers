@@ -17,7 +17,7 @@
   become: false
   ansible.builtin.template:
     src: app.ini.j2
-    dest: "{{gitea_data_dir}}/config/app.ini"
+    dest: "{{gitea_data_dir}}/data/gitea/conf/app.ini"
     mode: '0640'
 
 - name: Create gitea environment file

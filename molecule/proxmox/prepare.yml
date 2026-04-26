@@ -1,80 +1,48 @@
 ---
+# Prepare: two-stage removal for a clean slate.
 #
+# Stage 1 — stop services, remove quadlets (rootless, become: false in _base)
+# Stage 2 — delete data directories (become: true in _base, requires services stopped)
 #
-# ========================================================================
+# Single-stage DELETE_DATA fails because _base defaults hard-code
+# service_properties.delete_data: false (hash_behavior:replace overwrites the
+# role's env-lookup value). Running as two separate svc-manage.sh calls
+# works because each call is a fresh subprocess with its own env evaluation.
+#
+# Note: runs on localhost, calls svc-manage.sh targeting podma.
+#       SMELL: podma is hardcoded — may need env var later.
 
-- name: Prepare VM
+- name: Two-stage removal for clean slate
   hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
+    project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+
   tasks:
-    - name: Start the VM
-      community.general.proxmox_kvm:
-        api_host: "{{ lookup('env', 'PROXMOX_URL') }}"
-        api_user: "{{ lookup('env', 'PROXMOX_USER') }}"
-        api_token_id: "{{ lookup('env', 'PROXMOX_TOKEN_ID') }}"
-        api_token_secret: "{{ lookup('env', 'PROXMOX_TOKEN_SECRET') }}"
-        node: "{{ lookup('env', 'PROXMOX_NODE') }}"
-        vmid: "{{ proxmox_vmid }}"
-        state: started
-        timeout: 300
+    - name: Stop services and remove quadlets (rootless)
+      ansible.builtin.command:
+        cmd: >
+          {{ project_root }}/svc-manage.sh
+          -y -h podma
+          -i {{ project_root }}/inventory/podma.yml
+          {{ item }} remove
+        chdir: "{{ project_root }}"
+      loop: "{{ testing_services }}"
+      register: stop_result
+      changed_when: stop_result.rc == 0
 
-    - name: Wait for VM to boot
-      pause:
-        seconds: 30
-
-    - name: Wait for SSH
-      wait_for:
-        host: "{{ molecule_ip }}"
-        port: 22
-        timeout: 300
-
-    - name: Display connection status
-      debug:
-        msg: "VM id: {{ proxmox_vmid }} named: {{ proxmox_vm_name }} at ip {{ molecule_ip }} is ready"
-
-#
-#
-# ========================================================================
-
-- name: Install prerequisites
-  hosts: all # all hosts?  should be the one that just started. why does this work?
-  become: true
-  tasks:
-    - name: Wait for cloud-init to finish
-      command: cloud-init status --wait
-      register: cloud_init_status
-      changed_when: false
-      failed_when: false
-
-    - name: Branch on Debian
-      when: ansible_facts['distribution'] == "Debian"
-      block:
-        - name: Install required packages
-          apt:
-            name:
-              - gpg
-              - ca-certificates
-              - qemu-guest-agent
-              - lsof
-            update_cache: true
-            state: present
-
-        - name: Ensure qemu-guest-agent is running
-          systemd:
-            name: qemu-guest-agent
-            state: started
-            enabled: true
-
-    - name: Branch on Rocky
-      when: ansible_facts['distribution'] == "Rocky"
-      block:
-        - name: Install required packages
-          dnf:
-            name:
-              - lsof
-            update_cache: true
-            state: present
-
-    - name: Fail for unsupported
-      fail:
-        msg: "Distribution {{ ansible_facts['distribution'] }} not supported"
-      when: ansible_facts['distribution'] != "Debian" and ansible_facts['distribution'] != "Rocky"
+    - name: Remove data directories (become:true, services now stopped)
+      ansible.builtin.command:
+        cmd: >
+          {{ project_root }}/svc-manage.sh
+          -y -h podma
+          -i {{ project_root }}/inventory/podma.yml
+          {{ item }} remove
+        chdir: "{{ project_root }}"
+      environment:
+        DELETE_DATA: "true"
+      loop: "{{ testing_services }}"
+      register: delete_result
+      changed_when: delete_result.rc == 0

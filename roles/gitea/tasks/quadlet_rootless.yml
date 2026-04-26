@@ -40,7 +40,6 @@
   ansible.builtin.set_fact:
     gitea_volumes:
       - "{{gitea_data_dir}}/data:/data:Z,U"
-      - "{{gitea_data_dir}}/config/app.ini:/data/gitea/conf/app.ini:Z,U"
 
 - name: Add timezone volume if it exists
   ansible.builtin.set_fact:

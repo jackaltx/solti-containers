@@ -1,129 +1,83 @@
 ---
-# Service definitions for solti-containers molecule testing
-# Maps service names to roles and their dependencies
-# Pattern follows solti-monitoring capabilities.yml
+# Service definitions for solti-containers molecule testing.
+# verify_role_tasks is an ordered list of role tasks — sequence is the semantics.
+# Initialization, unsealing, and health checks all go here in the right order.
+# required_packages removed — proxmox scenario targets a pre-provisioned VM.
 
 container_services:
   traefik:
-    roles:
-      - traefik
-    required_packages:
-      Debian: &debian_container_deps
-        - podman
-        - podman-compose
-        - crun
-        - systemd
-        - systemd-container
-      Ubuntu: *debian_container_deps
-      RedHat: &redhat_container_deps
-        - podman
-        - crun
-        - systemd
-        - systemd-container
-      Rocky: *redhat_container_deps
-    verify_role_tasks:
-      traefik:
-        - verify.yml
-    service_names:
-      - traefik-pod
-    service_ports:
-      - 8080  # dashboard
-      - 443   # https
+    roles: [traefik]
+    verify_role_tasks: [verify.yml]
+    service_names: [traefik-pod, traefik-svc]
+    service_ports: [8080, 443]
 
   hashivault:
-    roles:
-      - hashivault
-    required_packages:
-      Debian: *debian_container_deps
-      Ubuntu: *debian_container_deps
-      RedHat: *redhat_container_deps
-      Rocky: *redhat_container_deps
+    roles: [hashivault]
     verify_role_tasks:
-      hashivault:
-        - verify.yml
-    service_names:
-      - hashivault-pod
-    service_ports:
-      - 8200
+      - initialize.yml
+      - unseal.yml
+      - verify.yml
+    service_names: [vault-pod, vault-svc]
+    service_ports: [8200]
 
   redis:
-    roles:
-      - redis
-    required_packages:
-      Debian: *debian_container_deps
-      Ubuntu: *debian_container_deps
-      RedHat: *redhat_container_deps
-      Rocky: *redhat_container_deps
-    verify_role_tasks:
-      redis:
-        - verify.yml
-    service_names:
-      - redis-pod
-    service_ports:
-      - 6379
+    roles: [redis]
+    verify_role_tasks: [verify.yml]
+    service_names: [redis-pod, redis-svc, redis-gui]
+    service_ports: [6379]
 
   elasticsearch:
-    roles:
-      - elasticsearch
-    required_packages:
-      Debian: *debian_container_deps
-      Ubuntu: *debian_container_deps
-      RedHat: *redhat_container_deps
-      Rocky: *redhat_container_deps
-    verify_role_tasks:
-      elasticsearch:
-        - verify.yml
-    service_names:
-      - elasticsearch-pod
-    service_ports:
-      - 9200
-      - 9300
+    roles: [elasticsearch]
+    verify_role_tasks: [verify.yml]
+    service_names: [elasticsearch-pod, elasticsearch-svc, elasticsearch-gui]
+    service_ports: [9200, 9300]
 
   minio:
-    roles:
-      - minio
-    required_packages:
-      Debian: *debian_container_deps
-      Ubuntu: *debian_container_deps
-      RedHat: *redhat_container_deps
-      Rocky: *redhat_container_deps
-    verify_role_tasks:
-      minio:
-        - verify.yml
-    service_names:
-      - minio-pod
-    service_ports:
-      - 9000  # API
-      - 9001  # Console
+    roles: [minio]
+    verify_role_tasks: [verify.yml]
+    service_names: [minio-pod, minio-svc]
+    service_ports: [9000, 9001]
 
   mattermost:
-    roles:
-      - mattermost
-    required_packages:
-      Debian: *debian_container_deps
-      Ubuntu: *debian_container_deps
-      RedHat: *redhat_container_deps
-      Rocky: *redhat_container_deps
-    verify_role_tasks:
-      mattermost:
-        - verify.yml
-    service_names:
-      - mattermost-pod
-    service_ports:
-      - 8065
+    roles: [mattermost]
+    verify_role_tasks: [verify.yml]
+    service_names: [mattermost-pod, mattermost-svc, mattermost-db]
+    service_ports: [8065]
 
   grafana:
-    roles:
-      - grafana
-    required_packages:
-      Debian: *debian_container_deps
-      Ubuntu: *debian_container_deps
-      RedHat: *redhat_container_deps
-      Rocky: *redhat_container_deps
+    roles: [grafana]
+    verify_role_tasks: [verify.yml]
+    service_names: [grafana-pod, grafana-svc]
+    service_ports: [3000]
+
+  gitea:
+    roles: [gitea]
     verify_role_tasks:
-      grafana:
-        - verify.yml
-    service_names:
-      - grafana-pod
-    service_ports:
-      - 3000
+      - initialize-gitea
+      - verify.yml
+    service_names: [gitea-pod, gitea-svc]
+    service_ports: [3001, 2222]
+
+  mongodb:
+    roles: [mongodb]
+    verify_role_tasks: [verify.yml]
+    service_names: [mongodb-pod, mongodb-svc, mongodb-gui]
+    service_ports: [27017, 8081]
+
+  influxdb3:
+    roles: [influxdb3]
+    verify_role_tasks: [verify.yml]
+    service_names: [influxdb3-pod, influxdb3-svc]
+    service_ports: [8087]
+
+  obsidian:
+    roles: [obsidian]
+    verify_role_tasks: [verify.yml]
+    service_names: [obsidian-pod, obsidian-svc]
+    service_ports: [3010, 3011]
+
+  conduit:
+    roles: [conduit]
+    verify_role_tasks: [verify.yml]
+    service_names: [conduit-pod, conduit-svc]
+    service_ports: [6167]

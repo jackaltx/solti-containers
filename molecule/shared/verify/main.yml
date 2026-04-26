@@ -157,8 +157,3 @@
       fail:
         msg: "Verifications failed: {{ verification_status | dict2items | selectattr('value', 'true') | map(attribute='key') | list | join(', ') }}"
       when: verification_status.values() | list | select('true') | list | length > 0
-
-    # .......................................................................
-    - name: Run Gitlab CI only tasks
-      when: on_github
-      ansible.builtin.include_tasks: "verify-github.yml"

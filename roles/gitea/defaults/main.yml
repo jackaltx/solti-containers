@@ -64,5 +64,6 @@ service_properties:
     - { path: "config", mode: "0755" }
     - { path: "data", mode: "0755" }
     - { path: "data/gitea", mode: "0755" }
+    - { path: "data/gitea/conf", mode: "0755" }
     - { path: "data/git", mode: "0755" }
     - { path: "logs", mode: "0755" }

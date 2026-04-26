@@ -27,6 +27,24 @@
       ignore_errors: true
 
     # .................................................................
+    # Explicitly remove the pod and all its containers from Podman storage.
+    # systemctl stop alone does not clean up container records, leaving stale
+    # entries that block re-creation with the same name on next deploy.
+    # Also remove by container name directly — orphaned infra containers from
+    # crashed or old deployments survive pod rm and must be purged individually.
+    - name: Remove pod from Podman storage
+      ansible.builtin.command:
+        cmd: "podman pod rm --ignore --force {{ service_properties.root }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Remove orphaned infra container from Podman storage
+      ansible.builtin.command:
+        cmd: "podman container rm --ignore --force {{ service_properties.root }}-infra"
+      changed_when: false
+      failed_when: false
+
+    # .................................................................
     - name: Debug service file removal
       ansible.builtin.debug:
         msg: "_base.cleanup:  quadlets : {{ service_properties.quadlets }}"

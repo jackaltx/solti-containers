@@ -1,32 +1,32 @@
 ---
-# Verify a single container service
-# Called from main.yml for each service in testing_services
-# Variable 'service' contains the service name (e.g., 'traefik', 'hashivault')
+# Verify a single container service.
+# Called from main.yml for each service in testing_services.
+# Variable 'service' contains the service name (e.g., 'redis', 'gitea').
+#
+# verify_role_tasks is an ordered flat list — each entry is a tasks_from value.
+# Tasks run in order; failure in any task marks the service as failed.
 
 - name: "Debug service verification for {{ service }}"
   debug:
     msg:
       - "Verifying service: {{ service }}"
-      - "Service definition: {{ container_services[service] }}"
+      - "Tasks: {{ container_services[service].verify_role_tasks | default([]) }}"
     verbosity: 0
 
-# Get verify tasks for this service from services.yml
-- name: "Get verify tasks for {{ service }}"
-  set_fact:
-    service_verify_tasks: "{{ container_services[service].verify_role_tasks }}"
-
-# Run verify tasks for the service
-# Simply includes the verify.yml from the service's role directory
-# Example: roles/traefik/tasks/verify.yml
-- name: "Run verification for {{ service }}"
+- name: "Run verification tasks for {{ service }}"
   include_role:
     name: "{{ project_root }}/roles/{{ service }}"
-    tasks_from: verify.yml
-  when: service_verify_tasks is defined
+    tasks_from: "{{ task }}"
+  loop: "{{ container_services[service].verify_role_tasks | default([]) }}"
+  loop_control:
+    loop_var: task
+    label: "{{ service }}/{{ task }}"
   ignore_errors: true
   register: service_verify_result
 
-# Capture verification results
 - name: "Record {{ service }} verification result"
   set_fact:
-    "{{ service }}_verify_failed": "{{ service_verify_result.failed | default(false) }}"
+    "{{ service }}_verify_failed": >-
+      {{ (service_verify_result.results | default([])
+          | selectattr('failed', 'equalto', true)
+          | list | length) > 0 }}
