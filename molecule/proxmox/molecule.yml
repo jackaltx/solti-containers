@@ -49,6 +49,22 @@ provisioner:
         ansible_user: lavender
         ansible_ssh_private_key_file: ~/.ssh/id_ed25519
         ansible_connection: ssh
+        # Service naming — matches inventory/podma.yml host vars
+        # These drive Traefik routing labels; any value is fine for test purposes
+        redis_svc_name: "redis-ui-podma"
+        elasticsearch_svc_name: "elasticsearch-podma"
+        hashivault_svc_name: "vault-podma"
+        hashivault_alt_svc_name: "hashivault-podma"
+        traefik_svc_name: "traefik-podma"
+        minio_api_svc_name: "minio-podma"
+        minio_console_svc_name: "minio-console-podma"
+        grafana_svc_name: "grafana-podma"
+        gitea_svc_name: "gitea-podma"
+        influxdb3_svc_name: "influxdb3-podma"
+        mongodb_svc_name: "mongodb-podma"
+        obsidian_svc_name: "obsidian-podma"
+        conduit_svc_name: "conduit-podma"
+        mattermost_svc_name: "mm-podma"
     group_vars:
       all:
         ansible_managed: "Ansible managed"

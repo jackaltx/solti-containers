@@ -1,70 +1,41 @@
 ---
-# Converge: ensure DNS CNAMEs exist, run prepare state, then deploy services.
-# Initialization and verification sequencing is driven by verify_role_tasks
-# in molecule/vars/services.yml — converge just gets containers running.
+# Converge: prepare state then deploy state — both via direct role invocation.
+# No svc-manage.sh wrapper. Variables flow through the real Ansible stack.
+# dns_service omitted here — *_svc_name vars require the linked inventory (deferred).
 #
-# Mirrors:
-#   manage-svc.sh dns_service deploy
-#   manage-svc.sh -h podma redis prepare
-#   manage-svc.sh -h podma redis deploy
+# become: true at play level; roles manage their own become: false for user tasks.
 
-- name: DNS, prepare, and deploy services on podma
-  hosts: localhost
-  connection: local
-  gather_facts: false
-  vars:
-    testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
-    project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+- name: Prepare services (SELinux contexts, dirs, sysctl)
+  hosts: podma
+  become: true
 
   tasks:
-    - name: Verify Traefik baseline is running on podma
-      ansible.builtin.command:
-        cmd: >
-          {{ project_root }}/svc-manage.sh
-          -y -h podma
-          -i {{ project_root }}/inventory/podma.yml
-          traefik verify
-        chdir: "{{ project_root }}"
-      changed_when: false
-      when: "'traefik' not in testing_services"
-      register: traefik_check
-      failed_when: traefik_check.rc != 0
-
     - name: Set verify timestamp (shared with verify phase)
       ansible.builtin.set_fact:
         verify_timestamp: "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
         cacheable: true
 
-    - name: Ensure Linode CNAMEs exist for testing services
-      ansible.builtin.command:
-        cmd: >
-          {{ project_root }}/svc-manage.sh
-          -y -i {{ project_root }}/inventory/podma.yml
-          dns_service deploy
-        chdir: "{{ project_root }}"
-      register: dns_result
-      changed_when: dns_result.rc == 0
-
-    - name: Prepare services (SELinux contexts, dirs, sysctl)
-      ansible.builtin.command:
-        cmd: >
-          {{ project_root }}/svc-manage.sh
-          -y -h podma
-          -i {{ project_root }}/inventory/podma.yml
-          {{ item }} prepare
-        chdir: "{{ project_root }}"
+    - name: Set prepare state for each service
+      ansible.builtin.set_fact:
+        "{{ item }}_state": "prepare"
       loop: "{{ testing_services }}"
-      register: prepare_result
-      changed_when: prepare_result.rc == 0
 
-    - name: Deploy services
-      ansible.builtin.command:
-        cmd: >
-          {{ project_root }}/svc-manage.sh
-          -y -h podma
-          -i {{ project_root }}/inventory/podma.yml
-          {{ item }} deploy
-        chdir: "{{ project_root }}"
+    - name: Prepare service
+      ansible.builtin.include_role:
+        name: "{{ project_root }}/roles/{{ item }}"
       loop: "{{ testing_services }}"
-      register: deploy_result
-      changed_when: deploy_result.rc == 0
+
+- name: Deploy services (quadlets + systemd)
+  hosts: podma
+  become: true
+
+  tasks:
+    - name: Set present state for each service
+      ansible.builtin.set_fact:
+        "{{ item }}_state": "present"
+      loop: "{{ testing_services }}"
+
+    - name: Deploy service
+      ansible.builtin.include_role:
+        name: "{{ project_root }}/roles/{{ item }}"
+      loop: "{{ testing_services }}"

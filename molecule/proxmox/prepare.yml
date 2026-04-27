@@ -1,48 +1,20 @@
 ---
-# Prepare: two-stage removal for a clean slate.
-#
-# Stage 1 — stop services, remove quadlets (rootless, become: false in _base)
-# Stage 2 — delete data directories (become: true in _base, requires services stopped)
-#
-# Single-stage DELETE_DATA fails because _base defaults hard-code
-# service_properties.delete_data: false (hash_behavior:replace overwrites the
-# role's env-lookup value). Running as two separate svc-manage.sh calls
-# works because each call is a fresh subprocess with its own env evaluation.
-#
-# Note: runs on localhost, calls svc-manage.sh targeting podma.
-#       SMELL: podma is hardcoded — may need env var later.
+# Prepare: remove services and data for a clean slate.
+# Calls roles directly — no svc-manage.sh wrapper.
+# become: true at play level; roles use become: false internally for user-level tasks.
 
-- name: Two-stage removal for clean slate
-  hosts: localhost
-  connection: local
-  gather_facts: false
-  vars:
-    testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
-    project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+- name: Remove services and data (clean slate)
+  hosts: podma
+  become: true
 
   tasks:
-    - name: Stop services and remove quadlets (rootless)
-      ansible.builtin.command:
-        cmd: >
-          {{ project_root }}/svc-manage.sh
-          -y -h podma
-          -i {{ project_root }}/inventory/podma.yml
-          {{ item }} remove
-        chdir: "{{ project_root }}"
+    - name: Set absent state with data deletion for each service
+      ansible.builtin.set_fact:
+        "{{ item }}_state": "absent"
+        "{{ item }}_delete_data": true
       loop: "{{ testing_services }}"
-      register: stop_result
-      changed_when: stop_result.rc == 0
 
-    - name: Remove data directories (become:true, services now stopped)
-      ansible.builtin.command:
-        cmd: >
-          {{ project_root }}/svc-manage.sh
-          -y -h podma
-          -i {{ project_root }}/inventory/podma.yml
-          {{ item }} remove
-        chdir: "{{ project_root }}"
-      environment:
-        DELETE_DATA: "true"
+    - name: Remove service and data
+      ansible.builtin.include_role:
+        name: "{{ project_root }}/roles/{{ item }}"
       loop: "{{ testing_services }}"
-      register: delete_result
-      changed_when: delete_result.rc == 0

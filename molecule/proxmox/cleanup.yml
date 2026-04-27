@@ -1,78 +1,58 @@
 ---
-# Cleanup: two-stage removal with verification between each stage.
-#
-# Stage 1: remove (preserve data) — stop containers, keep data dirs
-#          verify: confirm services are stopped
-# Stage 2: remove (DELETE_DATA)   — full wipe
-#          verify: confirm data dirs are gone
-#
-# DNS records are left in place — propagation delay makes immediate removal
-# unsafe and dangling CNAMEs pointing at a stopped host are harmless.
+# Cleanup: two-stage removal with verification between stages.
+# Stage 1: remove (preserve data) via role — confirm services stopped
+# Stage 2: directly delete data directories — role's service_properties.delete_data
+#          reads lookup('env', 'DELETE_DATA') on the controller and cannot be set
+#          from within the playbook. Direct file removal is simpler and correct.
+# Direct role invocation — no svc-manage.sh wrapper.
 
 - name: Two-stage removal with verification
-  hosts: localhost
-  connection: local
-  gather_facts: false
+  hosts: podma
+  become: true
   vars:
-    testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
-    project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
-    domain: "{{ lookup('env', 'LAB_TLD', default='example.com') }}"
+    real_user_dir: "{{ ('~' + ansible_user) | expanduser }}"
 
   tasks:
-    # -----------------------------------------------------------------------
-    # Stage 1: remove (preserve data)
+    # --- Stage 1: remove (preserve data) ---
+
+    - name: Set absent state (preserve data)
+      ansible.builtin.set_fact:
+        "{{ item }}_state": "absent"
+      loop: "{{ testing_services }}"
 
     - name: Remove services (preserve data directories)
-      ansible.builtin.command:
-        cmd: >
-          {{ project_root }}/svc-manage.sh
-          -y -h podma
-          -i {{ project_root }}/inventory/podma.yml
-          {{ item }} remove
-        chdir: "{{ project_root }}"
+      ansible.builtin.include_role:
+        name: "{{ project_root }}/roles/{{ item }}"
       loop: "{{ testing_services }}"
-      register: remove_preserve_result
-      changed_when: remove_preserve_result.rc == 0
 
     - name: Verify services are stopped
       ansible.builtin.command:
-        cmd: >
-          ssh -i ~/.ssh/id_ed25519
-          -o StrictHostKeyChecking=no
-          lavender@podma.{{ domain }}
-          "systemctl --user is-active {{ item }}-pod"
-        chdir: "{{ project_root }}"
+        cmd: "systemctl --user is-active {{ item }}-pod.service"
+      become: false
       loop: "{{ testing_services }}"
       register: stopped_check
       failed_when: stopped_check.rc == 0
       changed_when: false
 
-    # -----------------------------------------------------------------------
-    # Stage 2: remove (DELETE_DATA)
+    # --- Stage 2: remove data directories ---
 
-    - name: Remove services and data directories
-      ansible.builtin.command:
-        cmd: >
-          {{ project_root }}/svc-manage.sh
-          -y -h podma
-          -i {{ project_root }}/inventory/podma.yml
-          {{ item }} remove
-        chdir: "{{ project_root }}"
-      environment:
-        DELETE_DATA: "true"
+    - name: Remove data directories
+      ansible.builtin.file:
+        path: "{{ real_user_dir }}/{{ item }}-data"
+        state: absent
       loop: "{{ testing_services }}"
-      register: remove_data_result
-      changed_when: remove_data_result.rc == 0
+
+    - name: Gather data directory stats
+      ansible.builtin.stat:
+        path: "{{ real_user_dir }}/{{ item }}-data"
+      become: false
+      loop: "{{ testing_services }}"
+      register: data_check
 
     - name: Verify data directories are gone
-      ansible.builtin.command:
-        cmd: >
-          ssh -i ~/.ssh/id_ed25519
-          -o StrictHostKeyChecking=no
-          lavender@podma.{{ domain }}
-          "test ! -d ~/{{ item }}-data"
-        chdir: "{{ project_root }}"
-      loop: "{{ testing_services }}"
-      register: data_gone_check
-      failed_when: data_gone_check.rc != 0
-      changed_when: false
+      ansible.builtin.assert:
+        that: not item.stat.exists
+        fail_msg: "Data directory still exists: {{ real_user_dir }}/{{ item.item }}-data"
+      loop: "{{ data_check.results }}"
+      loop_control:
+        label: "{{ item.item }}"
