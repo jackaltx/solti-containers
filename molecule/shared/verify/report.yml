@@ -7,27 +7,21 @@
 - name: Create consolidated report
   set_fact:
     final_report: |
-      === Monitoring Stack Test Report ===
+      === Container Services Test Report ===
       Timestamp: {{ ansible_facts.date_time.iso8601 }}
+      Distribution: {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}
+      Services: {{ testing_services | join(', ') }}
 
       Pre-verify Diagnostics:
-      {{ all_verify_results.preverify }}
-
-      {% for capability in monitoring_capabilities.keys() %}
-
-
-      ============================================================
-      ===
-      === {{ capability | upper }} Verification Results
-      ===
-
-      {{ all_verify_results[capability + '-shared'] }}
-      {% endfor %}
+      {{ all_verify_results.preverify | default('not captured') }}
 
       Post-verify Diagnostics:
-      {{ all_verify_results.postverify }}
+      {{ all_verify_results.postverify | default('not captured') }}
 
-      Overall Status: {{ 'FAILED' if all_verify_failed.values() | select('true') | list | length > 0 else 'PASSED' }}
+      Service Results:
+      {% for svc in testing_services %}
+      {{ svc }}: {{ 'FAILED' if hostvars[inventory_hostname][svc + '_verify_failed'] | default(false) else 'PASSED' }}
+      {% endfor %}
 
 - name: Save consolidated report
   delegate_to: localhost

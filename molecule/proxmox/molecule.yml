@@ -4,16 +4,17 @@
 # Targets the existing podma test host directly — no VM provisioning.
 # Playbooks call svc-manage.sh to reuse proven lifecycle logic.
 #
-
-# Flow — proves idempotency of all three states and both remove variants:
+# Inventory note:
+#   ansible_host uses podma.${LAB_TLD} directly (avoids {{ domain }} at connect time).
+#   Inventory vars (domain, test_*, service_*) are inline here for now — the clean
+#   approach (links.group_vars) requires extra_vars for molecule-only vars, deferred
+#   until tests are stable.
 #
-#   prepare:  remove (DELETE_DATA)          ← clean slate, nothing left from prior runs
-#   converge: prepare state → deploy state  ← fresh dirs/SELinux, then containers up
-#   verify:   shared/verify/main.yml         ← role verify.yml direct on podma (right layer)
-#   cleanup:  remove (preserve data)        ← stop containers, keep data dirs
-#             verify stopped               ← confirm services are down
-#             remove (DELETE_DATA)          ← full wipe
-#             verify removed               ← confirm data dirs gone
+# Flow:
+#   prepare:  remove (DELETE_DATA)          ← clean slate
+#   converge: prepare state → deploy state  ← SELinux, dirs, containers
+#   verify:   shared/verify/main.yml        ← role verify tasks direct on podma
+#   cleanup:  remove (preserve) → check → remove (DELETE_DATA) → check gone
 #
 # Usage:
 #   source ~/.secrets/LabProvision
@@ -36,13 +37,18 @@ provisioner:
   log: true
   env:
     ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/roles"
+    MOLECULE_PLATFORM_NAME: "podma"
   config_options:
     defaults:
       interpreter_python: auto_silent
       host_key_checking: false
   inventory:
-    links:
-      hosts: ../../inventory/podma.yml
+    host_vars:
+      podma:
+        ansible_host: "podma.${LAB_TLD}"
+        ansible_user: lavender
+        ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+        ansible_connection: ssh
     group_vars:
       all:
         ansible_managed: "Ansible managed"
@@ -51,6 +57,13 @@ provisioner:
         secure_logging: "{{ lookup('env', 'MOLECULE_SECURE_LOGGING', default='true') | bool }}"
         testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
         domain: "{{ lookup('env', 'LAB_TLD', default='example.com') }}"
+        service_network: "ct-net"
+        service_dns_servers: ["1.1.1.1", "8.8.8.8"]
+        service_dns_search: "{{ lookup('env', 'LAB_TLD', default='example.com') }}"
+        test_key: "test:ansible"
+        test_value: "Verification-{{ lookup('pipe', 'date +%s') }}"
+        test_index: "test-ansible"
+        test_doc: "Verification-{{ lookup('pipe', 'date +%s') }}"
 
 scenario:
   name: proxmox

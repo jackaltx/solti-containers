@@ -1,7 +1,7 @@
 ---
 - name: Verify
   hosts: "{{ lookup('env', 'MOLECULE_PLATFORM_NAME', default='all') }}"
-  become: true
+  become: false
   serial: "{{ lookup('env', 'MOLECULE_SERIAL', default='0') }}"
 
   vars:
@@ -126,20 +126,6 @@
         report_suffix: "postverify"
 
     # .......................................................................
-    - name: Report Results
-      ansible.builtin.include_tasks:
-        file: report.yml
-
-    # .......................................................................
-    # Obsidian integration - write run summary
-    - name: Write Obsidian run summary
-      include_tasks: obsidian/run-summary.yml
-      vars:
-        overall_status: "{{ 'FAILED' if (verification_status.values() | list | select('true') | list | length > 0) else 'PASSED' }}"
-      when: lookup('env', 'OBSIDIAN_ENABLED', default='true') | bool
-
-    # .......................................................................
-    # TODO: review this.
     - name: Create verification status map
       set_fact:
         verification_status: >-
@@ -151,6 +137,19 @@
       loop: "{{ testing_services }}"
       loop_control:
         loop_var: service
+
+    # .......................................................................
+    - name: Report Results
+      ansible.builtin.include_tasks:
+        file: report.yml
+
+    # .......................................................................
+    # Obsidian integration - write run summary
+    - name: Write Obsidian run summary
+      include_tasks: obsidian/run-summary.yml
+      vars:
+        overall_status: "{{ 'FAILED' if (verification_status.values() | list | select('true') | list | length > 0) else 'PASSED' }}"
+      when: lookup('env', 'OBSIDIAN_ENABLED', default='true') | bool
 
     # .......................................................................
     - name: Final verification check
