@@ -12,8 +12,10 @@ Obsidian is the data store.
 
 ```text
 molecule run
-  └─ converge:  deploy services (scripts are fine here — plumbing)
+  └─ prepare:   clean slate via direct role invocation (_state=absent)
+  └─ converge:  prepare state → deploy state via direct role invocation
   └─ verify:    role verify tasks run directly on the VM (this is the data)
+  └─ cleanup:   remove (preserve) → verify stopped → remove data → verify gone
   └─ output:    verify_output/obsidian/runs/<timestamp>/
                   ├─ redis-service.md        (per-service result with frontmatter)
                   ├─ hashivault-service.md
@@ -26,6 +28,7 @@ Over time these become a queryable dataset of service behavior.
 ## Working Scenario: proxmox
 
 Targets the **podma** VM directly — no nested containers, no provisioning.
+All phases call Ansible roles directly. No `svc-manage.sh` wrapper in the test path.
 
 ```bash
 source ~/.secrets/LabProvision
@@ -33,9 +36,8 @@ source ~/.secrets/LabProvision
 ./run-proxmox-tests.sh --services redis,influxdb3,mongodb
 ```
 
-**Traefik is a required baseline.** The tests are E2E — they validate services
-through the full stack including Traefik routing. If Traefik is not running on
-podma, the converge phase will stop immediately before deploying anything.
+**Traefik is a required baseline.** The tests are E2E — they validate the full
+stack. If Traefik is not running on podma, converge will stop immediately.
 
 To test Traefik itself (rare):
 
@@ -46,10 +48,11 @@ To test Traefik itself (rare):
 ### Test cycle
 
 ```text
-prepare   → clean slate: remove existing services and data (DELETE_DATA)
-converge  → DNS records + prepare state + deploy
-verify    → role verify.yml tasks run directly on podma (the real test layer)
-cleanup   → remove (preserve data) → verify stopped → remove (DELETE_DATA) → verify gone
+prepare   → include_role _state=absent (DELETE_DATA) — clean slate
+converge  → include_role _state=prepare, then _state=present
+verify    → role verify tasks run directly on podma via shared/verify/main.yml
+cleanup   → include_role _state=absent (preserve) → verify stopped
+          → file deletion of data dirs → verify gone
 ```
 
 ### Running individual phases
@@ -114,73 +117,67 @@ The YAML frontmatter in each file supports structured queries across runs.
 ## Hybrid Architecture: Molecule + Ansible Inventory
 
 This is not a standard molecule setup. It is a **hybrid system** where molecule
-provides the test lifecycle and Ansible provides both the execution engine and
-the inventory model.
+provides the test lifecycle and Ansible provides the execution engine and
+inventory model.
 
-### Variable sources and precedence
+### Variable sources
 
-Variables reach the verify playbook from three places, in increasing precedence:
+Variables flow to playbooks from these sources, in increasing precedence:
 
-| Source | Contains | Scope |
-|--------|----------|-------|
-| `inventory/group_vars/all.yml` | `domain`, `service_network`, `service_dns_*` | all hosts |
-| `inventory/group_vars/<service>_svc.yml` | `test_key`, `test_value`, etc. | hosts in that group |
-| `molecule/proxmox/molecule.yml group_vars` | `project_root`, `report_root`, `testing_services`, `secure_logging` | molecule-only |
+| Source | Contains | How |
+|--------|----------|-----|
+| `inventory/group_vars/all.yml` | `domain`, `service_network`, `test_*`, `project_root`, `report_root`, `testing_services` | `links.group_vars` |
+| `inventory/group_vars/<svc>_svc.yml` | `test_key`, `test_value`, `*_svc_name` per service | `links.group_vars` + group membership via `links.hosts` |
+| `molecule.yml extra_vars` | `domain` (at inventory load time), `secure_logging` | `-e @extra_vars.yml` |
+| `molecule.yml host_vars.podma` | `ansible_host`, `ansible_user`, SSH key | host_vars file |
 
-### The inventory linking problem
+`project_root`, `report_root`, `testing_services`, and `domain` all live in
+`inventory/group_vars/all.yml` as `lookup('env', ...)` expressions evaluated
+by Ansible at playbook time — not by molecule at file-write time.
+
+### The inventory linking problem (solved)
 
 Molecule builds an ephemeral inventory at `/tmp/molecule.*/inventory/`.
 When `provisioner.inventory.links.group_vars` is set, molecule creates a
-**symlink** replacing its own `group_vars/` directory with the real inventory's.
-This means anything molecule wrote to `group_vars/` is lost.
+**symlink** replacing its own `group_vars/` directory. Any vars molecule had
+written there are lost.
 
-**Current approach**: molecule-only vars (`project_root`, `report_root`,
-`testing_services`) stay in `molecule.yml`'s `group_vars:` section — they are
-written to the ephemeral `group_vars/` BEFORE any symlink. This works as long
-as we do NOT also link `group_vars`.
-
-The trade-off: service-specific test vars (`test_key`, `test_value`, etc.) are
-duplicated inline in `molecule.yml` instead of flowing from `inventory/group_vars/`.
-These should match the real inventory values. The clean solution (linking
-`group_vars` + using `extra_vars` for molecule-only vars) is deferred until
-tests are stable.
+**Solution**: all vars that molecule needs live in the **real inventory's
+`group_vars/`** — molecule's own `group_vars:` section is intentionally empty.
+The symlink works in our favour: it brings in the full real inventory vars
+without duplication.
 
 ### Connection variable bootstrap
 
-`inventory/podma.yml` defines `ansible_host: "podma.{{ domain }}"`. This
-Jinja2 expression is resolved at inventory load time, when group_vars may not
-yet be applied. To avoid a "domain is undefined" error at connection setup,
-`molecule.yml` overrides `ansible_host` directly in `host_vars.podma`:
+`inventory/podma.yml` defines `ansible_host: "podma.{{ domain }}"`. Ansible
+evaluates connection variables at inventory load time, before group_vars are
+applied — so `{{ domain }}` would be undefined. Molecule's `extra_vars` provides
+`domain: "${LAB_TLD}"` via shell expansion, making it available at inventory
+load time before any playbook runs.
 
-```yaml
-host_vars:
-  podma:
-    ansible_host: "podma.${LAB_TLD}"   # shell expansion by molecule, no Jinja2
-```
+`host_vars.podma.ansible_host: "podma.${LAB_TLD}"` also overrides the
+connection address directly, ensuring no Jinja2 evaluation is needed at connect
+time.
 
-This bypasses the chicken-and-egg: Ansible connects to a static address,
-and `domain` is only needed inside playbooks (where group_vars are available).
+### The testing layer
 
-### Obsidian output
+All phases — prepare, converge, cleanup — use `include_role` directly on podma.
+No `svc-manage.sh` in the test path. A failing test means exactly one thing:
+**the role does not work on this host**. `svc-manage.sh` can evolve freely
+without touching the test infrastructure.
 
-The verify phase writes structured markdown files to `verify_output/obsidian/`.
-Each file has YAML frontmatter (type, service, distribution, status, timestamp)
-that supports queries across runs. These are immutable event-sourced records —
-never edited, only appended.
+The verify phase uses `molecule/shared/verify/main.yml` which calls
+`include_role: tasks_from: <task>` for each entry in `verify_role_tasks`.
+This exercises the actual Ansible role logic — templates, variable rendering,
+health checks — not a shell wrapper around it.
 
-```text
-verify_output/obsidian/runs/<distro>-<time>/
-  ├── <service>-service.md    ← per-service result
-  └── run-<timestamp>.md     ← overall run summary
-```
+### Data directory deletion
 
-### The verify layer
-
-The critical design choice: `verify` uses `molecule/shared/verify/main.yml`
-which calls `include_role: tasks_from: <task>` directly on podma — not via
-`svc-manage.sh`. This is the **right testing layer**: the Ansible role logic
-(templates, variable rendering, health checks) is exercised directly, not
-through a shell script wrapper.
+The role's `service_properties.delete_data` reads `lookup('env', 'DELETE_DATA')`
+on the Ansible controller. This env var cannot be set from within a playbook's
+`environment:` (which only affects remote tasks). Cleanup stage 2 therefore
+uses `ansible.builtin.file: state=absent` directly rather than routing through
+the role. This is simpler and correct.
 
 ## Adding a New Service
 
