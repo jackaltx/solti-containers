@@ -27,3 +27,9 @@ service_dns_search: "{{ domain }}"
 # Test/verification variables
 test_index: "test-ansible"
 test_doc: '{"message": "Verification-{{ lookup(''pipe'', ''date +%s'') }}"}'
+
+# Molecule testing variables — driven by env vars set by molecule
+# Harmless in production (vars are only used by molecule playbooks)
+testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
+project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY', default='') }}"
+report_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY', default='') }}/verify_output"

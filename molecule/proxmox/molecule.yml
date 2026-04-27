@@ -2,19 +2,20 @@
 # Molecule scenario: proxmox
 #
 # Targets the existing podma test host directly — no VM provisioning.
-# Playbooks call svc-manage.sh to reuse proven lifecycle logic.
+# Playbooks use direct role invocation — no svc-manage.sh wrapper.
 #
-# Inventory note:
-#   ansible_host uses podma.${LAB_TLD} directly (avoids {{ domain }} at connect time).
-#   Inventory vars (domain, test_*, service_*) are inline here for now — the clean
-#   approach (links.group_vars) requires extra_vars for molecule-only vars, deferred
-#   until tests are stable.
+# Inventory strategy:
+#   links.hosts      → inventory/podma.yml (group structure + *_svc_name host vars)
+#   links.group_vars → inventory/group_vars/ (domain, test_*, service_network, etc.)
+#   extra_vars       → molecule-only vars; also provides 'domain' at inventory
+#                      load time so ansible_host: "podma.{{ domain }}" resolves
+#   host_vars.podma  → connection details (explicit, no Jinja2)
 #
 # Flow:
-#   prepare:  remove (DELETE_DATA)          ← clean slate
-#   converge: prepare state → deploy state  ← SELinux, dirs, containers
-#   verify:   shared/verify/main.yml        ← role verify tasks direct on podma
-#   cleanup:  remove (preserve) → check → remove (DELETE_DATA) → check gone
+#   prepare:  include_role _state=absent         ← clean slate
+#   converge: include_role _state=prepare then present
+#   verify:   shared/verify/main.yml             ← role verify tasks direct on podma
+#   cleanup:  include_role _state=absent + direct file removal
 #
 # Usage:
 #   source ~/.secrets/LabProvision
@@ -38,48 +39,23 @@ provisioner:
   env:
     ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/roles"
     MOLECULE_PLATFORM_NAME: "podma"
+  extra_vars:
+    domain: "${LAB_TLD}"
+    secure_logging: true
   config_options:
     defaults:
       interpreter_python: auto_silent
       host_key_checking: false
   inventory:
+    links:
+      hosts: ../../inventory/podma.yml
+      group_vars: ../../inventory/group_vars
     host_vars:
       podma:
         ansible_host: "podma.${LAB_TLD}"
         ansible_user: lavender
         ansible_ssh_private_key_file: ~/.ssh/id_ed25519
         ansible_connection: ssh
-        # Service naming — matches inventory/podma.yml host vars
-        # These drive Traefik routing labels; any value is fine for test purposes
-        redis_svc_name: "redis-ui-podma"
-        elasticsearch_svc_name: "elasticsearch-podma"
-        hashivault_svc_name: "vault-podma"
-        hashivault_alt_svc_name: "hashivault-podma"
-        traefik_svc_name: "traefik-podma"
-        minio_api_svc_name: "minio-podma"
-        minio_console_svc_name: "minio-console-podma"
-        grafana_svc_name: "grafana-podma"
-        gitea_svc_name: "gitea-podma"
-        influxdb3_svc_name: "influxdb3-podma"
-        mongodb_svc_name: "mongodb-podma"
-        obsidian_svc_name: "obsidian-podma"
-        conduit_svc_name: "conduit-podma"
-        mattermost_svc_name: "mm-podma"
-    group_vars:
-      all:
-        ansible_managed: "Ansible managed"
-        project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
-        report_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/verify_output"
-        secure_logging: "{{ lookup('env', 'MOLECULE_SECURE_LOGGING', default='true') | bool }}"
-        testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
-        domain: "{{ lookup('env', 'LAB_TLD', default='example.com') }}"
-        service_network: "ct-net"
-        service_dns_servers: ["1.1.1.1", "8.8.8.8"]
-        service_dns_search: "{{ lookup('env', 'LAB_TLD', default='example.com') }}"
-        test_key: "test:ansible"
-        test_value: "Verification-{{ lookup('pipe', 'date +%s') }}"
-        test_index: "test-ansible"
-        test_doc: "Verification-{{ lookup('pipe', 'date +%s') }}"
 
 scenario:
   name: proxmox
