@@ -106,3 +106,26 @@
     - name: Display Mongo Express status
       ansible.builtin.debug:
         msg: "Mongo Express GUI is accessible at http://127.0.0.1:{{ mongodb_gui_port }}"
+
+# ...................................................................................
+- name: Gather verification results
+  ansible.builtin.set_fact:
+    mongodb_verify_status:
+      timestamp: "{{ verify_timestamp | default(ansible_date_time.iso8601) }}"
+      pod_running: "{{ 'mongodb' in pod_status.stdout }}"
+      container_running: "{{ 'mongodb-svc' in container_status.stdout }}"
+      ping_rc: "{{ mongo_ping.rc | default('unknown') }}"
+      write_rc: "{{ mongo_write.rc | default('unknown') }}"
+      read_rc: "{{ mongo_read.rc | default('unknown') }}"
+      version: "{{ mongo_version.stdout | trim }}"
+      connections: "{{ mongo_status.stdout | trim }}"
+      gui_accessible: "{{ gui_check.status == 200 if mongodb_enable_gui | bool else 'disabled' }}"
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "=== MongoDB Verification ==="
+      - "Pod: {{ mongodb_verify_status.pod_running }} / container: {{ mongodb_verify_status.container_running }}"
+      - "Version: {{ mongodb_verify_status.version }}"
+      - "ping={{ mongodb_verify_status.ping_rc }}, write={{ mongodb_verify_status.write_rc }}, read={{ mongodb_verify_status.read_rc }}"
+      - "Connections: {{ mongodb_verify_status.connections }}, GUI: {{ mongodb_verify_status.gui_accessible }}"

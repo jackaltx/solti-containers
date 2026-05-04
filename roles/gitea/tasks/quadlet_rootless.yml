@@ -6,7 +6,7 @@
 - name: Ensure systemd user directories exist
   become: false
   ansible.builtin.file:
-    path: "{{real_user_dir}}/{{item}}"
+    path: "{{real_user_dir}}/{{dir_item}}"
     state: directory
     mode: "0700"
     owner: "{{real_user}}"
@@ -15,6 +15,8 @@
     - .config/systemd/user
     - .config/containers/systemd
     - .config/containers/systemd/env
+  loop_control:
+    loop_var: dir_item
 
 # ....................................................
 - name: Copy gitea environment file
@@ -30,11 +32,13 @@
 # ....................................................
 - name: Check if timezone files exist
   ansible.builtin.stat:
-    path: "{{item}}"
+    path: "{{tz_item}}"
   register: tz_files
   loop:
     - /etc/timezone
     - /etc/localtime
+  loop_control:
+    loop_var: tz_item
 
 - name: Build volume list
   ansible.builtin.set_fact:

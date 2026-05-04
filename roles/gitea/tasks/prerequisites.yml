@@ -30,7 +30,9 @@
 - name: Ensure data directories have correct permissions
   become: false
   ansible.builtin.file:
-    path: "{{gitea_data_dir}}/{{item.path}}"
+    path: "{{gitea_data_dir}}/{{dir_item.path}}"
     state: directory
-    mode: "{{item.mode}}"
+    mode: "{{dir_item.mode}}"
   loop: "{{service_properties.dirs}}"
+  loop_control:
+    loop_var: dir_item

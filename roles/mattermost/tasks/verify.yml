@@ -114,3 +114,26 @@
 - name: Show resource usage
   debug:
     var: resource_usage.stdout_lines
+
+# ...................................................................................
+- name: Gather verification results
+  ansible.builtin.set_fact:
+    mattermost_verify_status:
+      timestamp: "{{ verify_timestamp | default(ansible_date_time.iso8601) }}"
+      pod_running: "{{ 'mattermost' in pod_status.stdout }}"
+      container_running_svc: "{{ 'mattermost-svc' in container_status.stdout }}"
+      container_running_db: "{{ 'mattermost-db' in container_status.stdout }}"
+      api_ping: "{{ ping_result.status | default('unknown') }}"
+      postgres_version: "{{ postgres_version.stdout_lines | select('match', 'PostgreSQL') | first | default('unknown') | regex_replace('\\s+', ' ') | trim }}"
+      db_table_count: "{{ table_count.stdout_lines | select('match', '^\\s+[0-9]') | first | default('0') | trim }}"
+      config_api_status: "{{ config_check.status | default('unknown') }}"
+      log_error_count: "{{ mattermost_logs.stdout_lines | select('match', '(?i)error') | list | length }}"
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Mattermost Verification ==="
+      - "Pod: {{ mattermost_verify_status.pod_running }} / svc: {{ mattermost_verify_status.container_running_svc }} / db: {{ mattermost_verify_status.container_running_db }}"
+      - "API ping: {{ mattermost_verify_status.api_ping }}, config API: {{ mattermost_verify_status.config_api_status }}"
+      - "Postgres: {{ mattermost_verify_status.postgres_version }}, tables: {{ mattermost_verify_status.db_table_count }}"
+      - "Log errors: {{ mattermost_verify_status.log_error_count }}"

@@ -18,12 +18,14 @@
     # .................................................................
     - name: Stop and disable services
       ansible.builtin.systemd:
-        name: "{{ item }}"
+        name: "{{ svc_item }}"
         state: stopped
         enabled: false
         scope: user
       loop:
         - "{{ service_properties.name }}"
+      loop_control:
+        loop_var: svc_item
       ignore_errors: true
 
     # .................................................................
@@ -52,9 +54,11 @@
 
     - name: Remove Quadlet files
       ansible.builtin.file:
-        path: "{{ real_user_dir }}/.config/containers/systemd/{{ item }}"
+        path: "{{ real_user_dir }}/.config/containers/systemd/{{ quadlet_item }}"
         state: absent
       loop: "{{ service_properties.quadlets }}"
+      loop_control:
+        loop_var: quadlet_item
 
     # .................................................................
     # This removes the pod/container services from systemd
@@ -102,8 +106,10 @@
     # Remove multiple images if container_images list exists (preferred)
     - name: Remove container images (multiple)
       when: service_properties.container_images is defined
-      command: podman rmi {{ item }}
+      command: podman rmi {{ image_item }}
       loop: "{{ service_properties.container_images }}"
+      loop_control:
+        loop_var: image_item
       register: image_removal_multi
       failed_when:
         - image_removal_multi.rc != 0

@@ -34,7 +34,7 @@
     - name: Create local data directory for diagnostic diagnostics
       become: false
       ansible.builtin.file:
-        path: "{{ report_root }}/{{ ansible_facts['distribution'] | lower }}"
+        path: "{{ obsidian_run_dir | default(report_root + '/' + ansible_facts['distribution'] | lower) }}"
         state: directory
         mode: "0755"
       delegate_to: localhost
@@ -44,6 +44,6 @@
       become: false
       ansible.builtin.copy:
         content: "{{ container_diagnostics }}"
-        dest: "{{ report_root }}/{{ ansible_facts['distribution'] | lower }}/container-diagnostics-{{ report_suffix }}-{{ ansible_facts['date_time']['epoch'] }}.yml"
+        dest: "{{ obsidian_run_dir | default(report_root + '/' + ansible_facts['distribution'] | lower) }}/container-diagnostics-{{ report_suffix }}-{{ ansible_facts['date_time']['epoch'] }}.yml"
         mode: "0644"
       delegate_to: localhost

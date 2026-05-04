@@ -28,5 +28,5 @@
   become: false
   ansible.builtin.copy:
     content: "{{ final_report }}"
-    dest: "{{ report_root }}/{{ ansible_distribution | lower }}/consolidated_test_report.md"
+    dest: "{{ obsidian_run_dir | default(report_root + '/' + ansible_distribution | lower) }}/consolidated_test_report.md"
     mode: "0644"

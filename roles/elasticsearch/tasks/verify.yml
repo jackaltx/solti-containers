@@ -119,3 +119,27 @@
     -X DELETE "http://localhost:9200/{{ test_index }}"
   changed_when: false
   no_log: true
+
+# ...................................................................................
+- name: Gather verification results
+  ansible.builtin.set_fact:
+    elasticsearch_verify_status:
+      timestamp: "{{ verify_timestamp | default(ansible_date_time.iso8601) }}"
+      pod_running: "{{ 'elasticsearch' in pod_status.stdout }}"
+      container_running: "{{ 'elasticsearch-svc' in container_status.stdout }}"
+      cluster_status: "{{ (cluster_health.stdout | from_json).status | default('unknown') }}"
+      number_of_nodes: "{{ (cluster_health.stdout | from_json).number_of_nodes | default('unknown') }}"
+      active_shards: "{{ (cluster_health.stdout | from_json).active_shards | default('unknown') }}"
+      version: "{{ (es_info.stdout | from_json).version.number | default('unknown') }}"
+      heap_used_percent: "{{ (memory_stats.stdout | from_json).nodes.values() | map(attribute='jvm.mem.heap_used_percent') | list | first | default('unknown') }}"
+      index_write_status: "{{ index_result.status | default('skipped') }}"
+      index_search_rc: "{{ search_result.rc | default('skipped') }}"
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Elasticsearch Verification ==="
+      - "Pod: {{ elasticsearch_verify_status.pod_running }} / container: {{ elasticsearch_verify_status.container_running }}"
+      - "Cluster: {{ elasticsearch_verify_status.cluster_status }} ({{ elasticsearch_verify_status.number_of_nodes }} nodes, {{ elasticsearch_verify_status.active_shards }} shards)"
+      - "Version: {{ elasticsearch_verify_status.version }}, Heap: {{ elasticsearch_verify_status.heap_used_percent }}%"
+      - "Data test: write={{ elasticsearch_verify_status.index_write_status }}, search={{ elasticsearch_verify_status.index_search_rc }}"

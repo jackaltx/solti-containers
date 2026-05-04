@@ -92,3 +92,25 @@
 - name: Show database directory info
   debug:
     msg: "Database directory exists: {{ db_dir.stat.exists }}, Size: {{ db_dir.stat.size | default('unknown') }} bytes"
+
+# ...................................................................................
+- name: Gather verification results
+  ansible.builtin.set_fact:
+    conduit_verify_status:
+      timestamp: "{{ verify_timestamp | default(ansible_date_time.iso8601) }}"
+      pod_running: "{{ 'conduit' in pod_status.stdout }}"
+      container_running: "{{ 'conduit-svc' in container_status.stdout }}"
+      matrix_versions: "{{ conduit_version.json.versions | default([]) }}"
+      federation_enabled: "{{ conduit_allow_federation | bool }}"
+      federation_version: "{{ conduit_federation.json.server.version | default('n/a') if conduit_allow_federation | bool else 'disabled' }}"
+      config_exists: "{{ config_file.stat.exists }}"
+      db_exists: "{{ db_dir.stat.exists }}"
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Conduit Verification ==="
+      - "Pod: {{ conduit_verify_status.pod_running }} / container: {{ conduit_verify_status.container_running }}"
+      - "Matrix versions: {{ conduit_verify_status.matrix_versions | join(', ') }}"
+      - "Federation: {{ conduit_verify_status.federation_version }}"
+      - "Config: {{ conduit_verify_status.config_exists }}, DB: {{ conduit_verify_status.db_exists }}"

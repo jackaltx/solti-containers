@@ -30,3 +30,14 @@
       {{ (service_verify_result.results | default([])
           | selectattr('failed', 'equalto', true)
           | list | length) > 0 }}
+
+- name: "Save {{ service }} verify snapshot"
+  delegate_to: localhost
+  become: false
+  ansible.builtin.copy:
+    content: "{{ lookup('vars', service + '_verify_status', default={}) | to_nice_yaml }}"
+    dest: "{{ obsidian_run_dir }}/{{ service }}-verify-snapshot.yml"
+    mode: "0644"
+  when:
+    - obsidian_run_dir is defined
+    - lookup('vars', service + '_verify_status', default={}) | length > 0

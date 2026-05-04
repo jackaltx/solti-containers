@@ -58,3 +58,22 @@
 - name: Show disk usage
   debug:
     var: disk_usage.stdout_lines
+
+# ...................................................................................
+- name: Gather verification results
+  ansible.builtin.set_fact:
+    minio_verify_status:
+      timestamp: "{{ verify_timestamp | default(ansible_date_time.iso8601) }}"
+      pod_running: "{{ 'minio' in pod_status.stdout }}"
+      container_running: "{{ 'minio-svc' in container_status.stdout }}"
+      health_status: "{{ health_check.status | default('unknown') }}"
+      version: "{{ minio_version.stdout_lines | first | default('unknown') | regex_replace('.*Version:\\s*', '') | regex_replace('\\s.*', '') | trim }}"
+      disk_usage: "{{ disk_usage.stdout | trim }}"
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "=== MinIO Verification ==="
+      - "Pod: {{ minio_verify_status.pod_running }} / container: {{ minio_verify_status.container_running }}"
+      - "Health: {{ minio_verify_status.health_status }}, version: {{ minio_verify_status.version }}"
+      - "Disk: {{ minio_verify_status.disk_usage }}"

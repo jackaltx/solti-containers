@@ -106,3 +106,26 @@
 - name: Show resource usage
   debug:
     var: resource_usage.stdout_lines
+
+# ...................................................................................
+- name: Gather verification results
+  ansible.builtin.set_fact:
+    grafana_verify_status:
+      timestamp: "{{ verify_timestamp | default(ansible_date_time.iso8601) }}"
+      pod_running: "{{ 'grafana' in pod_status.stdout }}"
+      container_running: "{{ 'grafana-svc' in container_status.stdout }}"
+      health_status: "{{ health_check.json.database | default('unknown') }}"
+      version: "{{ health_check.json.version | default('unknown') }}"
+      admin_auth: "{{ grafana_stats.status == 200 }}"
+      users: "{{ grafana_stats.json.users | default('unknown') }}"
+      dashboards: "{{ grafana_stats.json.dashboards | default('unknown') }}"
+      datasources: "{{ grafana_stats.json.datasources | default('unknown') }}"
+      orgs: "{{ grafana_stats.json.orgs | default('unknown') }}"
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Grafana Verification ==="
+      - "Pod: {{ grafana_verify_status.pod_running }} / container: {{ grafana_verify_status.container_running }}"
+      - "Version: {{ grafana_verify_status.version }}, DB: {{ grafana_verify_status.health_status }}"
+      - "Admin auth: {{ grafana_verify_status.admin_auth }}, users={{ grafana_verify_status.users }}, dashboards={{ grafana_verify_status.dashboards }}, datasources={{ grafana_verify_status.datasources }}"

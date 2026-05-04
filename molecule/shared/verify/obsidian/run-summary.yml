@@ -46,7 +46,8 @@
 
       ## Service Results
       {% for svc in testing_services %}
-      - [[runs/{{ obsidian_run_timestamp }}/{{ svc }}-service|{{ svc | capitalize }}]]: {{ '✅ PASSED' if not (lookup('vars', svc + '_verify_failed', default=false) | bool) else '❌ FAILED' }}
+      - [[runs/{{ obsidian_run_timestamp }}/{{ svc }}-service|{{ svc | capitalize }}]]: {{ '✅ PASSED' if not (lookup('vars', svc + '_verify_failed', default=false) | bool) else '❌ FAILED' }}{% if lookup('vars', svc + '_verify_status', default={}) | length > 0 %} | [[runs/{{ obsidian_run_timestamp }}/{{ svc }}-verify-snapshot|snapshot]]{% endif %}
+
       {% endfor %}
 
       ## Diagnostics
