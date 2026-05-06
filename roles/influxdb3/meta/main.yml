@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  role_name: influxdb3
+  namespace: jackaltx
+  author: jackaltx
+  description: Deploy InfluxDB 3 time-series database using Podman containers
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+
+  galaxy_tags:
+    - influxdb
+    - timeseries
+    - metrics
+    - podman
+    - containers
+
+dependencies: []

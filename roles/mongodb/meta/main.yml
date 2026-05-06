@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  role_name: mongodb
+  namespace: jackaltx
+  author: jackaltx
+  description: Deploy MongoDB NoSQL database using Podman containers
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+
+  galaxy_tags:
+    - mongodb
+    - database
+    - nosql
+    - podman
+    - containers
+
+dependencies: []

@@ -1,0 +1,27 @@
+---
+galaxy_info:
+  role_name: gitea
+  namespace: jackaltx
+  author: jackaltx
+  description: Deploy Gitea Git hosting service using Podman containers
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+
+  galaxy_tags:
+    - gitea
+    - git
+    - podman
+    - containers
+
+dependencies: []

@@ -9,7 +9,6 @@ authors:
 description: Rootless Podman container services with Quadlet/systemd integration for RHEL, Debian, and Ubuntu
 license:
   - MIT
-license_file: LICENSE
 tags:
   - podman
   - containers

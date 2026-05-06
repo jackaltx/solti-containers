@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  role_name: obsidian
+  namespace: jackaltx
+  author: jackaltx
+  description: Deploy Obsidian LiveSync server using Podman containers
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+
+  galaxy_tags:
+    - obsidian
+    - notes
+    - sync
+    - podman
+    - containers
+
+dependencies: []
