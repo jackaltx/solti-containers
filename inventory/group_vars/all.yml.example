@@ -1,4 +1,9 @@
 ---
+# Shared variables template — copy to all.yml and customize
+# cp inventory/group_vars/all.yml.example inventory/group_vars/all.yml
+#
+# all.yml is gitignored — site-specific overrides go there, not here
+
 # Shared variables for all inventory hosts
 # These vars apply across both localhost.yml and podma.yml inventories
 
