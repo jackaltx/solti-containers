@@ -119,7 +119,7 @@
 - name: Gather verification results
   ansible.builtin.set_fact:
     mattermost_verify_status:
-      timestamp: "{{ verify_timestamp | default(ansible_date_time.iso8601) }}"
+      timestamp: "{{ verify_timestamp | default(now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ')) }}"
       pod_running: "{{ 'mattermost' in pod_status.stdout }}"
       container_running_svc: "{{ 'mattermost-svc' in container_status.stdout }}"
       container_running_db: "{{ 'mattermost-db' in container_status.stdout }}"

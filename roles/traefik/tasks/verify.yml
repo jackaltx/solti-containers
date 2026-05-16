@@ -52,7 +52,7 @@
 - name: Gather verification results
   ansible.builtin.set_fact:
     traefik_verify_status:
-      timestamp: "{{ verify_timestamp | default(ansible_date_time.iso8601) }}"
+      timestamp: "{{ verify_timestamp | default(now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ')) }}"
       pod_running: "{{ 'traefik' in pod_status.stdout }}"
       container_running: "{{ 'traefik' in container_status.stdout }}"
       api_accessible: "{{ health_check.status | default('unknown') }}"

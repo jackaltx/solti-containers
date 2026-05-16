@@ -111,7 +111,7 @@
 - name: Gather verification results
   ansible.builtin.set_fact:
     mongodb_verify_status:
-      timestamp: "{{ ansible_date_time.iso8601 | default(verify_timestamp) | default(lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ')) }}"
+      timestamp: "{{ verify_timestamp | default(now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ')) }}"
       pod_running: "{{ 'mongodb' in pod_status.stdout }}"
       container_running: "{{ 'mongodb-svc' in container_status.stdout }}"
       ping_rc: "{{ mongo_ping.rc | default('unknown') }}"

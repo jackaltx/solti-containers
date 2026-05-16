@@ -124,7 +124,7 @@
 - name: Gather verification results
   ansible.builtin.set_fact:
     elasticsearch_verify_status:
-      timestamp: "{{ verify_timestamp | default(ansible_date_time.iso8601) }}"
+      timestamp: "{{ verify_timestamp | default(now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ')) }}"
       pod_running: "{{ 'elasticsearch' in pod_status.stdout }}"
       container_running: "{{ 'elasticsearch-svc' in container_status.stdout }}"
       cluster_status: "{{ (cluster_health.stdout | from_json).status | default('unknown') }}"

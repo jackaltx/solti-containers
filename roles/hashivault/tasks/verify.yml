@@ -86,7 +86,7 @@
 - name: Gather verification results
   ansible.builtin.set_fact:
     hashivault_verify_status:
-      timestamp: "{{ verify_timestamp | default(ansible_date_time.iso8601) }}"
+      timestamp: "{{ verify_timestamp | default(now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ')) }}"
       pod_running: "{{ 'vault' in pod_status.stdout }}"
       container_running: "{{ 'vault-svc' in container_status.stdout }}"
       api_accessible: "{{ seal_status.status == 200 }}"
