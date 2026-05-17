@@ -438,7 +438,7 @@ def main():
     module.exit_json(**result)
 
 
-from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule  # noqa: E402
 
 if __name__ == "__main__":
     main()
