@@ -55,8 +55,8 @@ import argparse
 import json
 import os
 import sys
-import urllib.request
 import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -65,7 +65,7 @@ class MatrixLogger:
     """Send log messages to Matrix room"""
 
     def __init__(self, homeserver_url, access_token, room_id):
-        self.homeserver_url = homeserver_url.rstrip('/')
+        self.homeserver_url = homeserver_url.rstrip("/")
         self.access_token = access_token
         self.room_id = room_id
 
@@ -125,14 +125,14 @@ class MatrixLogger:
             "Content-Type": "application/json",
         }
 
-        data = json.dumps(content).encode('utf-8')
+        data = json.dumps(content).encode("utf-8")
 
         try:
-            req = urllib.request.Request(url, data=data, headers=headers, method='POST')
+            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
             with urllib.request.urlopen(req, timeout=10) as response:
-                return json.loads(response.read().decode('utf-8'))
+                return json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
-            error_body = e.read().decode('utf-8') if e.fp else ''
+            error_body = e.read().decode("utf-8") if e.fp else ""
             raise Exception(f"HTTP {e.code}: {error_body}")
         except urllib.error.URLError as e:
             raise Exception(f"Network error: {e.reason}")
@@ -143,11 +143,11 @@ class MatrixLogger:
         # This is a simplified version - Matrix supports markdown
         html = text
         # Bold
-        html = html.replace('**', '<strong>').replace('**', '</strong>')
+        html = html.replace("**", "<strong>").replace("**", "</strong>")
         # Code
-        html = html.replace('`', '<code>').replace('`', '</code>')
+        html = html.replace("`", "<code>").replace("`", "</code>")
         # Newlines
-        html = html.replace('\n', '<br/>')
+        html = html.replace("\n", "<br/>")
         return html
 
 
@@ -159,11 +159,11 @@ class EventFormatter:
         """Format deployment event"""
         # Status emoji
         status_emoji = {
-            'success': '✅',
-            'failure': '❌',
-            'warning': '⚠️',
-            'info': 'ℹ️',
-        }.get(status.lower(), '📝')
+            "success": "✅",
+            "failure": "❌",
+            "warning": "⚠️",
+            "info": "ℹ️",
+        }.get(status.lower(), "📝")
 
         # Build human-readable message
         lines = [
@@ -178,7 +178,7 @@ class EventFormatter:
             for key, value in details.items():
                 lines.append(f"  {key}: {value}")
 
-        text = '\n'.join(lines)
+        text = "\n".join(lines)
 
         # Build structured data
         json_data = {
@@ -187,7 +187,7 @@ class EventFormatter:
             "host": host,
             "status": status.lower(),
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "user": os.environ.get('USER', 'unknown'),
+            "user": os.environ.get("USER", "unknown"),
         }
 
         if duration is not None:
@@ -202,11 +202,11 @@ class EventFormatter:
     def format_task(service, host, task_name, status, duration=None, details=None):
         """Format task execution event"""
         status_emoji = {
-            'success': '✅',
-            'failure': '❌',
-            'warning': '⚠️',
-            'info': 'ℹ️',
-        }.get(status.lower(), '📝')
+            "success": "✅",
+            "failure": "❌",
+            "warning": "⚠️",
+            "info": "ℹ️",
+        }.get(status.lower(), "📝")
 
         lines = [
             f"⚙️ **Task: {service}/{task_name}@{host}**",
@@ -220,7 +220,7 @@ class EventFormatter:
             for key, value in details.items():
                 lines.append(f"  {key}: {value}")
 
-        text = '\n'.join(lines)
+        text = "\n".join(lines)
 
         json_data = {
             "event_type": "task",
@@ -229,7 +229,7 @@ class EventFormatter:
             "task_name": task_name,
             "status": status.lower(),
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "user": os.environ.get('USER', 'unknown'),
+            "user": os.environ.get("USER", "unknown"),
         }
 
         if duration is not None:
@@ -244,11 +244,11 @@ class EventFormatter:
     def format_test(service, platform, status, duration=None, tests=None, details=None):
         """Format test event"""
         status_emoji = {
-            'success': '✅',
-            'failure': '❌',
-            'warning': '⚠️',
-            'info': 'ℹ️',
-        }.get(status.lower(), '📝')
+            "success": "✅",
+            "failure": "❌",
+            "warning": "⚠️",
+            "info": "ℹ️",
+        }.get(status.lower(), "📝")
 
         lines = [
             f"🧪 **Test: {service} on {platform}**",
@@ -265,7 +265,7 @@ class EventFormatter:
             for key, value in details.items():
                 lines.append(f"  {key}: {value}")
 
-        text = '\n'.join(lines)
+        text = "\n".join(lines)
 
         json_data = {
             "event_type": "test",
@@ -273,7 +273,7 @@ class EventFormatter:
             "platform": platform,
             "status": status.lower(),
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "user": os.environ.get('USER', 'unknown'),
+            "user": os.environ.get("USER", "unknown"),
         }
 
         if duration is not None:
@@ -288,13 +288,13 @@ class EventFormatter:
         return text, json_data
 
     @staticmethod
-    def format_message(message, level='info'):
+    def format_message(message, level="info"):
         """Format simple text message"""
         level_emoji = {
-            'info': 'ℹ️',
-            'warning': '⚠️',
-            'error': '❌',
-        }.get(level.lower(), '📝')
+            "info": "ℹ️",
+            "warning": "⚠️",
+            "error": "❌",
+        }.get(level.lower(), "📝")
 
         text = f"{level_emoji} {message}"
 
@@ -302,7 +302,7 @@ class EventFormatter:
             "event_type": "message",
             "level": level.lower(),
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "user": os.environ.get('USER', 'unknown'),
+            "user": os.environ.get("USER", "unknown"),
             "message": message,
         }
 
@@ -317,19 +317,19 @@ def load_config(config_path=None):
     if config_path is None:
         # Default location relative to script
         script_dir = Path(__file__).parent.parent
-        config_path = script_dir / 'data' / 'matrix-logger.conf'
+        config_path = script_dir / "data" / "matrix-logger.conf"
 
     if config_path and Path(config_path).exists():
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             config = json.load(f)
 
     # Environment variables override config file
-    if 'MATRIX_HOMESERVER' in os.environ:
-        config['homeserver_url'] = os.environ['MATRIX_HOMESERVER']
-    if 'MATRIX_TOKEN' in os.environ:
-        config['access_token'] = os.environ['MATRIX_TOKEN']
-    if 'MATRIX_ROOM_ID' in os.environ:
-        config['room_id'] = os.environ['MATRIX_ROOM_ID']
+    if "MATRIX_HOMESERVER" in os.environ:
+        config["homeserver_url"] = os.environ["MATRIX_HOMESERVER"]
+    if "MATRIX_TOKEN" in os.environ:
+        config["access_token"] = os.environ["MATRIX_TOKEN"]
+    if "MATRIX_ROOM_ID" in os.environ:
+        config["room_id"] = os.environ["MATRIX_ROOM_ID"]
 
     return config
 
@@ -341,8 +341,8 @@ def parse_details(details_list):
 
     result = {}
     for item in details_list:
-        if '=' in item:
-            key, value = item.split('=', 1)
+        if "=" in item:
+            key, value = item.split("=", 1)
             result[key] = value
         else:
             result[item] = True
@@ -351,59 +351,87 @@ def parse_details(details_list):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Send structured logs to Matrix room',
+        description="Send structured logs to Matrix room",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
 
     # Subcommands
-    subparsers = parser.add_subparsers(dest='command', required=True)
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
     # message command
-    msg_parser = subparsers.add_parser('message', help='Send text message')
-    msg_parser.add_argument('text', help='Message text')
-    msg_parser.add_argument('--level', default='info', choices=['info', 'warning', 'error'],
-                            help='Message severity')
+    msg_parser = subparsers.add_parser("message", help="Send text message")
+    msg_parser.add_argument("text", help="Message text")
+    msg_parser.add_argument(
+        "--level",
+        default="info",
+        choices=["info", "warning", "error"],
+        help="Message severity",
+    )
 
     # deployment command
-    deploy_parser = subparsers.add_parser('deployment', help='Log deployment event')
-    deploy_parser.add_argument('service', help='Service name')
-    deploy_parser.add_argument('host', help='Target host')
-    deploy_parser.add_argument('status', choices=['success', 'failure', 'warning', 'info'],
-                               help='Deployment status')
-    deploy_parser.add_argument('--duration', type=float, help='Execution duration in seconds')
-    deploy_parser.add_argument('--details', action='append', metavar='KEY=VALUE',
-                               help='Additional metadata (repeatable)')
+    deploy_parser = subparsers.add_parser("deployment", help="Log deployment event")
+    deploy_parser.add_argument("service", help="Service name")
+    deploy_parser.add_argument("host", help="Target host")
+    deploy_parser.add_argument(
+        "status",
+        choices=["success", "failure", "warning", "info"],
+        help="Deployment status",
+    )
+    deploy_parser.add_argument(
+        "--duration", type=float, help="Execution duration in seconds"
+    )
+    deploy_parser.add_argument(
+        "--details",
+        action="append",
+        metavar="KEY=VALUE",
+        help="Additional metadata (repeatable)",
+    )
 
     # task command
-    task_parser = subparsers.add_parser('task', help='Log task execution')
-    task_parser.add_argument('service', help='Service name')
-    task_parser.add_argument('host', help='Target host')
-    task_parser.add_argument('task_name', help='Task name')
-    task_parser.add_argument('status', choices=['success', 'failure', 'warning', 'info'],
-                             help='Task status')
-    task_parser.add_argument('--duration', type=float, help='Execution duration in seconds')
-    task_parser.add_argument('--details', action='append', metavar='KEY=VALUE',
-                             help='Additional metadata (repeatable)')
+    task_parser = subparsers.add_parser("task", help="Log task execution")
+    task_parser.add_argument("service", help="Service name")
+    task_parser.add_argument("host", help="Target host")
+    task_parser.add_argument("task_name", help="Task name")
+    task_parser.add_argument(
+        "status", choices=["success", "failure", "warning", "info"], help="Task status"
+    )
+    task_parser.add_argument(
+        "--duration", type=float, help="Execution duration in seconds"
+    )
+    task_parser.add_argument(
+        "--details",
+        action="append",
+        metavar="KEY=VALUE",
+        help="Additional metadata (repeatable)",
+    )
 
     # test command
-    test_parser = subparsers.add_parser('test', help='Log test event')
-    test_parser.add_argument('service', help='Service name')
-    test_parser.add_argument('platform', help='Test platform (debian12, rocky9, etc)')
-    test_parser.add_argument('status', choices=['success', 'failure', 'warning', 'info'],
-                             help='Test status')
-    test_parser.add_argument('--duration', type=float, help='Execution duration in seconds')
-    test_parser.add_argument('--tests', help='Test results (e.g., "5/5")')
-    test_parser.add_argument('--details', action='append', metavar='KEY=VALUE',
-                             help='Additional metadata (repeatable)')
+    test_parser = subparsers.add_parser("test", help="Log test event")
+    test_parser.add_argument("service", help="Service name")
+    test_parser.add_argument("platform", help="Test platform (debian12, rocky9, etc)")
+    test_parser.add_argument(
+        "status", choices=["success", "failure", "warning", "info"], help="Test status"
+    )
+    test_parser.add_argument(
+        "--duration", type=float, help="Execution duration in seconds"
+    )
+    test_parser.add_argument("--tests", help='Test results (e.g., "5/5")')
+    test_parser.add_argument(
+        "--details",
+        action="append",
+        metavar="KEY=VALUE",
+        help="Additional metadata (repeatable)",
+    )
 
     # Global options
-    parser.add_argument('--dry-run', action='store_true',
-                        help='Print message without sending')
-    parser.add_argument('--config', help='Config file path')
-    parser.add_argument('--token', help='Override access token')
-    parser.add_argument('--room', help='Override room ID')
-    parser.add_argument('--homeserver', help='Override homeserver URL')
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print message without sending"
+    )
+    parser.add_argument("--config", help="Config file path")
+    parser.add_argument("--token", help="Override access token")
+    parser.add_argument("--room", help="Override room ID")
+    parser.add_argument("--homeserver", help="Override homeserver URL")
 
     args = parser.parse_args()
 
@@ -416,47 +444,49 @@ def main():
 
     # CLI overrides
     if args.token:
-        config['access_token'] = args.token
+        config["access_token"] = args.token
     if args.room:
-        config['room_id'] = args.room
+        config["room_id"] = args.room
     if args.homeserver:
-        config['homeserver_url'] = args.homeserver
+        config["homeserver_url"] = args.homeserver
 
     # Validate configuration (skip in dry-run mode)
     if not args.dry_run:
-        required = ['homeserver_url', 'access_token', 'room_id']
+        required = ["homeserver_url", "access_token", "room_id"]
         missing = [k for k in required if k not in config]
         if missing:
-            print(f"Error: Missing configuration: {', '.join(missing)}", file=sys.stderr)
-            print("Create data/matrix-logger.conf or set environment variables", file=sys.stderr)
+            print(
+                f"Error: Missing configuration: {', '.join(missing)}", file=sys.stderr
+            )
+            print(
+                "Create data/matrix-logger.conf or set environment variables",
+                file=sys.stderr,
+            )
             print("Run: mylab/bin/setup-logger-config.sh", file=sys.stderr)
             return 1
 
     # Format message based on command
     formatter = EventFormatter()
 
-    if args.command == 'message':
+    if args.command == "message":
         text, json_data = formatter.format_message(args.text, args.level)
 
-    elif args.command == 'deployment':
+    elif args.command == "deployment":
         details = parse_details(args.details)
         text, json_data = formatter.format_deployment(
-            args.service, args.host, args.status,
-            args.duration, details
+            args.service, args.host, args.status, args.duration, details
         )
 
-    elif args.command == 'task':
+    elif args.command == "task":
         details = parse_details(args.details)
         text, json_data = formatter.format_task(
-            args.service, args.host, args.task_name, args.status,
-            args.duration, details
+            args.service, args.host, args.task_name, args.status, args.duration, details
         )
 
-    elif args.command == 'test':
+    elif args.command == "test":
         details = parse_details(args.details)
         text, json_data = formatter.format_test(
-            args.service, args.platform, args.status,
-            args.duration, args.tests, details
+            args.service, args.platform, args.status, args.duration, args.tests, details
         )
 
     else:
@@ -466,13 +496,11 @@ def main():
     # Send message
     try:
         if args.dry_run:
-            logger = MatrixLogger('', '', '')
+            logger = MatrixLogger("", "", "")
             logger.send_message(text, json_data, dry_run=True)
         else:
             logger = MatrixLogger(
-                config['homeserver_url'],
-                config['access_token'],
-                config['room_id']
+                config["homeserver_url"], config["access_token"], config["room_id"]
             )
             response = logger.send_message(text, json_data)
             if response:
@@ -484,5 +512,5 @@ def main():
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

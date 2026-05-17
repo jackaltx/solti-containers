@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-DOCUMENTATION = r'''
+DOCUMENTATION = r"""
 ---
 module: mattermost
 short_description: Manage Mattermost resources and actions
@@ -60,9 +60,9 @@ requirements:
     - requests
 author:
     - Your Name (@yourgithub)
-'''
+"""
 
-EXAMPLES = r'''
+EXAMPLES = r"""
 # Create a user
 - name: Create a test user
   mattermost:
@@ -95,9 +95,9 @@ EXAMPLES = r'''
     password: "admin_password"
     action: verify_security
   register: security_result
-'''
+"""
 
-RETURN = r'''
+RETURN = r"""
 user:
     description: Details of created user
     returned: When action is create_user
@@ -138,13 +138,13 @@ security:
         "tests_passed": true,
         "recommendations": ["Enable MFA", "Set shorter session timeout"]
     }
-'''
+"""
 
-import json
-import traceback
+import traceback  # noqa: E402
 
 try:
     import requests
+
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
@@ -153,134 +153,155 @@ except ImportError:
 class MattermostModule:
     def __init__(self, module):
         self.module = module
-        self.url = module.params['url'].rstrip('/')
-        self.username = module.params.get('username')
-        self.password = module.params.get('password')
-        self.token = module.params.get('token')
-        self.action = module.params['action']
-        self.team_name = module.params.get('team_name')
-        self.channel_name = module.params.get('channel_name')
-        self.message = module.params.get('message')
-        self.user = module.params.get('user', {})
-        
+        self.url = module.params["url"].rstrip("/")
+        self.username = module.params.get("username")
+        self.password = module.params.get("password")
+        self.token = module.params.get("token")
+        self.action = module.params["action"]
+        self.team_name = module.params.get("team_name")
+        self.channel_name = module.params.get("channel_name")
+        self.message = module.params.get("message")
+        self.user = module.params.get("user", {})
+
         self.headers = {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
         }
-        
+
         # Add token to headers if provided
         if self.token:
-            self.headers['Authorization'] = f'Bearer {self.token}'
-        
+            self.headers["Authorization"] = f"Bearer {self.token}"
+
     def authenticate(self):
         """Authenticate with Mattermost and get token"""
         if not self.username or not self.password:
-            self.module.fail_json(msg="Username and password are required for authentication")
-            
+            self.module.fail_json(
+                msg="Username and password are required for authentication"
+            )
+
         auth_url = f"{self.url}/api/v4/users/login"
-        data = {
-            'login_id': self.username,
-            'password': self.password
-        }
-        
+        data = {"login_id": self.username, "password": self.password}
+
         try:
             response = requests.post(auth_url, json=data)
             if response.status_code in [200, 201]:
                 # Get token from headers
-                self.token = response.headers.get('Token') or response.headers.get('token')
+                self.token = response.headers.get("Token") or response.headers.get(
+                    "token"
+                )
                 if not self.token:
-                    self.module.fail_json(msg="Authentication succeeded but no token was returned")
-                    
-                self.headers['Authorization'] = f'Bearer {self.token}'
+                    self.module.fail_json(
+                        msg="Authentication succeeded but no token was returned"
+                    )
+
+                self.headers["Authorization"] = f"Bearer {self.token}"
                 return True
             else:
-                self.module.fail_json(msg=f"Authentication failed: {response.status_code} - {response.text}")
+                self.module.fail_json(
+                    msg=f"Authentication failed: {response.status_code} - {response.text}"
+                )
         except Exception as e:
-            self.module.fail_json(msg=f"Authentication error: {str(e)}", exception=traceback.format_exc())
-    
+            self.module.fail_json(
+                msg=f"Authentication error: {str(e)}", exception=traceback.format_exc()
+            )
+
     def create_user(self):
         """Create a new user"""
-        required_fields = ['email', 'username', 'password']
+        required_fields = ["email", "username", "password"]
         for field in required_fields:
             if field not in self.user:
-                self.module.fail_json(msg=f"Missing required field for user creation: {field}")
-        
+                self.module.fail_json(
+                    msg=f"Missing required field for user creation: {field}"
+                )
+
         user_url = f"{self.url}/api/v4/users"
         try:
             response = requests.post(user_url, headers=self.headers, json=self.user)
             if response.status_code in [200, 201]:
+                return {"changed": True, "user": response.json(), "token": self.token}
+            elif response.status_code == 400 and "already exists" in response.text:
                 return {
-                    'changed': True,
-                    'user': response.json(),
-                    'token': self.token
-                }
-            elif response.status_code == 400 and 'already exists' in response.text:
-                return {
-                    'changed': False,
-                    'msg': f"User {self.user['username']} already exists",
-                    'token': self.token
+                    "changed": False,
+                    "msg": f"User {self.user['username']} already exists",
+                    "token": self.token,
                 }
             else:
-                self.module.fail_json(msg=f"User creation failed: {response.status_code} - {response.text}")
+                self.module.fail_json(
+                    msg=f"User creation failed: {response.status_code} - {response.text}"
+                )
         except Exception as e:
-            self.module.fail_json(msg=f"User creation error: {str(e)}", exception=traceback.format_exc())
-    
+            self.module.fail_json(
+                msg=f"User creation error: {str(e)}", exception=traceback.format_exc()
+            )
+
     def get_team_id(self):
         """Get team ID from team name"""
         if not self.team_name:
             self.module.fail_json(msg="Team name is required")
-            
+
         team_url = f"{self.url}/api/v4/teams/name/{self.team_name}"
         try:
             response = requests.get(team_url, headers=self.headers)
             if response.status_code == 200:
-                return response.json()['id']
+                return response.json()["id"]
             else:
-                self.module.fail_json(msg=f"Failed to get team: {response.status_code} - {response.text}")
+                self.module.fail_json(
+                    msg=f"Failed to get team: {response.status_code} - {response.text}"
+                )
         except Exception as e:
-            self.module.fail_json(msg=f"Team retrieval error: {str(e)}", exception=traceback.format_exc())
-    
+            self.module.fail_json(
+                msg=f"Team retrieval error: {str(e)}", exception=traceback.format_exc()
+            )
+
     def get_channel_id(self, team_id):
         """Get channel ID from channel name and team ID"""
         if not self.channel_name:
             self.module.fail_json(msg="Channel name is required")
-            
-        channel_url = f"{self.url}/api/v4/teams/{team_id}/channels/name/{self.channel_name}"
+
+        channel_url = (
+            f"{self.url}/api/v4/teams/{team_id}/channels/name/{self.channel_name}"
+        )
         try:
             response = requests.get(channel_url, headers=self.headers)
             if response.status_code == 200:
-                return response.json()['id']
+                return response.json()["id"]
             else:
-                self.module.fail_json(msg=f"Failed to get channel: {response.status_code} - {response.text}")
+                self.module.fail_json(
+                    msg=f"Failed to get channel: {response.status_code} - {response.text}"
+                )
         except Exception as e:
-            self.module.fail_json(msg=f"Channel retrieval error: {str(e)}", exception=traceback.format_exc())
-    
+            self.module.fail_json(
+                msg=f"Channel retrieval error: {str(e)}",
+                exception=traceback.format_exc(),
+            )
+
     def post_message(self):
         """Post a message to a channel"""
         if not self.message:
             self.module.fail_json(msg="Message content is required")
-            
+
         team_id = self.get_team_id()
         channel_id = self.get_channel_id(team_id)
-        
+
         post_url = f"{self.url}/api/v4/posts"
-        data = {
-            'channel_id': channel_id,
-            'message': self.message
-        }
-        
+        data = {"channel_id": channel_id, "message": self.message}
+
         try:
             response = requests.post(post_url, headers=self.headers, json=data)
             if response.status_code in [200, 201]:
                 return {
-                    'changed': True,
-                    'message': response.json(),
-                    'token': self.token
+                    "changed": True,
+                    "message": response.json(),
+                    "token": self.token,
                 }
             else:
-                self.module.fail_json(msg=f"Message posting failed: {response.status_code} - {response.text}")
+                self.module.fail_json(
+                    msg=f"Message posting failed: {response.status_code} - {response.text}"
+                )
         except Exception as e:
-            self.module.fail_json(msg=f"Message posting error: {str(e)}", exception=traceback.format_exc())
-    
+            self.module.fail_json(
+                msg=f"Message posting error: {str(e)}", exception=traceback.format_exc()
+            )
+
     def verify_security(self):
         """Verify security settings"""
         config_url = f"{self.url}/api/v4/config"
@@ -288,38 +309,53 @@ class MattermostModule:
             response = requests.get(config_url, headers=self.headers)
             if response.status_code == 200:
                 config = response.json()
-                
+
                 # Check critical security settings
-                user_creation_disabled = not config['TeamSettings']['EnableUserCreation']
-                open_server_disabled = not config['TeamSettings']['EnableOpenServer']
-                
+                user_creation_disabled = not config["TeamSettings"][
+                    "EnableUserCreation"
+                ]
+                open_server_disabled = not config["TeamSettings"]["EnableOpenServer"]
+
                 security_results = {
-                    'user_creation_disabled': user_creation_disabled,
-                    'open_server_disabled': open_server_disabled,
-                    'tests_passed': user_creation_disabled and open_server_disabled,
-                    'session_length_days': config['ServiceSettings'].get('SessionLengthInDays', 'unknown'),
-                    'timeout_minutes': config['ServiceSettings'].get('SessionTimeoutInMinutes', 'unknown'),
-                    'recommendations': []
+                    "user_creation_disabled": user_creation_disabled,
+                    "open_server_disabled": open_server_disabled,
+                    "tests_passed": user_creation_disabled and open_server_disabled,
+                    "session_length_days": config["ServiceSettings"].get(
+                        "SessionLengthInDays", "unknown"
+                    ),
+                    "timeout_minutes": config["ServiceSettings"].get(
+                        "SessionTimeoutInMinutes", "unknown"
+                    ),
+                    "recommendations": [],
                 }
-                
+
                 # Add recommendations based on settings
                 if not user_creation_disabled:
-                    security_results['recommendations'].append("Disable user creation")
+                    security_results["recommendations"].append("Disable user creation")
                 if not open_server_disabled:
-                    security_results['recommendations'].append("Disable open server")
-                if not config.get('ServiceSettings', {}).get('EnableMultifactorAuthentication', False):
-                    security_results['recommendations'].append("Enable multi-factor authentication")
-                
+                    security_results["recommendations"].append("Disable open server")
+                if not config.get("ServiceSettings", {}).get(
+                    "EnableMultifactorAuthentication", False
+                ):
+                    security_results["recommendations"].append(
+                        "Enable multi-factor authentication"
+                    )
+
                 return {
-                    'changed': False,
-                    'security': security_results,
-                    'token': self.token
+                    "changed": False,
+                    "security": security_results,
+                    "token": self.token,
                 }
             else:
-                self.module.fail_json(msg=f"Security verification failed: {response.status_code} - {response.text}")
+                self.module.fail_json(
+                    msg=f"Security verification failed: {response.status_code} - {response.text}"
+                )
         except Exception as e:
-            self.module.fail_json(msg=f"Security verification error: {str(e)}", exception=traceback.format_exc())
-    
+            self.module.fail_json(
+                msg=f"Security verification error: {str(e)}",
+                exception=traceback.format_exc(),
+            )
+
     def get_config(self):
         """Get Mattermost configuration"""
         config_url = f"{self.url}/api/v4/config"
@@ -327,28 +363,33 @@ class MattermostModule:
             response = requests.get(config_url, headers=self.headers)
             if response.status_code == 200:
                 return {
-                    'changed': False,
-                    'config': response.json(),
-                    'token': self.token
+                    "changed": False,
+                    "config": response.json(),
+                    "token": self.token,
                 }
             else:
-                self.module.fail_json(msg=f"Config retrieval failed: {response.status_code} - {response.text}")
+                self.module.fail_json(
+                    msg=f"Config retrieval failed: {response.status_code} - {response.text}"
+                )
         except Exception as e:
-            self.module.fail_json(msg=f"Config retrieval error: {str(e)}", exception=traceback.format_exc())
-    
+            self.module.fail_json(
+                msg=f"Config retrieval error: {str(e)}",
+                exception=traceback.format_exc(),
+            )
+
     def execute(self):
         """Execute the requested action"""
         # Authenticate if token not provided
-        if not self.token and self.action != 'get_version':
+        if not self.token and self.action != "get_version":
             self.authenticate()
-            
-        if self.action == 'create_user':
+
+        if self.action == "create_user":
             return self.create_user()
-        elif self.action == 'post_message':
+        elif self.action == "post_message":
             return self.post_message()
-        elif self.action == 'verify_security':
+        elif self.action == "verify_security":
             return self.verify_security()
-        elif self.action == 'get_config':
+        elif self.action == "get_config":
             return self.get_config()
         else:
             self.module.fail_json(msg=f"Unsupported action: {self.action}")
@@ -356,41 +397,48 @@ class MattermostModule:
 
 def main():
     module_args = dict(
-        url=dict(type='str', required=True),
-        username=dict(type='str', required=False),
-        password=dict(type='str', required=False, no_log=True),
-        token=dict(type='str', required=False, no_log=True),
-        action=dict(type='str', required=True, choices=['create_user', 'create_team', 'create_channel', 'post_message', 'verify_security', 'get_config']),
-        team_name=dict(type='str', required=False),
-        channel_name=dict(type='str', required=False),
-        message=dict(type='str', required=False),
-        user=dict(type='dict', required=False)
+        url=dict(type="str", required=True),
+        username=dict(type="str", required=False),
+        password=dict(type="str", required=False, no_log=True),
+        token=dict(type="str", required=False, no_log=True),
+        action=dict(
+            type="str",
+            required=True,
+            choices=[
+                "create_user",
+                "create_team",
+                "create_channel",
+                "post_message",
+                "verify_security",
+                "get_config",
+            ],
+        ),
+        team_name=dict(type="str", required=False),
+        channel_name=dict(type="str", required=False),
+        message=dict(type="str", required=False),
+        user=dict(type="dict", required=False),
     )
-    
+
     module = AnsibleModule(
         argument_spec=module_args,
         required_if=[
-            ('action', 'post_message', ['team_name', 'channel_name', 'message']),
-            ('action', 'create_user', ['user'])
+            ("action", "post_message", ["team_name", "channel_name", "message"]),
+            ("action", "create_user", ["user"]),
         ],
-        required_one_of=[
-            ['username', 'token']
-        ],
-        required_together=[
-            ['username', 'password']
-        ]
+        required_one_of=[["username", "token"]],
+        required_together=[["username", "password"]],
     )
-    
+
     if not HAS_REQUESTS:
         module.fail_json(msg="The 'requests' module is required for this module")
-    
+
     mattermost = MattermostModule(module)
     result = mattermost.execute()
-    
+
     module.exit_json(**result)
 
 
 from ansible.module_utils.basic import AnsibleModule
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

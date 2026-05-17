@@ -29,5 +29,5 @@ jobs:
           # Disable linters handled by dedicated workflows or not needed
           VALIDATE_MARKDOWN: false
           VALIDATE_BASH: false
-          # Exclude docs directory and Jinja2 templates from linting
-          FILTER_REGEX_EXCLUDE: "(docs/.*)|(.*\\.j2$)"
+          # Exclude docs directory, Jinja2 templates, and saved legacy code from linting
+          FILTER_REGEX_EXCLUDE: "(docs/.*)|(.*\\.j2$)|(library\\.sav/.*)"
