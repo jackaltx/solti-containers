@@ -60,3 +60,23 @@
 - name: Display systemd service status
   ansible.builtin.debug:
     msg: "{{ systemd_status.stdout_lines }}"
+
+# ...................................................................................
+- name: Gather verification results
+  ansible.builtin.set_fact:
+    obsidian_verify_status:
+      timestamp: "{{ verify_timestamp | default(now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ')) }}"
+      pod_running: "{{ 'obsidian' in pod_status.stdout }}"
+      container_running: "{{ container_status.stdout != '' }}"
+      http_status: "{{ http_check.status | default('unknown') }}"
+      http_port: "{{ obsidian_port }}"
+      https_port: "{{ obsidian_https_port }}"
+      systemd_active: "{{ systemd_status.rc == 0 }}"
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Obsidian Verification ==="
+      - "Pod: {{ obsidian_verify_status.pod_running }} / container: {{ obsidian_verify_status.container_running }}"
+      - "HTTP {{ obsidian_verify_status.http_port }}: {{ obsidian_verify_status.http_status }}, HTTPS: {{ obsidian_verify_status.https_port }}"
+      - "Systemd: {{ obsidian_verify_status.systemd_active }}"

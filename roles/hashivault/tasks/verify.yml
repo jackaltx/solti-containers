@@ -81,3 +81,26 @@
   debug:
     msg: "{{ systemd_status.stdout_lines | select('match', '^\\s*(Active|Memory|CPU)') | list }}"
   when: systemd_status.rc == 0
+
+# ...................................................................................
+- name: Gather verification results
+  ansible.builtin.set_fact:
+    hashivault_verify_status:
+      timestamp: "{{ verify_timestamp | default(now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ')) }}"
+      pod_running: "{{ 'vault' in pod_status.stdout }}"
+      container_running: "{{ 'vault-svc' in container_status.stdout }}"
+      api_accessible: "{{ seal_status.status == 200 }}"
+      version: "{{ seal_status.json.version | default('unknown') }}"
+      initialized: "{{ seal_status.json.initialized | default('unknown') }}"
+      sealed: "{{ seal_status.json.sealed | default('unknown') }}"
+      storage_type: "{{ seal_status.json.storage_type | default('unknown') }}"
+      health_code: "{{ health_status.status | default('unknown') }}"
+      systemd_active: "{{ systemd_status.rc == 0 }}"
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "=== HashiVault Verification ==="
+      - "Pod: {{ hashivault_verify_status.pod_running }} / container: {{ hashivault_verify_status.container_running }}"
+      - "Version: {{ hashivault_verify_status.version }}, storage: {{ hashivault_verify_status.storage_type }}"
+      - "Initialized: {{ hashivault_verify_status.initialized }}, sealed: {{ hashivault_verify_status.sealed }}, health: {{ hashivault_verify_status.health_code }}"

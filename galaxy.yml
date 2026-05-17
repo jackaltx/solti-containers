@@ -6,20 +6,54 @@ readme: README.md
 authors:
   - Jackaltx <jack@jackaltx.com>
 
-### OPTIONAL but strongly recommended
-# A short summary description of the collection
-description: This creates podman pods/containers to test the CI/CD pipeline
+description: Rootless Podman container services with Quadlet/systemd integration for RHEL, Debian, and Ubuntu
 license:
   - MIT
-license_file: ""
-tags: []
+tags:
+  - podman
+  - containers
+  - systemd
+  - quadlet
+  - infrastructure
 dependencies:
   "community.general": ">=10.0.0"
-  "jackaltx.solti_matrix_mgr": ">=0.1.0"
 
 repository: http://github.com/jackaltx/solti-containers
 documentation: http://docs.jackaltx.com
 homepage: http://github.com/jackaltx/solti-containers
 issues: http://github.com/jackaltx/solti-containers/issue/tracker
 
-build_ignore: []
+build_ignore:
+  - "*.tar.gz"
+  - "*.retry"
+  - "*.bak"
+  - "*.backup"
+  - ".github/**"
+  - ".claude/**"
+  - ".ansible/**"
+  - "molecule/**"
+  - "docs/**"
+  - "tmp/**"
+  - "verify_output/**"
+  - "logs/**"
+  - "bin/**"
+  - "data/**"
+  - "inventory/**"
+  - "manage-svc.sh"
+  - "svc-exec.sh"
+  - "svc-manage.sh"
+  - "run-podman-tests.sh"
+  - "run-proxmox-tests.sh"
+  - "backup-before-cleanup.sh"
+  - "create_symlinks.sh"
+  - "prepare-solti-env.sh"
+  - "prompts.txt"
+  - "requirements.txt"
+  - "solti-venv/*"
+  - "JACKALTX.md"
+  - "CLAUDE.md"
+  - ".lint-progress.yml"
+  - ".markdownlintrc"
+  - ".yamllint"
+  - ".ansible-lint"
+  - "ansible.cfg"

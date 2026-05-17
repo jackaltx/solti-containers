@@ -7,6 +7,7 @@ __pycache__/
 
 # Ansible artifacts
 *.retry
+*.tar.gz
 verify_output/
 logs/*.log
 .ansible/
@@ -34,6 +35,9 @@ Thumbs.db
 !roles/*/files/*.key
 *.crt
 !roles/*/files/*.crt
+
+# Site-specific inventory overrides (use all.yml.example as template)
+inventory/group_vars/all.yml
 
 # Backup files
 *.bak

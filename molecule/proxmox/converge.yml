@@ -1,71 +1,41 @@
 ---
-- name: Converge
-  hosts: all
+# Converge: prepare state then deploy state — both via direct role invocation.
+# No svc-manage.sh wrapper. Variables flow through the real Ansible stack.
+# dns_service omitted here — *_svc_name vars require the linked inventory (deferred).
+#
+# become: true at play level; roles manage their own become: false for user tasks.
+
+- name: Prepare services (SELinux contexts, dirs, sysctl)
+  hosts: podma
   become: true
-  serial: "{{ lookup('env', 'MOLECULE_SERIAL', default='0') }}"
 
   tasks:
-    - name: Set test run timestamp (used across converge and verify)
-      set_fact:
-        verify_timestamp: "{{ ansible_facts['date_time']['iso8601'] }}"
+    - name: Set verify timestamp (shared with verify phase)
+      ansible.builtin.set_fact:
+        verify_timestamp: "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
         cacheable: true
 
-    - name: Debug information
-      debug:
-        msg:
-          - "Playbook dir: {{ playbook_dir }}"
-          - "Roles path: {{ playbook_dir }}/../../roles"
-          - "Project_root: {{ project_root }}"
-          - "Distribution: {{ ansible_facts['distribution'] }}"
-          - "Testing capability: {{ testing_capabilities }}"
-          - "Test timestamp: {{ verify_timestamp }}"
+    - name: Set prepare state for each service
+      ansible.builtin.set_fact:
+        "{{ item }}_state": "prepare"
+      loop: "{{ testing_services }}"
 
-    - name: Load capability role definitions
-      include_vars:
-        file: "{{ project_root }}/molecule/vars/capabilities.yml"
+    - name: Prepare service
+      ansible.builtin.include_role:
+        name: "{{ project_root }}/roles/{{ item }}"
+      loop: "{{ testing_services }}"
 
-    - debug:
-        var: monitoring_capabilities
-        verbosity: 1
+- name: Deploy services (quadlets + systemd)
+  hosts: podma
+  become: true
 
-    - name: Validate testing capabilities
-      assert:
-        that:
-          - capability in monitoring_capabilities.keys()
-        fail_msg: "Invalid capability specified: {{ capability }}"
-        success_msg: "Valid capability: {{ capability }}"
-      loop: "{{ testing_capabilities }}"
-      loop_control:
-        loop_var: capability
+  tasks:
+    - name: Set present state for each service
+      ansible.builtin.set_fact:
+        "{{ item }}_state": "present"
+      loop: "{{ testing_services }}"
 
-    - name: Get roles for selected capabilities
-      set_fact:
-        roles_to_include: >-
-          {{
-            testing_capabilities |
-            map('extract', monitoring_capabilities) |
-            map(attribute='roles') |
-            flatten |
-            list
-          }}
-
-    - name: Debug role inclusion
-      debug:
-        msg:
-          - "Testing Capabilities: {{ testing_capabilities }}"
-          - "Roles to Include: {{ roles_to_include }}"
-        verbosity: 0
-
-    - name: Include roles to be tested
-      include_role:
-        name: "{{ project_root }}/roles/{{ role_name }}"
-      loop: "{{ roles_to_include }}"
-      loop_control:
-        loop_var: role_name
-        label: "Including role: {{ role_name }}"
-
-    - name: Wait for metrics collection to begin
-      ansible.builtin.pause:
-        seconds: 120
-        prompt: "Waiting 2 minutes for Telegraf to collect initial metrics..."
-      when: "'metrics' in testing_capabilities"
+    - name: Deploy service
+      ansible.builtin.include_role:
+        name: "{{ project_root }}/roles/{{ item }}"
+      loop: "{{ testing_services }}"

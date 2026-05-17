@@ -226,7 +226,7 @@ molecule destroy -s podman
 
 ### The Three Architectural Pillars
 
-SOLTI containers is built on three core innovations that work together (detailed in Container-Role-Architecture.md):
+SOLTI containers is built on three core innovations that work together (detailed in [docs/architecture/Container-Role-Architecture.md](docs/architecture/Container-Role-Architecture.md)):
 
 1. **Podman Quadlets** - Modern container-to-systemd integration
    - Single declarative file replaces two-step container creation + systemd generation
@@ -323,7 +323,7 @@ When Traefik is deployed, services automatically get SSL termination:
 
 ### Adding New Services
 
-1. Follow the standard role structure in `docs/Solti-Container-Pattern.md`
+1. Follow the standard role structure in [docs/architecture/Solti-Container-Pattern.md](docs/architecture/Solti-Container-Pattern.md)
 2. Implement required task files: main.yml, prepare.yml, prerequisites.yml, quadlet_rootless.yml, verify.yml
 3. Add service to `SUPPORTED_SERVICES` array in management scripts
 4. Update inventory.yml with service-specific variables

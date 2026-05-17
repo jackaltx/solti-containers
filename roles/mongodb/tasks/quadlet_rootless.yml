@@ -71,6 +71,9 @@
     label:
       traefik.enable: "{{ mongodb_enable_traefik | lower }}"
       traefik.http.routers.mongodb.rule: "Host(`{{ mongodb_svc_name | default('mongodb') }}.{{ domain }}`)"
+      traefik.http.routers.mongodb.entrypoints: "websecure"
+      traefik.http.routers.mongodb.service: "mongodb"
+      traefik.http.routers.mongodb.middlewares: "secHeaders@file"
       traefik.http.services.mongodb.loadbalancer.server.port: "8081"
     quadlet_options:
       - |

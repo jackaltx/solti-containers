@@ -1,0 +1,5 @@
+title = "gitleaks config"
+
+[allowlist]
+description = "Allow pod_key config values - these are Podman pod names, not secrets"
+regexes = ['''pod_key''']

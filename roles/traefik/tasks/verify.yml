@@ -47,3 +47,23 @@
 - name: Show ACME file status
   debug:
     msg: "ACME file exists: {{ acme_file.stat.exists }}"
+
+# ...................................................................................
+- name: Gather verification results
+  ansible.builtin.set_fact:
+    traefik_verify_status:
+      timestamp: "{{ verify_timestamp | default(now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ')) }}"
+      pod_running: "{{ 'traefik' in pod_status.stdout }}"
+      container_running: "{{ 'traefik' in container_status.stdout }}"
+      api_accessible: "{{ health_check.status | default('unknown') }}"
+      router_count: "{{ (health_check.content | from_json).routers | default({}) | length if health_check.status | default(0) == 200 else 'unknown' }}"
+      acme_file_exists: "{{ acme_file.stat.exists }}"
+      network_exists: "{{ network_info.rc == 0 }}"
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Traefik Verification ==="
+      - "Pod: {{ traefik_verify_status.pod_running }} / container: {{ traefik_verify_status.container_running }}"
+      - "API: {{ traefik_verify_status.api_accessible }}, routers: {{ traefik_verify_status.router_count }}"
+      - "ACME: {{ traefik_verify_status.acme_file_exists }}, network: {{ traefik_verify_status.network_exists }}"

@@ -16,6 +16,8 @@ SSH_LISTEN_PORT  = 22
 START_SSH_SERVER = false
 LFS_START_SERVER = {{ 'true' if gitea_enable_lfs else 'false' }}
 OFFLINE_MODE     = false
+APP_DATA_PATH    = /data/gitea
+TEMP_PATH        = /data/gitea/tmp
 
 [database]
 DB_TYPE  = {{ gitea_db_type }}
@@ -30,10 +32,6 @@ LOCAL_COPY_PATH = /data/gitea/tmp/local-repo
 
 [repository.upload]
 TEMP_PATH = /data/gitea/uploads
-
-[server]
-APP_DATA_PATH    = /data/gitea
-TEMP_PATH        = /data/gitea/tmp
 
 [session]
 PROVIDER_CONFIG = /data/gitea/sessions

@@ -93,3 +93,52 @@
     DEL {{test_key}}
   changed_when: false
   no_log: true
+
+# ....................................................................................
+# Parse CONFIG GET * alternating key/value lines into a dict for easy lookup
+- name: Parse redis config into dict
+  ansible.builtin.set_fact:
+    redis_config_dict: "{{ dict(redis_config.stdout_lines | batch(2, '') | list) }}"
+
+- name: Gather verification results
+  ansible.builtin.set_fact:
+    redis_verify_status:
+      timestamp: "{{ verify_timestamp | default(now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ')) }}"
+      # Service health
+      pod_running: "{{ 'redis' in pod_status.stdout }}"
+      container_running: "{{ 'redis-svc' in container_status.stdout }}"
+      # Data test
+      write_rc: "{{ redis_write.rc }}"
+      read_value: "{{ redis_read.stdout | trim }}"
+      read_match: "{{ redis_read.stdout | trim == test_value | string }}"
+      # Version
+      version: "{{ redis_info.stdout_lines | select('match', '^redis_version:') | first | default('') | regex_replace('^redis_version:', '') | trim }}"
+      # Memory (watch for growth/fragmentation drift)
+      used_memory: "{{ redis_info.stdout_lines | select('match', '^used_memory_human:') | first | default('') | regex_replace('^used_memory_human:', '') | trim }}"
+      used_memory_peak: "{{ redis_info.stdout_lines | select('match', '^used_memory_peak_human:') | first | default('') | regex_replace('^used_memory_peak_human:', '') | trim }}"
+      maxmemory: "{{ redis_info.stdout_lines | select('match', '^maxmemory_human:') | first | default('') | regex_replace('^maxmemory_human:', '') | trim }}"
+      mem_fragmentation_ratio: "{{ redis_info.stdout_lines | select('match', '^mem_fragmentation_ratio:') | first | default('') | regex_replace('^mem_fragmentation_ratio:', '') | trim }}"
+      # Clients
+      connected_clients: "{{ redis_info.stdout_lines | select('match', '^connected_clients:') | first | default('') | regex_replace('^connected_clients:', '') | trim }}"
+      blocked_clients: "{{ redis_info.stdout_lines | select('match', '^blocked_clients:') | first | default('') | regex_replace('^blocked_clients:', '') | trim }}"
+      # Persistence
+      rdb_changes_since_save: "{{ redis_info.stdout_lines | select('match', '^rdb_changes_since_last_save:') | first | default('') | regex_replace('^rdb_changes_since_last_save:', '') | trim }}"
+      aof_enabled: "{{ redis_info.stdout_lines | select('match', '^aof_enabled:') | first | default('') | regex_replace('^aof_enabled:', '') | trim }}"
+      # Config (catch policy/persistence drift)
+      maxmemory_policy: "{{ redis_config_dict.get('maxmemory-policy', 'unknown') }}"
+      appendonly: "{{ redis_config_dict.get('appendonly', 'unknown') }}"
+      loglevel: "{{ redis_config_dict.get('loglevel', 'unknown') }}"
+      # Keyspace (key counts per db)
+      keyspace: "{{ redis_info.stdout_lines | select('match', '^db[0-9]') | list }}"
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "=== Redis Verification ==="
+      - "Pod:        {{ redis_verify_status.pod_running }} / container: {{ redis_verify_status.container_running }}"
+      - "Version:    {{ redis_verify_status.version }}"
+      - "Memory:     {{ redis_verify_status.used_memory }} (peak: {{ redis_verify_status.used_memory_peak }}, frag: {{ redis_verify_status.mem_fragmentation_ratio }})"
+      - "Clients:    {{ redis_verify_status.connected_clients }} connected, {{ redis_verify_status.blocked_clients }} blocked"
+      - "Policy:     maxmemory={{ redis_verify_status.maxmemory }}, eviction={{ redis_verify_status.maxmemory_policy }}, aof={{ redis_verify_status.aof_enabled }}"
+      - "Data test:  write_rc={{ redis_verify_status.write_rc }}, read_match={{ redis_verify_status.read_match }}"
+      - "Keyspace:   {{ redis_verify_status.keyspace | join(', ') | default('empty') }}"

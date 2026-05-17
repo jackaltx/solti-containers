@@ -1,0 +1,58 @@
+---
+# Cleanup: two-stage removal with verification between stages.
+# Stage 1: remove (preserve data) via role — confirm services stopped
+# Stage 2: directly delete data directories — role's service_properties.delete_data
+#          reads lookup('env', 'DELETE_DATA') on the controller and cannot be set
+#          from within the playbook. Direct file removal is simpler and correct.
+# Direct role invocation — no svc-manage.sh wrapper.
+
+- name: Two-stage removal with verification
+  hosts: podma
+  become: true
+  vars:
+    real_user_dir: "{{ ('~' + ansible_user) | expanduser }}"
+
+  tasks:
+    # --- Stage 1: remove (preserve data) ---
+
+    - name: Set absent state (preserve data)
+      ansible.builtin.set_fact:
+        "{{ item }}_state": "absent"
+      loop: "{{ testing_services }}"
+
+    - name: Remove services (preserve data directories)
+      ansible.builtin.include_role:
+        name: "{{ project_root }}/roles/{{ item }}"
+      loop: "{{ testing_services }}"
+
+    - name: Verify services are stopped
+      ansible.builtin.command:
+        cmd: "systemctl --user is-active {{ item }}-pod.service"
+      become: false
+      loop: "{{ testing_services }}"
+      register: stopped_check
+      failed_when: stopped_check.rc == 0
+      changed_when: false
+
+    # --- Stage 2: remove data directories ---
+
+    - name: Remove data directories
+      ansible.builtin.file:
+        path: "{{ real_user_dir }}/{{ item }}-data"
+        state: absent
+      loop: "{{ testing_services }}"
+
+    - name: Gather data directory stats
+      ansible.builtin.stat:
+        path: "{{ real_user_dir }}/{{ item }}-data"
+      become: false
+      loop: "{{ testing_services }}"
+      register: data_check
+
+    - name: Verify data directories are gone
+      ansible.builtin.assert:
+        that: not item.stat.exists
+        fail_msg: "Data directory still exists: {{ real_user_dir }}/{{ item.item }}-data"
+      loop: "{{ data_check.results }}"
+      loop_control:
+        label: "{{ item.item }}"

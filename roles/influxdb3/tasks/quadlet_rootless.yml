@@ -47,8 +47,9 @@
       traefik.enable: "{{influxdb3_enable_traefik | lower}}"
       traefik.http.routers.influxdb3.rule: "Host(`{{influxdb3_fqdn}}`)"
       traefik.http.routers.influxdb3.entrypoints: "websecure"
-      traefik.http.services.influxdb3.loadbalancer.server.port: "{{influxdb3_internal_port}}"
+      traefik.http.routers.influxdb3.service: "influxdb3"
       traefik.http.routers.influxdb3.middlewares: "secHeaders@file"
+      traefik.http.services.influxdb3.loadbalancer.server.port: "{{influxdb3_internal_port}}"
     quadlet_options:
       - |
         [Unit]

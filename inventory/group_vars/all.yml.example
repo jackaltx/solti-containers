@@ -1,4 +1,9 @@
 ---
+# Shared variables template — copy to all.yml and customize
+# cp inventory/group_vars/all.yml.example inventory/group_vars/all.yml
+#
+# all.yml is gitignored — site-specific overrides go there, not here
+
 # Shared variables for all inventory hosts
 # These vars apply across both localhost.yml and podma.yml inventories
 
@@ -27,3 +32,9 @@ service_dns_search: "{{ domain }}"
 # Test/verification variables
 test_index: "test-ansible"
 test_doc: '{"message": "Verification-{{ lookup(''pipe'', ''date +%s'') }}"}'
+
+# Molecule testing variables — driven by env vars set by molecule
+# Harmless in production (vars are only used by molecule playbooks)
+testing_services: "{{ lookup('env', 'MOLECULE_SERVICES', default='redis,traefik') | split(',') }}"
+project_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY', default='') }}"
+report_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY', default='') }}/verify_output"

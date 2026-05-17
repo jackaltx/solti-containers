@@ -59,17 +59,26 @@
   failed_when: false
 
 # ....................................................................................
-# Create admin user using gitea CLI (run as git user, not root)
-# Only create if:
-#   1. Users exist (imported database) AND our admin user doesn't authenticate -> skip (imported users exist)
-#   2. No users exist -> create our admin user (fresh install)
-#   3. Our admin user exists -> skip (already initialized)
-- name: Create admin user via gitea CLI
+# CLI user create/change-password fails against a live SQLite database due to write
+# conflicts. Stop the service, run CLI via podman run (rootless root = host user),
+# then restart.
+- name: Stop Gitea service for CLI admin operations
+  become: false
+  ansible.builtin.command:
+    cmd: systemctl --user stop gitea-pod
+  when: admin_check.status == 401
+  changed_when: true
+
+- name: Create admin user via gitea CLI (service stopped)
   become: false
   ansible.builtin.shell:
     cmd: |
-      podman exec --user git gitea-svc \
+      podman run --rm \
+        --user git \
+        -v {{gitea_data_dir}}/data:/data:Z,U \
+        {{gitea_image}} \
         gitea admin user create \
+        --config /data/gitea/conf/app.ini \
         --admin \
         --username "{{gitea_admin_user}}" \
         --password '{{gitea_admin_password}}' \
@@ -85,29 +94,68 @@
     - "'user already exists' not in admin_create.stdout"
   changed_when: admin_create.rc == 0
 
-- name: Fix password for existing admin user (if creation was skipped)
+- name: Show admin create output
+  ansible.builtin.debug:
+    msg:
+      - "rc: {{admin_create.rc}}"
+      - "stdout: {{admin_create.stdout}}"
+      - "stderr: {{admin_create.stderr}}"
+  when: admin_create is defined and admin_create is not skipped
+
+- name: Fix password for existing admin user via CLI (service stopped)
   become: false
   ansible.builtin.shell:
     cmd: |
-      podman exec --user git gitea-svc \
+      podman run --rm \
+        --user git \
+        -v {{gitea_data_dir}}/data:/data:Z,U \
+        {{gitea_image}} \
         gitea admin user change-password \
+        --config /data/gitea/conf/app.ini \
         --username "{{gitea_admin_user}}" \
         --password '{{gitea_admin_password}}'
   register: password_change
   when:
     - admin_check.status == 401
     - has_users
-  failed_when: false
   changed_when: password_change.rc == 0
+  failed_when: password_change.rc != 0
 
+- name: Show password change output
+  ansible.builtin.debug:
+    msg:
+      - "rc: {{password_change.rc}}"
+      - "stdout: {{password_change.stdout}}"
+      - "stderr: {{password_change.stderr}}"
+  when: password_change is defined and password_change is not skipped
+
+- name: Start Gitea service after CLI admin operations
+  become: false
+  ansible.builtin.command:
+    cmd: systemctl --user start gitea-pod
+  when: admin_check.status == 401
+  changed_when: true
+
+- name: Wait for Gitea to be ready after restart
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{gitea_port}}"
+    method: GET
+    status_code: 200
+  register: ping_restart
+  until: ping_restart.status == 200
+  retries: 20
+  delay: 5
+  when: admin_check.status == 401
+
+# ....................................................................................
 - name: Display admin creation result
   ansible.builtin.debug:
     msg: >-
       {% if admin_check.status == 200 %}
       Admin user already exists and authenticated successfully
       {% elif has_users %}
-      Existing users found (imported database) - skipping admin creation
-      {% elif admin_create.changed %}
+      Existing users found (imported database) - password reset attempted
+      {% elif admin_create is defined and admin_create.changed %}
       Admin user created successfully
       {% else %}
       Admin user already exists

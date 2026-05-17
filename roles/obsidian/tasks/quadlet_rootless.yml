@@ -47,6 +47,9 @@
     label:
       traefik.enable: "{{ obsidian_enable_traefik | lower }}"
       traefik.http.routers.obsidian.rule: "Host(`{{ obsidian_svc_name | default('obsidian') }}.{{ domain }}`)"
+      traefik.http.routers.obsidian.entrypoints: "websecure"
+      traefik.http.routers.obsidian.service: "obsidian"
+      traefik.http.routers.obsidian.middlewares: "secHeaders@file"
       traefik.http.services.obsidian.loadbalancer.server.port: "3000"
     quadlet_options:
       - |

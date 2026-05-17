@@ -3,7 +3,7 @@
 
 debug_level: warn
 gitea_data_dir: "{{ lookup('env', 'HOME') }}/gitea-data"
-gitea_admin_password: "{{ lookup('env', 'GITEA_ADMIN_PASSWORD', default='') }}"
+gitea_admin_password: "{{ lookup('env', 'GITEA_ADMIN_PASSWORD', default='Gitea-Test-Password-123!') }}"
 gitea_port: 3001
 gitea_ssh_port: 2222
 gitea_image: "docker.io/gitea/gitea:latest"

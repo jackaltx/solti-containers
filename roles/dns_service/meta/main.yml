@@ -1,0 +1,27 @@
+---
+galaxy_info:
+  role_name: dns_service
+  namespace: jackaltx
+  author: jackaltx
+  description: Deploy a DNS service container using Podman
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+
+  galaxy_tags:
+    - dns
+    - networking
+    - podman
+    - containers
+
+dependencies: []

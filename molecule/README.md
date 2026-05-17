@@ -1,457 +1,187 @@
-# Molecule Testing for SOLTI Containers
+# SOLTI Containers — Molecule Testing
 
-Quick start guide for testing container service roles.
+## Purpose
 
-## Quick Start
+These are **end-to-end system tests**, not unit tests. The goal is not just
+pass/fail — it is to produce a structured **Obsidian output directory** that
+accumulates across runs and can be mined for trends, regressions, and service
+health history.
 
-```bash
-# Test redis and traefik on all platforms (default)
-./run-podman-tests.sh
-
-# Test specific services
-./run-podman-tests.sh --services "redis,hashivault"
-
-# Test on specific platform
-./run-podman-tests.sh --platform uut-deb12 --services redis
-
-# Test all available services
-./run-podman-tests.sh --services "redis,traefik,hashivault,mattermost,minio,grafana,elasticsearch"
-```
-
-## What Gets Tested
-
-Each test run validates:
-
-1. **Service deployment** - Container and pod creation
-2. **Service health** - Systemd status, container logs
-3. **Network connectivity** - ct-net network, DNS resolution
-4. **Service functionality** - Service-specific verification tasks
-5. **Port availability** - Configured ports are listening
-6. **Multi-platform compatibility** - Debian 12, Rocky 9, Ubuntu 24
-
-## Testing Scenarios
-
-### Local Testing (podman scenario)
-
-### ⚠️ IMPORTANT: Nested container limitations
-
-The `run-podman-tests.sh` script is currently **not functional** for local testing due to rootless Podman limitations in nested container environments. Running rootless Podman inside a privileged container fails with `newuidmap`/`newgidmap` permission errors.
-
-**Reason**: The test architecture runs containers (Debian 12, Rocky 9, Ubuntu 24) that then run rootless Podman inside them. The nested rootless Podman setup cannot properly map user namespaces due to subuid/subgid restrictions.
-
-**Alternatives for testing**:
-
-1. **GitHub CI** - Uses VMs (not nested containers), works correctly
-2. **Proxmox testing** - `run-proxmox-tests.sh` (coming soon) - Uses real VMs
-3. **Direct localhost testing** - `./manage-svc.sh <service> deploy` on your workstation
-
-```bash
-# This script exists but won't work for nested container testing
-./run-podman-tests.sh --services redis
-
-# Error you'll see:
-# newuidmap: write to uid_map failed: Operation not permitted
-```
-
-**What it was designed to do** (works in GitHub CI VMs):
-
-- Spins up test containers (Debian 12, Rocky 9, Ubuntu 24)
-- Installs Podman inside test containers
-- Deploys your service using rootless containers
-- Runs service-specific verification tasks
-- Generates detailed reports in `verify_output/`
-
-### CI Testing (github scenario)
-
-Runs in GitHub Actions using GitHub Container Registry.
-
-```bash
-MOLECULE_SERVICES=redis molecule test -s github
-```
-
-Triggered automatically on pull requests.
-
-## Available Services
-
-Services defined in [vars/services.yml](vars/services.yml):
-
-| Service | Description | Ports |
-|---------|-------------|-------|
-| redis | Key-value store + Commander GUI | 6379, 8081 |
-| traefik | Reverse proxy with SSL | 8080, 443 |
-| hashivault | Secrets management | 8200 |
-| mattermost | Team collaboration | 8065 |
-| minio | S3-compatible object storage | 9000, 9001 |
-| grafana | Metrics visualization | 3000 |
-| elasticsearch | Search and analytics | 9200 |
-
-## Test Output
-
-### During Test Run
+Molecule is the collection mechanism. The Ansible roles are the probes.
+Obsidian is the data store.
 
 ```text
-=== Molecule Test Configuration ===
-Date: 2026-01-17 12:34:56
-Services: redis,traefik
-Platform: all
-Test name: podman
-================================
-
-PLAY [Create] ******************
-PLAY [Prepare] *****************
-PLAY [Converge] ****************
-PLAY [Verify] ******************
+molecule run
+  └─ prepare:   clean slate via direct role invocation (_state=absent)
+  └─ converge:  prepare state → deploy state via direct role invocation
+  └─ verify:    role verify tasks run directly on the VM (this is the data)
+  └─ cleanup:   remove (preserve) → verify stopped → remove data → verify gone
+  └─ output:    verify_output/obsidian/runs/<timestamp>/
+                  ├─ redis-service.md        (per-service result with frontmatter)
+                  ├─ hashivault-service.md
+                  └─ run-<timestamp>.md      (run summary)
 ```
 
-### After Test Completes
+Each run adds immutable event-sourced records to `verify_output/obsidian/`.
+Over time these become a queryable dataset of service behavior.
+
+## Working Scenario: proxmox
+
+Targets the **podma** VM directly — no nested containers, no provisioning.
+All phases call Ansible roles directly. No `svc-manage.sh` wrapper in the test path.
 
 ```bash
+source ~/.secrets/LabProvision
+./run-proxmox-tests.sh --services redis
+./run-proxmox-tests.sh --services redis,influxdb3,mongodb
+```
+
+**Traefik is a required baseline.** The tests are E2E — they validate the full
+stack. If Traefik is not running on podma, converge will stop immediately.
+
+To test Traefik itself (rare):
+
+```bash
+./run-proxmox-tests.sh --services traefik
+```
+
+### Test cycle
+
+```text
+prepare   → include_role _state=absent (DELETE_DATA) — clean slate
+converge  → include_role _state=prepare, then _state=present
+verify    → role verify tasks run directly on podma via shared/verify/main.yml
+cleanup   → include_role _state=absent (preserve) → verify stopped
+          → file deletion of data dirs → verify gone
+```
+
+### Running individual phases
+
+```bash
+source ~/.secrets/LabProvision
+
+MOLECULE_SERVICES=redis molecule prepare  -s proxmox
+MOLECULE_SERVICES=redis molecule converge -s proxmox
+MOLECULE_SERVICES=redis molecule verify   -s proxmox
+MOLECULE_SERVICES=redis molecule cleanup  -s proxmox
+```
+
+## Service Registry: vars/services.yml
+
+All services are defined in [vars/services.yml](vars/services.yml).
+`verify_role_tasks` is an **ordered list** — sequence is the semantics.
+Initialization, unsealing, and health checks all go in the right order.
+
+```yaml
+hashivault:
+  verify_role_tasks:
+    - initialize.yml   # ensure initialized (idempotent)
+    - unseal.yml       # ensure unsealed
+    - verify.yml       # health check
+  service_names: [vault-pod, vault-svc]
+  service_ports: [8200]
+```
+
+Services without initialization just have `[verify.yml]`.
+
+## Not Working: podman scenario
+
+`run-podman-tests.sh` targets the `podman` scenario which runs rootless Podman
+inside privileged test containers. This hits a kernel limitation:
+
+```text
+newuidmap: write to uid_map failed: Operation not permitted
+```
+
+Nested rootless Podman cannot map user namespaces inside a container.
+This scenario is preserved for GitHub CI (which uses VMs, not containers)
+but is not usable locally.
+
+## Output
+
+```text
 verify_output/
-├── latest_test.out -> podman-test-20260117-123456.out
-├── podman-test-20260117-123456.out
-├── debian/
-│   ├── consolidated_test_report.md
-│   ├── container-diagnostics-preverify-*.yml
-│   └── container-diagnostics-postverify-*.yml
-├── rocky/
-│   └── (same structure)
-└── ubuntu/
-    └── (same structure)
+├── latest_proxmox_test.out          ← symlink to latest run log
+├── proxmox-test-<timestamp>.out     ← full molecule output
+└── obsidian/
+    └── runs/
+        └── <timestamp>/
+            ├── redis-service.md     ← per-service result (YAML frontmatter)
+            ├── <service>-service.md
+            └── run-<timestamp>.md  ← overall run summary
 ```
 
-**View results**:
-
-```bash
-# Latest test output
-tail -f verify_output/latest_test.out
-
-# Consolidated report
-cat verify_output/debian/consolidated_test_report.md
-
-# Pre/post diagnostics comparison
-diff verify_output/debian/container-diagnostics-preverify-*.yml \
-     verify_output/debian/container-diagnostics-postverify-*.yml
-```
-
-## Adding Tests for New Services
-
-### 1. Define Service in vars/services.yml
-
-```yaml
-container_services:
-  myservice:
-    roles:
-      - myservice
-    required_packages:
-      Debian: [podman, systemd]
-      RedHat: [podman, systemd]
-    verify_role_tasks:
-      myservice:
-        - verify.yml
-    service_names:
-      - myservice-pod
-    service_ports:
-      - 8080
-```
-
-### 2. Create Verification Tasks
+Mine the obsidian directory with any Obsidian-compatible tool or script.
+The YAML frontmatter in each file supports structured queries across runs.
 
-```yaml
-# roles/myservice/tasks/verify.yml
----
-- name: Check myservice is responding
-  uri:
-    url: http://localhost:8080/health
-    status_code: 200
-  register: health_check
-  retries: 3
-  delay: 5
+## Hybrid Architecture: Molecule + Ansible Inventory
 
-- name: Verify myservice data directory
-  stat:
-    path: "{{ myservice_data_dir }}"
-  register: data_dir
-  failed_when: not data_dir.stat.exists
-```
+This is not a standard molecule setup. It is a **hybrid system** where molecule
+provides the test lifecycle and Ansible provides the execution engine and
+inventory model.
 
-### 3. Test It
+### Variable sources
 
-```bash
-./run-podman-tests.sh --services myservice --platform uut-deb12
-```
+Variables flow to playbooks from these sources, in increasing precedence:
 
-### 4. Add to CI
+| Source | Contains | How |
+|--------|----------|-----|
+| `inventory/group_vars/all.yml` | `domain`, `service_network`, `test_*`, `project_root`, `report_root`, `testing_services` | `links.group_vars` |
+| `inventory/group_vars/<svc>_svc.yml` | `test_key`, `test_value`, `*_svc_name` per service | `links.group_vars` + group membership via `links.hosts` |
+| `molecule.yml extra_vars` | `domain` (at inventory load time), `secure_logging` | `-e @extra_vars.yml` |
+| `molecule.yml host_vars.podma` | `ansible_host`, `ansible_user`, SSH key | host_vars file |
 
-Edit `.github/workflows/test.yml`:
+`project_root`, `report_root`, `testing_services`, and `domain` all live in
+`inventory/group_vars/all.yml` as `lookup('env', ...)` expressions evaluated
+by Ansible at playbook time — not by molecule at file-write time.
 
-```yaml
-strategy:
-  matrix:
-    service: [redis, traefik, myservice]  # Add here
-```
+### The inventory linking problem (solved)
 
-## Advanced Usage
+Molecule builds an ephemeral inventory at `/tmp/molecule.*/inventory/`.
+When `provisioner.inventory.links.group_vars` is set, molecule creates a
+**symlink** replacing its own `group_vars/` directory. Any vars molecule had
+written there are lost.
 
-### Test Specific Platform Only
+**Solution**: all vars that molecule needs live in the **real inventory's
+`group_vars/`** — molecule's own `group_vars:` section is intentionally empty.
+The symlink works in our favour: it brings in the full real inventory vars
+without duplication.
 
-```bash
-# Debian 12
-./run-podman-tests.sh --platform uut-deb12 --services redis
+### Connection variable bootstrap
 
-# Rocky 9
-./run-podman-tests.sh --platform uut-rocky9 --services redis
+`inventory/podma.yml` defines `ansible_host: "podma.{{ domain }}"`. Ansible
+evaluates connection variables at inventory load time, before group_vars are
+applied — so `{{ domain }}` would be undefined. Molecule's `extra_vars` provides
+`domain: "${LAB_TLD}"` via shell expansion, making it available at inventory
+load time before any playbook runs.
 
-# Ubuntu 24
-./run-podman-tests.sh --platform uut-ct2 --services redis
-```
+`host_vars.podma.ansible_host: "podma.${LAB_TLD}"` also overrides the
+connection address directly, ensuring no Jinja2 evaluation is needed at connect
+time.
 
-### Debug Mode (Show Credentials)
+### The testing layer
 
-```bash
-MOLECULE_SECURE_LOGGING=false ./run-podman-tests.sh --services hashivault
-```
+All phases — prepare, converge, cleanup — use `include_role` directly on podma.
+No `svc-manage.sh` in the test path. A failing test means exactly one thing:
+**the role does not work on this host**. `svc-manage.sh` can evolve freely
+without touching the test infrastructure.
 
-### Manual Test Phases
+The verify phase uses `molecule/shared/verify/main.yml` which calls
+`include_role: tasks_from: <task>` for each entry in `verify_role_tasks`.
+This exercises the actual Ansible role logic — templates, variable rendering,
+health checks — not a shell wrapper around it.
 
-```bash
-# Run phases separately (don't destroy between)
-molecule create -s podman
-molecule prepare -s podman
-molecule converge -s podman
-molecule verify -s podman
+### Data directory deletion
 
-# SSH into test container for debugging
-ssh -p 2223 jackaltx@127.0.0.1  # Debian 12
-ssh -p 2224 jackaltx@127.0.0.1  # Rocky 9
-ssh -p 2225 jackaltx@127.0.0.1  # Ubuntu 24
+The role's `service_properties.delete_data` reads `lookup('env', 'DELETE_DATA')`
+on the Ansible controller. This env var cannot be set from within a playbook's
+`environment:` (which only affects remote tasks). Cleanup stage 2 therefore
+uses `ansible.builtin.file: state=absent` directly rather than routing through
+the role. This is simpler and correct.
 
-# Check service status inside container
-systemctl --user status redis-pod
-podman ps
-podman logs redis-svc
+## Adding a New Service
 
-# Cleanup
-molecule destroy -s podman
-```
-
-### Environment Variables
-
-Override defaults via environment variables:
-
-```bash
-# Test different services
-MOLECULE_SERVICES="mattermost,minio" ./run-podman-tests.sh
-
-# Target specific platform
-MOLECULE_PLATFORM_NAME=uut-rocky9 molecule test -s podman
-
-# Custom test name
-MOLECULE_TEST_NAME=hashivault_full ./run-podman-tests.sh --services hashivault
-
-# Disable secure logging (debug)
-MOLECULE_SECURE_LOGGING=false molecule verify -s podman
-```
-
-## Troubleshooting
-
-### Test Failures
-
-**View detailed logs**:
-
-```bash
-tail -f verify_output/latest_test.out
-```
-
-**Common issues**:
-
-1. **Port conflicts**: Ports 2223-2225 must be available
-
-   ```bash
-   ss -tlnp | grep 222
-   ```
-
-2. **Registry authentication**: Ensure LAB_TLD is set
-
-   ```bash
-   source ~/.secrets/LabProvision
-   echo $LAB_TLD
-   ```
-
-3. **Podman role missing**: Install solti-ensemble collection
-
-   ```bash
-   ansible-galaxy collection install jackaltx.solti_ensemble
-   ```
-
-### Container Issues
-
-**Check test container status**:
-
-```bash
-podman ps -a | grep uut
-```
-
-**View test container logs**:
-
-```bash
-podman logs uut-deb12
-```
-
-**Restart test containers**:
-
-```bash
-molecule destroy -s podman
-molecule create -s podman
-```
-
-### Service-Specific Failures
-
-**Check service logs inside test container**:
-
-```bash
-# SSH into test container
-ssh -p 2223 jackaltx@127.0.0.1
-
-# Check service
-systemctl --user status redis-pod
-journalctl --user -u redis-pod -n 50
-podman logs redis-svc
-```
-
-**Verify service port is listening**:
-
-```bash
-ss -tlnp | grep 6379  # Redis example
-```
-
-## How It Works
-
-### Architecture
-
-```text
-Host System
-  └─ Test Containers (uut-deb12, uut-rocky9, uut-ct2) [privileged]
-      └─ Podman (installed by prepare phase)
-          └─ Service Containers (redis, traefik, etc.) [rootless]
-```
-
-### Test Flow
-
-1. **Create**: Spin up test containers (Debian 12, Rocky 9, Ubuntu 24)
-2. **Prepare**: Install Podman and service dependencies
-3. **Converge**: Deploy services using their roles
-4. **Verify**: Run diagnostics and service-specific verification
-5. **Destroy**: Clean up test containers
-
-### What Gets Verified
-
-**Pre-verification diagnostics**:
-
-- Container health (podman ps, logs)
-- Network health (ct-net, DNS)
-- Service health (systemd status)
-
-**Service verification**:
-
-- Executes `roles/<service>/tasks/verify.yml`
-- Service-specific functional tests
-- Port availability checks
-
-**Post-verification diagnostics**:
-
-- Same as pre-verification
-- Enables comparison to detect issues
-
-**Results**:
-
-- Pass/fail per service
-- Consolidated reports per platform
-- Complete audit trail
-
-## Infrastructure Documentation
-
-**For users** (this file):
-
-- How to run tests
-- What gets tested
-- How to add new services
-
-**For developers** ([shared/README.md](shared/README.md)):
-
-- Shared infrastructure implementation
-- Verification matrix collection
-- How playbooks work together
-- Advanced debugging techniques
-
-**For Podman scenario** ([podman/README.md](podman/README.md)):
-
-- Nested container architecture
-- Platform-specific details
-- Container registry configuration
-
-## Related Documentation
-
-- [Container Role Architecture](../docs/Container-Role-Architecture.md) - SOLTI pattern overview
-- [Claude New Quadlet Guide](../docs/Claude-new-quadlet.md) - Creating new service roles
-- [_base Role Pattern](../roles/_base/Readme.md) - Shared deployment infrastructure
-
-## Examples
-
-### Test Before Commit
-
-```bash
-# Test the service you modified
-./run-podman-tests.sh --services redis
-
-# Review results
-cat verify_output/latest_test.out
-```
-
-### Test Multi-Platform Compatibility
-
-```bash
-# Test on all platforms
-./run-podman-tests.sh --services redis
-
-# Check platform-specific results
-ls verify_output/*/consolidated_test_report.md
-```
-
-### Test Service Integration
-
-```bash
-# Test services that work together
-./run-podman-tests.sh --services "traefik,redis,hashivault"
-
-# Verify they can communicate
-ssh -p 2223 jackaltx@127.0.0.1
-podman exec redis-svc ping traefik-svc  # Via ct-net DNS
-```
-
-### Debug Test Failure
-
-```bash
-# Run test with debug output
-MOLECULE_SECURE_LOGGING=false ./run-podman-tests.sh --services hashivault
-
-# Keep test container alive
-molecule converge -s podman  # Don't destroy
-
-# SSH in and debug
-ssh -p 2223 jackaltx@127.0.0.1
-systemctl --user status hashivault-pod
-podman logs hashivault-svc
-
-# Cleanup when done
-molecule destroy -s podman
-```
-
-## Tips
-
-1. **Start small**: Test one service on one platform first
-2. **Check logs**: `verify_output/latest_test.out` has complete details
-3. **Use debug mode**: Set `MOLECULE_SECURE_LOGGING=false` to see credentials
-4. **Keep containers**: Use `molecule converge` to debug without destroying
-5. **SSH for debugging**: Ports 2223-2225 provide direct container access
-6. **Compare reports**: Diff pre/post diagnostics to spot issues
-7. **Test before PR**: CI runs same tests, catch issues locally first
+1. Add entry to [vars/services.yml](vars/services.yml) with `verify_role_tasks`,
+   `service_names`, and `service_ports`
+2. Ensure `roles/<service>/tasks/verify.yml` exists
+3. Test: `./run-proxmox-tests.sh --services <service>`

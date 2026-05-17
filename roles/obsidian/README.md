@@ -363,7 +363,7 @@ See [docs/Claude-new-quadlet.md](../../docs/Claude-new-quadlet.md) for complete 
 
 ## Links
 
-- [Obsidian Website](https://obsidian.md)
+- [Obsidian site](https://obsidian.md)
 - [LinuxServer.io Obsidian Image](https://hub.docker.com/r/linuxserver/obsidian)
 - [LinuxServer.io Documentation](https://docs.linuxserver.io/images/docker-obsidian/)
 - [Podman Documentation](https://docs.podman.io/)

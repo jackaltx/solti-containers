@@ -3,13 +3,15 @@
 - name: Ensure required directories exist
   become: false
   ansible.builtin.file:
-    path: "{{real_user_dir}}/{{item}}"
+    path: "{{real_user_dir}}/{{dir_item}}"
     state: directory
     mode: "0750"
   loop:
     - .config/systemd/user
     - .config/containers/systemd
     - .config/containers/systemd/env
+  loop_control:
+    loop_var: dir_item
 
 # ..................................................................................
 - name: Create environment file for Grafana

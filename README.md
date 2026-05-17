@@ -12,7 +12,7 @@
 | **Container Runtime** | Podman (rootless) |
 | **Service Management** | Systemd user services via Quadlets |
 | **Network** | `ct-net` (shared container network with DNS) |
-| **Management Scripts** | `manage-svc.sh` (lifecycle), `svc-exec.sh` (operations) |
+| **Management Scripts** | `manage-svc.sh` (lifecycle), `svc-exec.sh` (operations), `svc-manage.sh` (unified — preliminary) |
 | **Deployment Targets** | localhost, remote hosts via SSH |
 | **Configuration Files** | [inventory.yml](inventory.yml), [ansible.cfg](ansible.cfg) |
 | **Related Collections** | [solti-monitoring](https://github.com/jackaltx/solti-monitoring/), [solti-ensemble](https://github.com/jackaltx//solti-ensemble/) |
@@ -227,6 +227,40 @@ graph TD
 ```
 
 ## 🛠️ Management Interface
+
+### Unified Script — `svc-manage.sh` *(preliminary)*
+
+> **Note**: `svc-manage.sh` is under active testing. The original `manage-svc.sh` and
+> `svc-exec.sh` are unchanged and remain the stable interface. Use the unified script
+> for evaluation only until this notice is removed.
+
+`svc-manage.sh` merges both scripts into a single command. The `<command>` argument
+self-routes: `prepare`/`deploy`/`remove` run the full role (state mode); anything
+else runs a task inside the role (task mode).
+
+```bash
+# State commands — always use --become (password probed automatically)
+./svc-manage.sh redis prepare
+./svc-manage.sh redis deploy
+./svc-manage.sh redis remove
+DELETE_DATA=true ./svc-manage.sh redis remove
+
+# Task commands — no sudo unless -K
+./svc-manage.sh redis verify
+./svc-manage.sh -K redis configure
+./svc-manage.sh redis check_upgrade
+
+# Remote host
+./svc-manage.sh -h podma -i inventory/podma.yml redis deploy
+```
+
+The generated playbooks are simpler than the originals — Matrix pre/post tasks are
+removed from the YAML (the optional `bin/matrix-log.py` shell call is kept).
+
+See [docs/ideas/unified-script.md](docs/ideas/unified-script.md) for the full design
+rationale and decision log.
+
+---
 
 ### Primary Commands
 
@@ -772,6 +806,7 @@ network_model: shared_bridge
 |------|---------|---------|
 | [manage-svc.sh](manage-svc.sh) | Service lifecycle (prepare/deploy/remove) | Human operators, orchestrator |
 | [svc-exec.sh](svc-exec.sh) | Task execution (verify/configure) | Human operators, CI/CD |
+| [svc-manage.sh](svc-manage.sh) | Unified lifecycle + task execution *(preliminary)* | Human operators |
 | [inventory.yml](inventory.yml) | Service configuration variables | Ansible playbooks |
 | [ansible.cfg](ansible.cfg) | Ansible settings and vault config | Ansible engine |
 | [roles/_base/](roles/_base/) | Common functionality for all services | All service roles |

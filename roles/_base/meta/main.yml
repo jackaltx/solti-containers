@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  role_name: _base
+  namespace: jackaltx
+  author: jackaltx
+  description: Base role providing common Podman container setup (networks, directories, SELinux)
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+
+  galaxy_tags:
+    - podman
+    - containers
+    - base
+
+dependencies: []

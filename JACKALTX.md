@@ -66,7 +66,7 @@ The slack model seems to persist, just as IRC still does.
 ### Why Hashicorp's Vault
 
 Seems every time I need to find a better way to manage secrets, this one come up.
-Seems very versatile.  I have sent these up a few times and they work ok.  This will
+Seems very versatile.  I have sent these up a few times and they work OK.  This will
 be my first container version.
 
 The testing and verification of this role is a bit deeper than others. Yet, to date I still
