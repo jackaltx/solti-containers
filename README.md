@@ -1,5 +1,8 @@
 # SOLTI Containers - Lightweight Development Services
 
+> ⚠️ **DEPRECATED** — This collection has been renamed to [`jackaltx.solti_podman`](https://github.com/jackaltx/solti-podman).
+> This final release (v1.1.0) is preserved for reference. Please migrate to `jackaltx.solti_podman`.
+
 > **A comprehensive Ansible collection for deploying containerized development and testing services using Podman, Quadlets, and systemd integration.**
 
 **Part of the [SOLTI Ansible Collections Suite](../README.md)** - This collection provides containerized testing and development infrastructure services.
