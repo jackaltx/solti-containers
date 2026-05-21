@@ -131,7 +131,7 @@ influxdb3_tokens:
 
 ## InfluxDB v3 vs v2 Differences
 
-| Aspect | InfluxDB v2 (solti-monitoring) | InfluxDB v3 Core (solti-containers) |
+| Aspect | InfluxDB v2 (solti-monitoring) | InfluxDB v3 Core (solti-podman) |
 |--------|-------------------------------|-------------------------------------|
 | **Port** | 8086 | 8087 |
 | **CLI** | `influx` | `influxdb3` |

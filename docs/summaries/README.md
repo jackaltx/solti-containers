@@ -1,6 +1,6 @@
 # Deployment Summaries
 
-This directory contains detailed summaries of significant deployments, implementations, and testing activities for the solti-containers collection.
+This directory contains detailed summaries of significant deployments, implementations, and testing activities for the solti-podman collection.
 
 ## Purpose
 

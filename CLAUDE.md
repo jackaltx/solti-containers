@@ -1,8 +1,8 @@
-# CLAUDE.md - solti-containers Collection
+# CLAUDE.md - solti-podman Collection
 
-This file provides guidance to Claude Code when working in the **solti-containers** collection.
+This file provides guidance to Claude Code when working in the **solti-podman** collection.
 
-**Context**: This is one collection within the [SOLTI Ansible Collections Suite](../CLAUDE.md). The parent project coordinates multiple collections (solti-monitoring, solti-containers, solti-ensemble) with the [mylab orchestrator](../mylab/).
+**Context**: This is one collection within the [SOLTI Ansible Collections Suite](../CLAUDE.md). The parent project coordinates multiple collections (solti-monitoring, solti-podman, solti-ensemble) with the [mylab orchestrator](../mylab/).
 
 **Scope**: This CLAUDE.md covers collection-specific patterns. For system-wide context (reference machines, orchestrator workflows, cross-collection coordination), see [../CLAUDE.md](../CLAUDE.md).
 

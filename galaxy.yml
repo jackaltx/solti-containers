@@ -1,7 +1,7 @@
 ---
 namespace: jackaltx
-name: solti_containers
-version: 1.1.0
+name: solti_podman
+version: 1.0.0
 readme: README.md
 authors:
   - Jackaltx <jack@jackaltx.com>
@@ -18,10 +18,10 @@ tags:
 dependencies:
   "community.general": ">=10.0.0"
 
-repository: http://github.com/jackaltx/solti-containers
+repository: http://github.com/jackaltx/solti-podman
 documentation: http://docs.jackaltx.com
-homepage: http://github.com/jackaltx/solti-containers
-issues: http://github.com/jackaltx/solti-containers/issue/tracker
+homepage: http://github.com/jackaltx/solti-podman
+issues: http://github.com/jackaltx/solti-podman/issue/tracker
 
 build_ignore:
   - "*.tar.gz"

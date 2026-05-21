@@ -1,6 +1,6 @@
 # DNS Service - Quick Start Guide
 
-Automated DNS management for solti-containers services using Linode DNS.
+Automated DNS management for solti-podman services using Linode DNS.
 
 ## Prerequisites
 

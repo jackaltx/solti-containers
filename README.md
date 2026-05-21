@@ -1,7 +1,4 @@
-# SOLTI Containers - Lightweight Development Services
-
-> ⚠️ **DEPRECATED** — This collection has been renamed to [`jackaltx.solti_podman`](https://github.com/jackaltx/solti-podman).
-> This final release (v1.1.0) is preserved for reference. Please migrate to `jackaltx.solti_podman`.
+# SOLTI Podman - Lightweight Development Services
 
 > **A comprehensive Ansible collection for deploying containerized development and testing services using Podman, Quadlets, and systemd integration.**
 
@@ -11,7 +8,7 @@
 
 | Attribute | Value |
 |-----------|-------|
-| **Collection** | `jackaltx.solti_containers` |
+| **Collection** | `jackaltx.solti_podman` |
 | **Container Runtime** | Podman (rootless) |
 | **Service Management** | Systemd user services via Quadlets |
 | **Network** | `ct-net` (shared container network with DNS) |
@@ -374,7 +371,7 @@ loginctl enable-linger $USER
 ## 📁 Project Structure
 
 ```
-solti-containers/
+solti-podman/
 ├── roles/                          # Service role definitions
 │   ├── _base/                      # Common functionality
 │   │   ├── tasks/
@@ -793,7 +790,7 @@ This section provides structured information for AI documentation tools and code
 ### Collection Metadata
 
 ```yaml
-collection_name: jackaltx.solti_containers
+collection_name: jackaltx.solti_podman
 collection_type: ansible_collection
 namespace: jackaltx
 version: 1.0.0

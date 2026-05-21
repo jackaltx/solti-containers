@@ -271,7 +271,7 @@ For any README:
 
 ## Conclusion
 
-**Obsidian README is now the gold standard** for service documentation in solti-containers collection. It includes:
+**Obsidian README is now the gold standard** for service documentation in solti-podman collection. It includes:
 
 - All required sections
 - Complete service management commands

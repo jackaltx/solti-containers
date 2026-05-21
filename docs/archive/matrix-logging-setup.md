@@ -1,6 +1,6 @@
 # Matrix Development Logging System
 
-Automated logging system for solti-containers deployments, tasks, and tests to Matrix room.
+Automated logging system for solti-podman deployments, tasks, and tests to Matrix room.
 
 ## Overview
 
@@ -59,7 +59,7 @@ ansible-playbook playbooks/create-matrix-logger-room.yml
 
 **Creates**:
 - Room: "SOLTI Containers - Development Logs"
-- Alias: `#solti-containers-dev:jackaltx.com`
+- Alias: `#solti-podman-dev:jackaltx.com`
 - Room ID: `mylab/data/matrix-logger-room.txt` (mode 0600)
 
 **Alternative (Manual)**:
@@ -77,7 +77,7 @@ cd /home/lavender/sandbox/ansible/jackaltx/mylab
 ```
 
 **Creates**:
-- Config: `solti-containers/data/matrix-logger.conf` (mode 0600)
+- Config: `solti-podman/data/matrix-logger.conf` (mode 0600)
 
 ---
 
@@ -86,7 +86,7 @@ cd /home/lavender/sandbox/ansible/jackaltx/mylab
 ### Manual Logging
 
 ```bash
-cd /home/lavender/sandbox/ansible/jackaltx/solti-containers
+cd /home/lavender/sandbox/ansible/jackaltx/solti-podman
 
 # Simple message
 ./bin/matrix-log.py message "Test deployment started"
@@ -169,7 +169,7 @@ Attached in custom field `dev.solti.log_data`:
 
 1. Open https://matrix.jackaltx.com
 2. Login
-3. Find room: `#solti-containers-dev:jackaltx.com`
+3. Find room: `#solti-podman-dev:jackaltx.com`
 4. View messages and JSON data
 
 ### Via API (Future)
@@ -182,7 +182,7 @@ Query structured data for dashboards, reports, or automation.
 
 ### Config File
 
-Location: `solti-containers/data/matrix-logger.conf`
+Location: `solti-podman/data/matrix-logger.conf`
 
 ```json
 {
@@ -222,15 +222,15 @@ ls -l mylab/data/matrix-logger-token.txt
 ls -l mylab/data/matrix-logger-room.txt
 
 # Check config exists
-ls -l solti-containers/data/matrix-logger.conf
+ls -l solti-podman/data/matrix-logger.conf
 
 # Check script is executable
-ls -l solti-containers/bin/matrix-log.py
+ls -l solti-podman/bin/matrix-log.py
 ```
 
 **Test manually**:
 ```bash
-cd /home/lavender/sandbox/ansible/jackaltx/solti-containers
+cd /home/lavender/sandbox/ansible/jackaltx/solti-podman
 ./bin/matrix-log.py --dry-run message "Test"
 # Should print message without errors
 
@@ -240,7 +240,7 @@ cd /home/lavender/sandbox/ansible/jackaltx/solti-containers
 
 **Check script is found**:
 ```bash
-cd /home/lavender/sandbox/ansible/jackaltx/solti-containers
+cd /home/lavender/sandbox/ansible/jackaltx/solti-podman
 [[ -x "./bin/matrix-log.py" ]] && echo "Found and executable" || echo "NOT FOUND or NOT EXECUTABLE"
 ```
 
@@ -272,14 +272,14 @@ Logging is designed to NEVER break deployments:
 **If deployments break**:
 ```bash
 # Disable logging temporarily
-chmod -x /home/lavender/sandbox/ansible/jackaltx/solti-containers/bin/matrix-log.py
+chmod -x /home/lavender/sandbox/ansible/jackaltx/solti-podman/bin/matrix-log.py
 
 # Scripts will skip logging (checks -x flag)
 ```
 
 **Re-enable**:
 ```bash
-chmod +x /home/lavender/sandbox/ansible/jackaltx/solti-containers/bin/matrix-log.py
+chmod +x /home/lavender/sandbox/ansible/jackaltx/solti-podman/bin/matrix-log.py
 ```
 
 ---
@@ -290,7 +290,7 @@ chmod +x /home/lavender/sandbox/ansible/jackaltx/solti-containers/bin/matrix-log
 
 Remove execute permission:
 ```bash
-chmod -x solti-containers/bin/matrix-log.py
+chmod -x solti-podman/bin/matrix-log.py
 ```
 
 Scripts check `-x` flag and skip logging automatically.
@@ -299,7 +299,7 @@ Scripts check `-x` flag and skip logging automatically.
 
 Remove integration from scripts:
 ```bash
-cd solti-containers
+cd solti-podman
 git checkout manage-svc.sh svc-exec.sh
 ```
 
@@ -340,13 +340,13 @@ git checkout manage-svc.sh svc-exec.sh
 - `data/matrix-logger-token.txt` - Access token (auto-generated)
 - `data/matrix-logger-room.txt` - Room ID (auto-generated)
 
-**solti-containers/** (logging):
+**solti-podman/** (logging):
 - `bin/matrix-log.py` - Core logging script
 - `data/matrix-logger.conf` - Config file (auto-generated)
 
 ### Modified Files
 
-**solti-containers/**:
+**solti-podman/**:
 - `manage-svc.sh` - Added deployment logging hooks
 - `svc-exec.sh` - Added task execution logging hooks
 

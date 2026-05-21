@@ -1,5 +1,5 @@
 ---
-# Container services inventory for solti-containers collection
+# Container services inventory for solti-podman collection
 # Used by manage-svc.sh
 #
 # Pattern: Central host registry + capability groups

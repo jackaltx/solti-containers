@@ -4,7 +4,7 @@ matrix-log.py - Send development logs to Matrix room
 
 This script sends structured log messages to a Matrix room for
 tracking deployments, task executions, tests, and other events
-in the solti-containers collection.
+in the solti-podman collection.
 
 Jackal Says:  This is a synapse matrix bot experiment. E2EE is important!
 

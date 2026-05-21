@@ -285,4 +285,4 @@ The Obsidian role successfully deployed to **podma** without any code changes, d
 **Generated**: 2026-01-16T18:21:00-06:00
 **Host**: podma.a0a0.org
 **Pattern**: docs/Claude-new-quadlet.md Phase 9
-**Collection**: solti-containers
+**Collection**: solti-podman

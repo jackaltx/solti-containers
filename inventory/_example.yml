@@ -1,5 +1,5 @@
 ---
-# _example.yml — template for adding a new host to solti-containers
+# _example.yml — template for adding a new host to solti-podman
 #
 # USAGE:
 #   cp inventory/_example.yml inventory/hosts/myhostname.yml

@@ -54,7 +54,7 @@ Issue:
 ### 1. Start Tmux Session
 
 ```bash
-cd /home/lavender/sandbox/ansible/jackaltx/solti-containers
+cd /home/lavender/sandbox/ansible/jackaltx/solti-podman
 tmux new-session -s influxdb-deploy
 ```
 

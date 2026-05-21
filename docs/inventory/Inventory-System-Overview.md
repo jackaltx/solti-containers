@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document describes the current inventory system in solti-containers: how inventory files are structured, how management scripts consume them, and how variables are resolved.
+This document describes the current inventory system in solti-podman: how inventory files are structured, how management scripts consume them, and how variables are resolved.
 
 ## Inventory Files
 
@@ -274,7 +274,7 @@ service_dns_search: "{{ domain }}"
 
 ### Container-Specific Variables
 
-**Unique to solti-containers**:
+**Unique to solti-podman**:
 
 | Variable | Purpose | Example |
 |----------|---------|---------|

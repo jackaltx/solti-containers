@@ -1,13 +1,13 @@
 # Docker-Podman Synergy Exploration
 
 **Date:** 2025-12-01
-**Context:** Comparing solti-containers (Podman/dev tools) with TrueNAS Docker (persistent services)
+**Context:** Comparing solti-podman (Podman/dev tools) with TrueNAS Docker (persistent services)
 
 ---
 
 ## 🎯 Core Insight: Different Missions, Shared DNA
 
-**solti-containers (Podman):** Development/testing tools - ephemeral workloads
+**solti-podman (Podman):** Development/testing tools - ephemeral workloads
 **TrueNAS (Docker):** Production infrastructure - persistent services
 
 But underneath, they share nearly **identical lifecycle requirements**.
@@ -18,7 +18,7 @@ But underneath, they share nearly **identical lifecycle requirements**.
 
 ### Current State Comparison
 
-| Phase | Podman (solti-containers) | Docker (TrueNAS) | Gap |
+| Phase | Podman (solti-podman) | Docker (TrueNAS) | Gap |
 |-------|--------------------------|------------------|-----|
 | **Initialize** | `./manage-svc.sh redis prepare`<br>Creates dirs, SELinux contexts, network | Manual: `mkdir /mnt/zpool/Docker/Stacks/redis`<br>`chown 1000:1000 ...` | ❌ No automation |
 | **Deploy** | `./manage-svc.sh redis deploy`<br>Templates Quadlets → systemd → verify | Manual: `cd redis && sudo docker compose up -d` | ❌ No templating |
@@ -379,7 +379,7 @@ solti-common/          # Shared library repo
 └── docs/
     └── Service-Pattern.md       # Architecture docs
 
-solti-containers/      # Podman-specific
+solti-podman/      # Podman-specific
 ├── roles/
 │   ├── _base/         # Includes solti-common/service_base
 │   └── redis/         # Podman Quadlet templates
@@ -408,7 +408,7 @@ true-docker/           # Docker-specific
 
 ## 📋 Concrete Next Steps for TrueNAS
 
-Based on solti-containers patterns, your TrueNAS project needs:
+Based on solti-podman patterns, your TrueNAS project needs:
 
 ### 1. **Lifecycle Automation** (Missing entirely)
 
@@ -575,7 +575,7 @@ Every service inherits this pattern.
 
 ## 🤔 The Deeper Question: Should You?
 
-**Arguments FOR adopting solti-containers patterns:**
+**Arguments FOR adopting solti-podman patterns:**
 - ✅ Consistent lifecycle across all container platforms
 - ✅ Reduced duplication (11 services × 20 lines Traefik labels = 220 lines eliminated)
 - ✅ Verification framework catches deployment issues
@@ -594,7 +594,7 @@ The synergy is **very strong** for the lifecycle/verification/inventory patterns
 
 - **< 5 services:** Hand-written compose files fine, Arcane GUI sufficient
 - **5-15 services:** Template generation starts paying off (you're at 11)
-- **15+ services:** Automation essential, solti-containers patterns mandatory
+- **15+ services:** Automation essential, solti-podman patterns mandatory
 
 Since you're evaluating TrueNAS for "persistent containers" vs Podman for "dev tools," I'd suggest:
 
