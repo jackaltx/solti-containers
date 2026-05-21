@@ -1,0 +1,105 @@
+---
+# _example.yml — template for adding a new host to solti-containers
+#
+# USAGE:
+#   cp inventory/_example.yml inventory/hosts/myhostname.yml
+#   Edit the copy — fill in real values, uncomment the services this host runs.
+#   Keep your host files in a private git repo for backup.
+#
+# HOW IT WORKS:
+#   svc-manage.sh -i inventory/myhostname.yml redis deploy
+#   Ansible finds group_vars/ automatically since the file sits in inventory/.
+#   Only services listed under "Service groups" below will be targeted.
+#
+# DNS / DOMAIN:
+#   Service names below are subdomain prefixes only (e.g. "redis-myhost").
+#   Full DNS name = {{ svc_name }}.{{ domain }}
+#   domain is set in group_vars/all.yml via:
+#     export LAB_TLD='yourdomain.com'   # in ~/.secrets/LabProvision
+#
+# SECRETS:
+#   Credentials are never stored here — they come from environment variables.
+#   Source your secrets file before running: source ~/.secrets/LabProvision
+
+all:
+  children:
+    mylab:
+      hosts:
+        myhostname:
+
+          # ── Connection — local host ────────────────────────────────────────
+          ansible_connection: local
+          ansible_user: youruser
+
+          # ── Connection — remote host (uncomment, remove local above) ───────
+          # ansible_host: "myhostname.{{ domain }}"
+          # ansible_user: youruser
+          # ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+
+      children:
+
+        # ── Service groups — uncomment every service this host runs ──────────
+        # Order matters: traefik first (creates networks used by other services)
+
+        # traefik_svc:
+        #   hosts:
+        #     myhostname:
+        #       traefik_svc_name: "traefik-myhostname"
+
+        # redis_svc:
+        #   hosts:
+        #     myhostname:
+        #       redis_svc_name: "redis-myhostname"
+
+        # elasticsearch_svc:
+        #   hosts:
+        #     myhostname:
+        #       elasticsearch_svc_name: "elasticsearch-myhostname"
+        #       elasticsearch_alt_svc_name: "es-myhostname"
+
+        # hashivault_svc:
+        #   hosts:
+        #     myhostname:
+        #       hashivault_svc_name: "vault-myhostname"
+        #       hashivault_alt_svc_name: "hashivault-myhostname"
+
+        # minio_svc:
+        #   hosts:
+        #     myhostname:
+        #       minio_api_svc_name: "s3-myhostname"
+        #       minio_console_svc_name: "minio-myhostname"
+
+        # grafana_svc:
+        #   hosts:
+        #     myhostname:
+        #       grafana_svc_name: "grafana-myhostname"
+
+        # influxdb3_svc:
+        #   hosts:
+        #     myhostname:
+        #       influxdb3_svc_name: "influxdb3-myhostname"
+
+        # mattermost_svc:
+        #   hosts:
+        #     myhostname:
+        #       mattermost_svc_name: "mm-myhostname"
+
+        # gitea_svc:
+        #   hosts:
+        #     myhostname:
+        #       gitea_svc_name: "gitea-myhostname"
+
+        # mongodb_svc:
+        #   hosts:
+        #     myhostname:
+        #       mongodb_svc_name: "mongodb-myhostname"
+
+        # obsidian_svc:
+        #   hosts:
+        #     myhostname:
+        #       obsidian_svc_name: "obsidian-myhostname"
+
+        # conduit_svc:
+        #   hosts:
+        #     myhostname:
+        #       conduit_svc_name: "conduit-myhostname"
