@@ -8,6 +8,12 @@ This file provides guidance to Claude Code when working in the **solti-podman** 
 
 ## Core Commands
 
+> **Surfacing to unified docs:** Update `solti-docs.yml` at the collection root
+> to declare which files and CLAUDE.md sections should appear on solti.jackaltx.com.
+> Local `docs/` detail stays local — only declare what matters to the suite-wide audience.
+> See [solti-docs/HARVEST.md](https://github.com/jackaltx/solti-docs/blob/main/HARVEST.md).
+
+
 ### Service Management
 
 ```bash

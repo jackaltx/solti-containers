@@ -1,0 +1,18 @@
+title: "Podman Services"
+section: "Services"
+subsection: "Podman"
+nav_order: 1
+description: "Rootless Podman container services with Quadlet/systemd integration"
+
+sources:
+  - file: CLAUDE.md
+    sections:
+      - "Core Commands"
+      - "Architecture Overview"
+      - "Development Patterns"
+      - "Key Configuration"
+  - file: inventory/_example.yml
+    type: example
+    title: "Example Host Inventory"
+  - file: galaxy.yml
+    type: metadata
