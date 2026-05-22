@@ -11,6 +11,16 @@ sources:
       - "Architecture Overview"
       - "Development Patterns"
       - "Key Configuration"
+  - file: docs/architecture/Container-Role-Architecture.md
+    title: "Container Role Architecture"
+  - file: docs/architecture/Solti-Container-Pattern.md
+    title: "The Solti Pattern"
+  - file: docs/architecture/Rootless-Podman-Network-Constraints.md
+    title: "Network Constraints"
+  - file: docs/decisions/TLS-Architecture-Decision.md
+    title: "TLS Architecture"
+  - file: docs/decisions/Traefik-Label-Consolidation-Pattern.md
+    title: "Traefik Label Pattern"
   - file: inventory/_example.yml
     type: example
     title: "Example Host Inventory"
