@@ -26,3 +26,11 @@ sources:
     title: "Example Host Inventory"
   - file: galaxy.yml
     type: metadata
+
+# Seed concepts — documented when git history shows enough weight
+concepts:
+  - "rootless permissions"
+  - "proxmox molecule testing"
+  - "inventory architecture"
+  - "selinux volume mounts"
+  - "real user directory"
