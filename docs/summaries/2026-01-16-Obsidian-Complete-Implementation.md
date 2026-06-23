@@ -330,4 +330,4 @@ The Obsidian role is **production-ready** and fully integrated into the SOLTI co
 **Generated**: 2026-01-16T18:10:00-06:00
 **Author**: Claude (Sonnet 4.5)
 **Pattern**: docs/Claude-new-quadlet.md (MongoDB reference)
-**Collection**: solti-containers
+**Collection**: solti-podman

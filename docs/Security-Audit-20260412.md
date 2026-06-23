@@ -1,7 +1,7 @@
 # Security Audit Report - April 12, 2026
 
 ## Overview
-This document summarizes the findings and recommendations from a security audit of the **solti-containers** collection. The audit focused on secrets management, container isolation, and system-level configuration within the Ansible-driven rootless Podman architecture.
+This document summarizes the findings and recommendations from a security audit of the **solti-podman** collection. The audit focused on secrets management, container isolation, and system-level configuration within the Ansible-driven rootless Podman architecture.
 
 ## 1. High-Impact Findings
 

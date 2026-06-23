@@ -1,4 +1,4 @@
-# Ansible Collection - jackaltx.solti_containers
+# Ansible Collection - jackaltx.solti_podman
 
 This was an experiment to explore how to use an AI to create new container services quickly based on "convention".
 The question was,  what kinds of conventions could it learn and keep repeating. In that endeavor there were many "Plan this.." and "Summarize this...". I tried a few Claude slash commands out. Oh, the sounds of learning that came from my

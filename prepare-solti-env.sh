@@ -1,5 +1,5 @@
 #!/bin/bash
-# prepare-solti-env.sh - Setup Python virtual environment for solti-containers testing
+# prepare-solti-env.sh - Setup Python virtual environment for solti-podman testing
 
 set -e  # Exit on error
 

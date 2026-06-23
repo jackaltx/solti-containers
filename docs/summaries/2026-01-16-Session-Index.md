@@ -250,5 +250,5 @@ The Obsidian role is production-ready and serves as a reference for future servi
 
 **Generated**: 2026-01-16T18:25:00-06:00
 **Session**: Claude (Sonnet 4.5) + User
-**Collection**: solti-containers
+**Collection**: solti-podman
 **Pattern**: SOLTI (Systems Oriented Laboratory Testing Integration)

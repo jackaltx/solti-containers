@@ -1,5 +1,5 @@
 ---
-# Service definitions for solti-containers molecule testing.
+# Service definitions for solti-podman molecule testing.
 # verify_role_tasks is an ordered list of role tasks — sequence is the semantics.
 # Initialization, unsealing, and health checks all go here in the right order.
 # required_packages removed — proxmox scenario targets a pre-provisioned VM.

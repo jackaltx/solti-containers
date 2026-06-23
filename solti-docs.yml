@@ -1,0 +1,36 @@
+title: "Podman Services"
+section: "Services"
+subsection: "Podman"
+nav_order: 1
+description: "Rootless Podman container services with Quadlet/systemd integration"
+
+sources:
+  - file: CLAUDE.md
+    sections:
+      - "Core Commands"
+      - "Architecture Overview"
+      - "Development Patterns"
+      - "Key Configuration"
+  - file: docs/architecture/Container-Role-Architecture.md
+    title: "Container Role Architecture"
+  - file: docs/architecture/Solti-Container-Pattern.md
+    title: "The Solti Pattern"
+  - file: docs/architecture/Rootless-Podman-Network-Constraints.md
+    title: "Network Constraints"
+  - file: docs/decisions/TLS-Architecture-Decision.md
+    title: "TLS Architecture"
+  - file: docs/decisions/Traefik-Label-Consolidation-Pattern.md
+    title: "Traefik Label Pattern"
+  - file: inventory/_example.yml
+    type: example
+    title: "Example Host Inventory"
+  - file: galaxy.yml
+    type: metadata
+
+# Seed concepts — documented when git history shows enough weight
+concepts:
+  - "rootless permissions"
+  - "proxmox molecule testing"
+  - "inventory architecture"
+  - "selinux volume mounts"
+  - "real user directory"

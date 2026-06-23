@@ -4,7 +4,7 @@ This directory contains baseline configurations for testing container services a
 
 ## Purpose
 
-These inventories provide **baseline service configurations** for the solti-containers collection. They are designed for:
+These inventories provide **baseline service configurations** for the solti-podman collection. They are designed for:
 
 - **Development testing** - Validate service deployments on local machines (localhost.yml)
 - **Remote testing** - Test deployments on remote hosts (podma.yml)

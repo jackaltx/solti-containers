@@ -2,7 +2,7 @@
 
 **Date:** 2025-11-18
 **Status:** In Progress (Gitea Complete)
-**Purpose:** Standardize service URL construction across all solti-containers roles for multi-host deployments
+**Purpose:** Standardize service URL construction across all solti-podman roles for multi-host deployments
 
 ---
 

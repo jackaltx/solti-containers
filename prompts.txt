@@ -41,7 +41,7 @@ It would be good to check the roles for syntax only if desired
 
 ==================================================================
 
-Debug solti-containers: mattermost
+Debug solti-podman: mattermost
 
 1. remove root requirement from role.  add a playbook that runs on debian and rhel to package install and make that become:
 

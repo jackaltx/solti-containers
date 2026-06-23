@@ -21,7 +21,7 @@
       solti:
         schema: "deploy.complete.v1"
         timestamp: "{{ ansible_date_time.iso8601 }}"
-        source: "solti-containers/{{ service_properties.root }}/{{ inventory_hostname }}"
+        source: "solti-podman/{{ service_properties.root }}/{{ inventory_hostname }}"
         data:
           service: "{{ service_properties.root }}"
           host: "{{ inventory_hostname }}"

@@ -13,7 +13,7 @@
   tasks:
     # First authenticate and get a token
     - name: Verify security settings
-      jackaltx.solti_containers.mattermost:
+      jackaltx.solti_podman.mattermost:
         url: "{{ mattermost_url }}"
         username: "{{ admin_username }}"
         password: "{{ admin_password }}"
@@ -27,7 +27,7 @@
 
     # Create a new user (reusing the token from before)
     - name: Create test user
-      jackaltx.solti_containers.mattermost:
+      jackaltx.solti_podman.mattermost:
         url: "{{ mattermost_url }}"
         token: "{{ security_results.token }}"
         action: create_user
@@ -55,7 +55,7 @@
     # ..................................................................................
     # Post notification to a channel
     - name: Post notification
-      jackaltx.solti_containers.mattermost:
+      jackaltx.solti_podman.mattermost:
         url: "{{ mattermost_url }}"
         token: "{{ security_results.token }}"
         action: post_message

@@ -4,5 +4,5 @@
 mkdir -p ~/.ansible/collections/ansible_collections/jackaltx/
 
 # Create the symlink
-ln -s $(pwd) ~/.ansible/collections/ansible_collections/jackaltx/solti_containers
+ln -s $(pwd) ~/.ansible/collections/ansible_collections/jackaltx/solti_podman
 

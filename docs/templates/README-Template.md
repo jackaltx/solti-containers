@@ -1,6 +1,6 @@
 # README Template for Service Roles
 
-Standard structure for service role README files in the solti-containers collection.
+Standard structure for service role README files in the solti-podman collection.
 
 ## Purpose
 

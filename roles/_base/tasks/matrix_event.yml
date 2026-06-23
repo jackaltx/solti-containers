@@ -14,7 +14,7 @@
       solti:
         schema: "deploy.complete.v1"
         timestamp: "{{ ansible_date_time.iso8601 }}"
-        source: "solti-containers/{{ service_properties.root }}/{{ inventory_hostname }}"
+        source: "solti-podman/{{ service_properties.root }}/{{ inventory_hostname }}"
         data:
           service: "{{ service_properties.root }}"
           host: "{{ inventory_hostname }}"
@@ -22,7 +22,7 @@
           operator: "{{ ansible_user }}"
           duration: 0 # TODO: calculate from task timestamps
           status: "{{ deployment_status | default('success') }}"
-          # solti-containers specific
+          # solti-podman specific
           service_properties: "{{ service_properties }}"
           # failure data (only present on errors)
           error: "{{ deployment_error | default(omit) }}"

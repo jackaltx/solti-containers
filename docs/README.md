@@ -1,11 +1,11 @@
-# solti-containers/docs - Development Documentation
+# solti-podman/docs - Development Documentation
 
 > **Patterns, Architectures, and Development Guides**
-> *Comprehensive technical documentation for the solti-containers collection, covering patterns, decisions, and development workflows.*
+> *Comprehensive technical documentation for the solti-podman collection, covering patterns, decisions, and development workflows.*
 
 ## Purpose
 
-This directory contains technical documentation, architectural decisions, development patterns, and sprint reports for the solti-containers Ansible collection.
+This directory contains technical documentation, architectural decisions, development patterns, and sprint reports for the solti-podman Ansible collection.
 
 ## Document Categories
 
@@ -13,7 +13,7 @@ This directory contains technical documentation, architectural decisions, develo
 
 #### [Container-Role-Architecture.md](Container-Role-Architecture.md)
 
-Complete architecture guide for the solti-containers pattern.
+Complete architecture guide for the solti-podman pattern.
 
 **For:** Developers (human)
 **Topics:**
@@ -137,7 +137,7 @@ Guide for using Claude AI for code review.
 
 #### [molecule-strategy.md](molecule-strategy.md)
 
-Molecule testing strategy for solti-containers.
+Molecule testing strategy for solti-podman.
 
 **For:** Developers (testing guide)
 **Topics:**
@@ -253,14 +253,14 @@ Should provide:
 
 ## Related Documentation
 
-- **[solti-containers README](../README.md)** - User-facing documentation
-- **[solti-containers CLAUDE.md](../CLAUDE.md)** - Collection-specific context
+- **[solti-podman README](../README.md)** - User-facing documentation
+- **[solti-podman CLAUDE.md](../CLAUDE.md)** - Collection-specific context
 - **[Root CLAUDE.md](../../CLAUDE.md)** - Multi-collection development context
 - **[solti-docs repository](https://github.com/jackaltx/solti-docs)** - Public philosophy docs
 
 ## Usage Notes
 
-**Target Audience:** Primarily for developers working on solti-containers and those implementing similar patterns.
+**Target Audience:** Primarily for developers working on solti-podman and those implementing similar patterns.
 
 **Not User Documentation:** For user guides, see the main [README.md](../README.md) and role-specific READMEs.
 

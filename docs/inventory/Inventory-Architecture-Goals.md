@@ -240,7 +240,7 @@ elasticsearch_password: "{{ lookup('env', 'ELASTICSEARCH_PASSWORD') }}"
 **Future State**: External secrets repository
 
 ```
-solti-containers/                    # Public repository
+solti-podman/                    # Public repository
 ├── inventory/
 │   └── group_vars/
 │       └── elasticsearch_svc.yml    # No secrets, references only
@@ -288,7 +288,7 @@ ansible-playbook -i inventory/localhost.yml \
 - name: Deploy monitoring stack
   workflow:
     collections:
-      - solti-containers
+      - solti-podman
     inventory: ~/lab-inventory
     secrets: ~/lab-secrets
     targets:
@@ -316,7 +316,7 @@ ansible-playbook -i inventory/localhost.yml \
 - Send notifications
 - Record audit trail
 
-**Collection responsibilities** (solti-containers):
+**Collection responsibilities** (solti-podman):
 
 - Implement service deployment roles
 - Provide verification tasks

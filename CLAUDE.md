@@ -1,12 +1,18 @@
-# CLAUDE.md - solti-containers Collection
+# CLAUDE.md - solti-podman Collection
 
-This file provides guidance to Claude Code when working in the **solti-containers** collection.
+This file provides guidance to Claude Code when working in the **solti-podman** collection.
 
-**Context**: This is one collection within the [SOLTI Ansible Collections Suite](../CLAUDE.md). The parent project coordinates multiple collections (solti-monitoring, solti-containers, solti-ensemble) with the [mylab orchestrator](../mylab/).
+**Context**: This is one collection within the [SOLTI Ansible Collections Suite](../CLAUDE.md). The parent project coordinates multiple collections (solti-monitoring, solti-podman, solti-ensemble) with the [mylab orchestrator](../mylab/).
 
 **Scope**: This CLAUDE.md covers collection-specific patterns. For system-wide context (reference machines, orchestrator workflows, cross-collection coordination), see [../CLAUDE.md](../CLAUDE.md).
 
 ## Core Commands
+
+> **Surfacing to unified docs:** Update `solti-docs.yml` at the collection root
+> to declare which files and CLAUDE.md sections should appear on solti.jackaltx.com.
+> Local `docs/` detail stays local — only declare what matters to the suite-wide audience.
+> See [solti-docs/HARVEST.md](https://github.com/jackaltx/solti-docs/blob/main/HARVEST.md).
+
 
 ### Service Management
 

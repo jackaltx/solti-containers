@@ -13,8 +13,8 @@ set -euo pipefail
 
 # Configuration
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-BACKUP_DIR="${HOME}/backups/ansible/solti-containers"
-REPO_NAME="solti-containers"
+BACKUP_DIR="${HOME}/backups/ansible/solti-podman"
+REPO_NAME="solti-podman"
 
 # Colors for output
 RED='\033[0;31m'
