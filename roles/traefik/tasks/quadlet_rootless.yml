@@ -27,7 +27,7 @@
 
 # note: this was only done to rootless...may need work on privileged
 - name: Configure SELinux for Podman socket access
-  when: ansible_selinux.status == "enabled"
+  when: ansible_facts['selinux']['status'] == "enabled"
   block:
     - name: Add persistent SELinux file context for Podman socket
       community.general.sefcontext:

@@ -44,6 +44,44 @@ vault_enable_ui: true
 vault_initial_root_token: "" # Generated on first init if not provided
 vault_enable_audit: true
 
+# Admin credentials - VAULT_ADMIN_PASSWORD env var must be set
+vault_admin_username: "admin"
+vault_admin_password: "{{ lookup('env', 'VAULT_ADMIN_PASSWORD') | mandatory('VAULT_ADMIN_PASSWORD environment variable must be set before running configure') }}"
+
+# Auth and configure settings
+vault_addr: "http://localhost:{{ vault_api_port }}"
+vault_enable_userpass: true
+vault_enable_approle: true
+vault_policies:
+  - name: "admin"
+    rules: |
+      path "*" {
+        capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+      }
+  - name: "readonly"
+    rules: |
+      path "kv/*" {
+        capabilities = ["read", "list"]
+      }
+
+# Secret engines
+vault_enable_transit: true
+vault_enable_pki: true
+vault_enable_ssh: false
+vault_pki_max_ttl: "87600h"
+vault_pki_common_name: "{{ domain }}"
+vault_initial_secrets: []
+
+# Initialization settings
+vault_init_required: true
+vault_key_shares: 5
+vault_key_threshold: 3
+vault_unseal_now: true
+vault_keys_backup: true
+vault_keys_output_dir: "{{ real_user_dir }}/.secrets/vault-secrets"
+vault_keys_file: "{{ vault_keys_output_dir }}/vault-keys.json"
+vault_keys_dir: "{{ vault_keys_output_dir }}"
+
 # Storage settings
 vault_storage_type: "file" # Options: file, raft, consul
 vault_raft_node_id: "node1"

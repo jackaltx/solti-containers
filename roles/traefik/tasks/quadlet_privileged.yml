@@ -42,7 +42,7 @@
   ansible.builtin.command: chcon -t container_file_t /run/podman/podman.sock
   when:
     - traefik_privileged
-    - ansible_selinux.status == "enabled"
+    - ansible_facts['selinux']['status'] == "enabled"
   changed_when: true
 #
 # .............................................................................

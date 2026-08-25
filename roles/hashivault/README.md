@@ -40,12 +40,13 @@ Creates directories, applies SELinux contexts, and configures the system.
 ### 2. Deploy
 
 ```bash
-# Optional: Set admin password
+# Required: Set admin password before running configure
 export VAULT_ADMIN_PASSWORD="your_secure_admin_password"
 
 ./manage-svc.sh hashivault deploy
 
-# Initialize Vault (first time only)
+# Initialize Vault (first time only) - generates unseal keys + root token
+# Keys stored at ~/.secrets/vault-secrets/vault-keys.json
 ./svc-exec.sh hashivault initialize
 
 # Configure authentication and policies
@@ -56,6 +57,8 @@ export VAULT_ADMIN_PASSWORD="your_secure_admin_password"
 ```
 
 Deploys Vault, initializes with unseal keys, and configures authentication.
+
+**Note**: `VAULT_ADMIN_PASSWORD` is required (not optional). The deploy will fail at the configure step with a clear error if it is not set.
 
 ### 3. Verify
 
@@ -78,7 +81,7 @@ Runs health checks and functional tests.
 
 ```bash
 export VAULT_ADDR="http://localhost:8200"           # Vault API endpoint
-export VAULT_ADMIN_PASSWORD="your_secure_password"  # Admin user password (optional)
+export VAULT_ADMIN_PASSWORD="your_secure_password"  # Admin user password (required for configure)
 ```
 
 ### Inventory Variables
