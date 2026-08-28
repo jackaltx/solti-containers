@@ -12,7 +12,7 @@
 - name: Set backup defaults
   ansible.builtin.set_fact:
     _backup_dir: "{{ grafana_backup_dir | default(real_user_dir + '/grafana-backups') }}"
-    _backup_stamp: "{{ ansible_date_time.date }}"
+    _backup_stamp: "{{ now(fmt='%Y-%m-%d-%H%M') }}"
     _db_src: "{{ grafana_data_dir }}/data/grafana.db"
 
 # ....................................................................................
@@ -39,12 +39,9 @@
 
 # ....................................................................................
 - name: Copy grafana.ini config alongside the db snapshot
-  ansible.builtin.copy:
-    src: "{{ grafana_data_dir }}/config/grafana.ini"
-    dest: "{{ _backup_dir }}/grafana-{{ _backup_stamp }}.ini"
-    mode: "0600"
-    remote_src: true
-  failed_when: false
+  ansible.builtin.command:
+    cmd: cp "{{ grafana_data_dir }}/config/grafana.ini" "{{ _backup_dir }}/grafana-{{ _backup_stamp }}.ini"
+  changed_when: true
 
 # ....................................................................................
 - name: Prune backups older than {{ grafana_backup_retain_days | default(14) }} days
