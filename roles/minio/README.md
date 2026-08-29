@@ -1,5 +1,7 @@
 # MinIO Role
 
+> **DEPRECATED** — Replaced by `rustfs` (Apache 2.0 license, lower maintenance burden). This role is retained for `remove` operations only. Do not deploy new instances. See `roles/rustfs/` for the replacement.
+
 Deploys MinIO S3-compatible object storage as a rootless Podman container with systemd integration using the quadlet pattern.
 
 ## Overview
