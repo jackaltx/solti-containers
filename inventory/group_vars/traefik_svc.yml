@@ -5,3 +5,11 @@
 debug_level: warn
 traefik_dashboard_enabled: true
 traefik_data_dir: "{{ lookup('env', 'HOME') }}/traefik-data"
+
+# Linode DNS token from HashiVault — shared mylab credential
+# Path: kv/infrastructure/mylab/linode → token
+traefik_linode_token: "{{ lookup('community.hashi_vault.hashi_vault',
+    'kv/data/infrastructure/mylab/linode',
+    auth_method='token',
+    token=lookup('env', 'VAULT_TOKEN'),
+    url=lookup('env', 'VAULT_ADDR')).token }}"

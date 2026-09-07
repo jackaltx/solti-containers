@@ -86,7 +86,7 @@
       - "{{traefik_data_dir}}/logs:/logs:Z"
       - "/run/podman/podman.sock:/var/run/docker.sock:ro"
     env:
-      LINODE_TOKEN: "{{lookup('env', 'LINODE_TOKEN')}}"
+      LINODE_TOKEN: "{{traefik_linode_token}}"
     quadlet_options:
       - |
         [Unit]

@@ -6,13 +6,18 @@ debug_level: warn
 mongodb_data_dir: "{{ lookup('env', 'HOME') }}/mongodb-data"
 mongodb_gui_port: 8082
 
-# MongoDB credentials (loaded from environment)
-mongodb_root_username: "{{ lookup('env', 'MONGODB_ROOT_USERNAME', default='') }}"
-mongodb_root_password: "{{ lookup('env', 'MONGODB_ROOT_PASSWORD', default='') }}"
+# Credentials from HashiVault — path: kv/infrastructure/<inventory_hostname>/mongodb
+mongodb_root_username: "{{ lookup('community.hashi_vault.hashi_vault',
+    'kv/data/infrastructure/' + inventory_hostname + '/mongodb',
+    auth_method='token',
+    token=lookup('env', 'VAULT_TOKEN'),
+    url=lookup('env', 'VAULT_ADDR')).root_user }}"
+mongodb_root_password: "{{ lookup('community.hashi_vault.hashi_vault',
+    'kv/data/infrastructure/' + inventory_hostname + '/mongodb',
+    auth_method='token',
+    token=lookup('env', 'VAULT_TOKEN'),
+    url=lookup('env', 'VAULT_ADDR')).root_password }}"
 mongodb_database: "{{ lookup('env', 'MONGODB_DATABASE', default='admin') }}"
-
-# Optional: Store credentials in HashiVault (future enhancement)
-# mongodb_root_password: "{{ lookup('hashivault', 'kv/services/mongodb', 'root_password') }}"
 
 # Test/verification variables
 test_collection: "test_ansible"

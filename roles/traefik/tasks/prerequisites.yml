@@ -3,8 +3,8 @@
 # Template configuration as regular user (files created as ansible_user automatically)
 - name: Verify Linode token is available
   ansible.builtin.fail:
-    msg: "LINODE_TOKEN environment variable must be set"
-  when: lookup('env', 'LINODE_TOKEN') == ''
+    msg: "traefik_linode_token must be set (from Vault: kv/infrastructure/mylab/linode)"
+  when: traefik_linode_token == ''
 
 - name: Display setup reminder
   ansible.builtin.debug:
@@ -13,7 +13,7 @@
       - "TRAEFIK DEVELOPMENT SETUP REMINDER:"
       - "1. Dashboard will be at: http://localhost:{{traefik_dashboard_port}}"
       - "2. Domain configured: {{domain}}"
-      - "3. DNS provider: Linode (token: {{'SET' if lookup('env', 'LINODE_TOKEN') else 'NOT SET'}})"
+      - "3. DNS provider: Linode (token: {{'SET' if traefik_linode_token else 'NOT SET'}})"
       - "4. Ensure *.{{domain}} points to this machine"
       - "=========================================="
 

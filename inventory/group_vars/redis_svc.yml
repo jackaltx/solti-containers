@@ -4,7 +4,12 @@
 
 debug_level: warn
 redis_data_dir: "{{ lookup('env', 'HOME') }}/redis-data"
-redis_password: "{{ lookup('env', 'REDIS_PASSWORD', default='') }}"
+# Credentials from HashiVault — path: kv/infrastructure/<inventory_hostname>/redis
+redis_password: "{{ lookup('community.hashi_vault.hashi_vault',
+    'kv/data/infrastructure/' + inventory_hostname + '/redis',
+    auth_method='token',
+    token=lookup('env', 'VAULT_TOKEN'),
+    url=lookup('env', 'VAULT_ADDR')).password }}"
 
 test_key: "test:ansible"
 test_value: "Verification-{{ lookup('pipe', 'date +%s') }}"

@@ -80,7 +80,7 @@
       - "{{traefik_data_dir}}/logs:/logs:Z,U"
       - "{{xdg_runtime_dir}}/podman/podman.sock:/var/run/docker.sock:ro,Z"
     env:
-      LINODE_TOKEN: "{{lookup('env', 'LINODE_TOKEN')}}"
+      LINODE_TOKEN: "{{traefik_linode_token}}"
     label:
       traefik.enable: "{{traefik_enable_traefik | lower}}"
       traefik.http.routers.traefik-dashboard.rule: "Host(`{{traefik_fqdn}}`)"

@@ -26,7 +26,7 @@
 set -e
 
 ANSIBLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INVENTORY="${SOLTI_INVENTORY:-${ANSIBLE_DIR}/inventory/localhost.yml}"
+INVENTORY="${SOLTI_INVENTORY:-}"
 TEMP_DIR="${ANSIBLE_DIR}/tmp"
 HOST=""
 YES_FLAG=false
@@ -240,6 +240,7 @@ shift 2
 EXTRA_ARGS=("$@")
 
 is_service_valid "$SERVICE" || { echo "Error: unknown service '${SERVICE}'"; usage; }
+[[ -n "$INVENTORY" ]] || { echo "Error: inventory required — use -i INVENTORY or set SOLTI_INVENTORY env var"; exit 1; }
 [[ -f "$INVENTORY" ]] || { echo "Error: inventory not found: ${INVENTORY}"; exit 1; }
 
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
