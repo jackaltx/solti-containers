@@ -84,7 +84,7 @@
     content: |
       # yamllint disable
       # InfluxDB 3 Core Tokens
-      # Generated: {{ansible_facts.date_time.iso8601}}
+      # Generated: {{lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ')}}
       # Host: {{ansible_hostname}}
 
       {% for result in token_results.results %}

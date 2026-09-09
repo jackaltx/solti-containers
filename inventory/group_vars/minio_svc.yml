@@ -6,3 +6,15 @@ minio_console_port: 9001
 debug_level: warn
 minio_dashboard_enabled: true
 minio_data_dir: "{{ lookup('env', 'HOME') }}/minio-data"
+
+# Credentials from HashiVault — path: kv/infrastructure/<inventory_hostname>/minio
+minio_root_user: "{{ lookup('community.hashi_vault.hashi_vault',
+    'kv/data/infrastructure/' + inventory_hostname + '/minio',
+    auth_method='token',
+    token=lookup('env', 'VAULT_TOKEN'),
+    url=lookup('env', 'VAULT_ADDR')).root_user }}"
+minio_root_password: "{{ lookup('community.hashi_vault.hashi_vault',
+    'kv/data/infrastructure/' + inventory_hostname + '/minio',
+    auth_method='token',
+    token=lookup('env', 'VAULT_TOKEN'),
+    url=lookup('env', 'VAULT_ADDR')).root_password }}"

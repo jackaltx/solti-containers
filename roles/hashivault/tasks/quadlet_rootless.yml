@@ -96,3 +96,21 @@
     systemctl --user start {{service_properties.name}}
   become: false
   changed_when: true
+
+# .......................................................................................
+- name: Wait for vault container to be running
+  become: false
+  command: podman wait --condition running vault-svc
+  register: vault_wait
+  retries: 12
+  delay: 5
+  until: vault_wait.rc == 0
+  changed_when: false
+
+# .......................................................................................
+# Vault runs as uid=100 (vault user) inside the container. The image entrypoint
+# chowns /vault/config and /vault/logs but not /vault/data or /vault/tls.
+- name: Fix vault data/tls directory ownership for vault container user
+  become: false
+  command: podman exec vault-svc chown -R vault:vault /vault/data /vault/tls
+  changed_when: true

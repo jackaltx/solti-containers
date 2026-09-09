@@ -7,8 +7,8 @@
 
 - name: Validate state parameter
   ansible.builtin.fail:
-    msg: "grafana_state must be one of: prepare, present, absent. Current value: {{grafana_state}}"
-  when: grafana_state not in ['prepare', 'present', 'absent']
+    msg: "grafana_state must be one of: prepare, present, absent, backup. Current value: {{grafana_state}}"
+  when: grafana_state not in ['prepare', 'present', 'absent', 'backup']
 
 # =======================================================================
 # PREPARATION (one-time setup)
@@ -75,6 +75,14 @@
         file: "../_base/tasks/cleanup.yml"
       vars:
         service_state: absent
+
+# =======================================================================
+# BACKUP
+# =======================================================================
+
+- name: Backup Grafana database
+  when: grafana_state == 'backup'
+  ansible.builtin.include_tasks: backup.yml
 
 # =======================================================================
 # MATRIX EVENT

@@ -1,0 +1,68 @@
+---
+# Grafana backup — uses SQLite's hot backup so the container stays running.
+# Keeps grafana_backup_retain_days worth of daily backups; prunes the rest.
+#
+# Usage:
+#   ./svc-exec.sh -h <host> grafana backup
+#
+# Variables (all have defaults):
+#   grafana_backup_dir   - where to store backups (default: ~/grafana-backups)
+#   grafana_backup_retain_days - how many days of backups to keep (default: 14)
+
+- name: Set backup defaults
+  ansible.builtin.set_fact:
+    _backup_dir: "{{ grafana_backup_dir | default(real_user_dir + '/grafana-backups') }}"
+    _backup_stamp: "{{ now(fmt='%Y-%m-%d-%H%M') }}"
+    _db_src: "{{ grafana_data_dir }}/data/grafana.db"
+
+# ....................................................................................
+- name: Ensure backup directory exists
+  ansible.builtin.file:
+    path: "{{ _backup_dir }}"
+    state: directory
+    mode: "0700"
+
+# ....................................................................................
+- name: Verify source database exists
+  ansible.builtin.stat:
+    path: "{{ _db_src }}"
+  register: db_stat
+  failed_when: not db_stat.stat.exists
+
+# ....................................................................................
+- name: Hot-backup grafana.db via sqlite3
+  ansible.builtin.command:
+    cmd: >
+      sqlite3 {{ _db_src }}
+      ".backup {{ _backup_dir }}/grafana-{{ _backup_stamp }}.db"
+  changed_when: true
+
+# ....................................................................................
+- name: Copy grafana.ini config alongside the db snapshot
+  ansible.builtin.command:
+    cmd: cp "{{ grafana_data_dir }}/config/grafana.ini" "{{ _backup_dir }}/grafana-{{ _backup_stamp }}.ini"
+  changed_when: true
+
+# ....................................................................................
+- name: Prune backups older than {{ grafana_backup_retain_days | default(14) }} days
+  ansible.builtin.find:
+    paths: "{{ _backup_dir }}"
+    patterns: "grafana-*.db,grafana-*.ini"
+    age: "{{ grafana_backup_retain_days | default(14) }}d"
+    age_stamp: mtime
+  register: old_backups
+
+- name: Remove old backups
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_backups.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+# ....................................................................................
+- name: Report backup result
+  ansible.builtin.debug:
+    msg:
+      - "Backup written to: {{ _backup_dir }}/grafana-{{ _backup_stamp }}.db"
+      - "Pruned {{ old_backups.files | length }} file(s) older than {{ grafana_backup_retain_days | default(14) }} days"

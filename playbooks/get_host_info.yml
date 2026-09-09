@@ -1,0 +1,11 @@
+---
+- name: Demonstrate Hostname Variables
+  hosts: mylab
+  gather_facts: true # Required for ansible_hostname
+
+  tasks:
+    - name: Display inventory and discovered hostnames
+      ansible.builtin.debug:
+        msg:
+          - "Inventory Hostname: {{ inventory_hostname }}"
+          - "Ansible Hostname  : {{ ansible_hostname }}"

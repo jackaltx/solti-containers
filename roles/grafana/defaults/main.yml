@@ -28,6 +28,10 @@ grafana_admin_user: "admin"
 grafana_admin_password: "{{lookup('env', 'GRAFANA_ADMIN_PASSWORD') | default('changeme')}}"
 grafana_secret_key: "{{lookup('password', '/dev/null length=20 chars=ascii_letters,digits')}}"
 
+# Backup settings
+grafana_backup_dir: "{{ real_user_dir }}/grafana-backups"
+grafana_backup_retain_days: 14
+
 # Database settings (using SQLite by default for simplicity)
 # Note: path inside container
 grafana_database_type: "sqlite3"

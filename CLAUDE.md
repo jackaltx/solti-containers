@@ -327,6 +327,24 @@ When Traefik is deployed, services automatically get SSL termination:
 
 ## Development Patterns
 
+### README Standard
+
+**Rule:** Every role must have a `README.md`. When working on a role, check if the README is present and current — update it before closing the session. README files are the primary "where did I leave off" artifact for humans and AI alike.
+
+**Required sections:**
+
+1. **What it is** — one-line purpose, image used
+2. **Lifecycle** — exact `manage-svc.sh` commands for prepare/deploy/remove/verify and any operational tasks (rotate, backup, etc.)
+3. **Variables** — table of key vars: name, default, source (env var / `inventory.yml` / HashiVault path), purpose
+4. **Credentials** — env var name exported before deploy → HashiVault KV path once wired (`kv/hosts/<host>/<service>`)
+5. **Gotchas** — uid/gid quirks, SELinux contexts, Quadlet-specific behavior, non-obvious defaults
+
+**Minimum README structure:** `# <service>` → one-line purpose + image → `## Lifecycle`
+(manage-svc.sh prepare/deploy/verify/remove commands) → `## Key Variables` (table: name / default /
+source / purpose) → `## Credentials` (export block + HashiVault path once wired) → `## Gotchas`.
+
+Reference: `roles/hashivault/README.md` in solti-docker is the current high-water mark for detail level.
+
 ### Adding New Services
 
 1. Follow the standard role structure in [docs/architecture/Solti-Container-Pattern.md](docs/architecture/Solti-Container-Pattern.md)
